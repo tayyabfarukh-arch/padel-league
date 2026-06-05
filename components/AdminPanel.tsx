@@ -25,9 +25,14 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
+  const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
   const tournamentTeamIds = useMemo(
     () => new Set(tournamentTeams.filter((item) => item.tournament_id === activeTournament?.id).map((item) => item.team_id)),
     [activeTournament?.id, tournamentTeams]
+  );
+  const resultMatches = useMemo(
+    () => matches.filter((match) => !resultTournamentId || match.tournament_id === resultTournamentId),
+    [matches, resultTournamentId]
   );
 
   useEffect(() => {
@@ -322,7 +327,30 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
         <Panel title="Enter or edit result">
           <form onSubmit={saveResult} className="space-y-3">
-            <Select name="match_id" label="Match" options={matches.map((match) => [match.id, `${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)} (${match.stage})`])} />
+            <label className="block">
+              <span className="mb-1 block text-xs font-black uppercase text-slate-500">Tournament</span>
+              <select
+                className="field"
+                value={resultTournamentId}
+                onChange={(event) => setResultTournamentId(event.target.value)}
+              >
+                {tournaments.map((tournament) => (
+                  <option key={`result-tournament-${tournament.id}`} value={tournament.id}>
+                    {tournament.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Select
+              name="match_id"
+              label="Match"
+              options={resultMatches.map((match) => [match.id, `${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)} (${match.stage})`])}
+            />
+            {!resultMatches.length ? (
+              <p className="rounded-md bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+                No matches found for this tournament yet.
+              </p>
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <input className="field" name="team_1_games" type="number" min={0} max={3} placeholder="Team 1 games" required />
               <input className="field" name="team_2_games" type="number" min={0} max={3} placeholder="Team 2 games" required />
