@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { Check, LogIn, Plus, Save, Upload } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { teamLabel } from "@/lib/format";
 import { validateScore } from "@/lib/scoring";
@@ -18,14 +18,44 @@ type Props = {
 
 export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches }: Props) {
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const tournamentTeamIds = useMemo(
     () => new Set(tournamentTeams.filter((item) => item.tournament_id === activeTournament?.id).map((item) => item.team_id)),
     [activeTournament?.id, tournamentTeams]
   );
+
+  useEffect(() => {
+    if (!supabase) {
+      setCheckingSession(false);
+      return;
+    }
+
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSignedInEmail(data.session?.user.email ?? null);
+      setCheckingSession(false);
+    });
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedInEmail(session?.user.email ?? null);
+      setCheckingSession(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (!configured || !supabase) {
     return (
@@ -39,11 +69,14 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setMessage("");
+    setMessageType("info");
     try {
       await action();
+      setMessageType("success");
       setMessage("Saved. Refreshing data...");
       window.location.reload();
     } catch (error) {
+      setMessageType("error");
       setMessage(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setBusy(false);
@@ -60,10 +93,39 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await run(async () => {
+    setBusy(true);
+    setMessage("");
+    setMessageType("info");
+    try {
       const { error } = await supabase!.auth.signInWithPassword({ email, password });
       if (error) throw error;
-    });
+      setPassword("");
+      setMessageType("success");
+      setMessage("You are signed in. You can now add players, teams, tournaments, and results.");
+    } catch (error) {
+      setSignedInEmail(null);
+      setMessageType("error");
+      setMessage(error instanceof Error ? `Login failed: ${error.message}` : "Login failed. Please check your email and password.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function signOut() {
+    setBusy(true);
+    setMessage("");
+    try {
+      const { error } = await supabase!.auth.signOut();
+      if (error) throw error;
+      setSignedInEmail(null);
+      setMessageType("info");
+      setMessage("You are signed out.");
+    } catch (error) {
+      setMessageType("error");
+      setMessage(error instanceof Error ? error.message : "Could not sign out.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function addPlayer(event: FormEvent<HTMLFormElement>) {
@@ -178,15 +240,38 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         <p className="mt-2 text-sm text-slate-300">Fast entry for players, teams, tournaments, matches, and results.</p>
       </section>
 
-      <form onSubmit={signIn} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
-        <input className="field" type="email" placeholder="Admin email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <input className="field" type="password" placeholder="Password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        <button className="btn-primary" disabled={busy}><LogIn className="h-4 w-4" /> Sign in</button>
-      </form>
+      {signedInEmail ? (
+        <section className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-black text-emerald-900">Signed in successfully</p>
+            <p className="text-sm text-emerald-800">{signedInEmail}</p>
+          </div>
+          <button type="button" className="btn-secondary" onClick={signOut} disabled={busy}>
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+        </section>
+      ) : (
+        <form onSubmit={signIn} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
+          <input className="field" type="email" placeholder="Admin email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <input className="field" type="password" placeholder="Password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          <button className="btn-primary" disabled={busy}>
+            <LogIn className="h-4 w-4" /> {busy ? "Checking..." : "Sign in"}
+          </button>
+        </form>
+      )}
 
-      {message ? <p className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-700">{message}</p> : null}
+      {message ? <p className={messageClass(messageType)}>{message}</p> : null}
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {!signedInEmail ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-bold text-amber-950">
+            {checkingSession ? "Checking login status..." : "Please sign in before editing tournament data."}
+          </p>
+          <p className="mt-1 text-sm text-amber-800">If login fails, the message above will tell you why.</p>
+        </section>
+      ) : null}
+
+      {signedInEmail ? <div className="grid gap-5 lg:grid-cols-2">
         <Panel title="Add player">
           <form onSubmit={addPlayer} className="space-y-3">
             <input className="field" name="name" placeholder="Player name" required />
@@ -254,9 +339,16 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             <button className="btn-primary" disabled={busy}><Check className="h-4 w-4" /> Update tournament</button>
           </form>
         </Panel>
-      </div>
+      </div> : null}
     </div>
   );
+}
+
+function messageClass(type: "info" | "success" | "error") {
+  const base = "rounded-lg border p-3 text-sm font-semibold";
+  if (type === "success") return `${base} border-emerald-200 bg-emerald-50 text-emerald-900`;
+  if (type === "error") return `${base} border-red-200 bg-red-50 text-red-900`;
+  return `${base} border-slate-200 bg-white text-slate-700`;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
