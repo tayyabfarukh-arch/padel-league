@@ -18,7 +18,8 @@ export default async function CurrentTournamentPage() {
 
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
-  const standings = calculateTeamStats(teams, matches, [tournament]);
+  const groupMatches = matches.filter((match) => match.stage === "group");
+  const standings = calculateTeamStats(teams, groupMatches, [tournament]);
 
   return (
     <div className="space-y-6">
