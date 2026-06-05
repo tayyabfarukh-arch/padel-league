@@ -6,6 +6,9 @@ import { getMatches, getTeams, getTournaments } from "@/lib/data";
 import { headToHead, calculateTeamStats } from "@/lib/scoring";
 import { teamLabel } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TeamProfilePage({ params }: { params: { id: string } }) {
   const [teams, matches, tournaments] = await Promise.all([getTeams(), getMatches(), getTournaments()]);
   const team = teams.find((item) => item.id === params.id);

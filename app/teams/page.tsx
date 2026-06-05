@@ -3,6 +3,9 @@ import { TeamLeaderboard } from "@/components/Leaderboard";
 import { getMatches, getTeams, getTournaments } from "@/lib/data";
 import { calculateTeamStats } from "@/lib/scoring";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TeamsPage() {
   const [teams, matches, tournaments] = await Promise.all([getTeams(), getMatches(), getTournaments()]);
   const rows = calculateTeamStats(teams, matches, tournaments);

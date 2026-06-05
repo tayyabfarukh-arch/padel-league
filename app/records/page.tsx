@@ -4,6 +4,9 @@ import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
 import { formatPercent, teamLabel } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function RecordsPage() {
   const [players, teams, matches, tournaments] = await Promise.all([getPlayers(), getTeams(), getMatches(), getTournaments()]);
   const teamStats = calculateTeamStats(teams, matches, tournaments);

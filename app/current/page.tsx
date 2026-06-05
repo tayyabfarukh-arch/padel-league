@@ -8,6 +8,9 @@ import { calculateTeamStats } from "@/lib/scoring";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function CurrentTournamentPage() {
   const tournaments = await getTournaments();
   const tournament = tournaments.find((item) => item.status === "active") ?? tournaments.find((item) => item.status === "upcoming");

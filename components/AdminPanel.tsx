@@ -74,7 +74,9 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       await action();
       setMessageType("success");
       setMessage("Saved. Refreshing data...");
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
     } catch (error) {
       setMessageType("error");
       setMessage(error instanceof Error ? error.message : "Something went wrong.");

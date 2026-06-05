@@ -4,6 +4,9 @@ import { TeamAvatar } from "@/components/Avatar";
 import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
 import { teamLabel } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TournamentHistoryPage() {
   const [tournaments, allTournamentTeams, matches] = await Promise.all([getTournaments(), getTournamentTeams(), getMatches()]);
   const completed = tournaments.filter((tournament) => tournament.status === "completed");

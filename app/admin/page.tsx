@@ -2,6 +2,9 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { getMatches, getPlayers, getTeams, getTournamentTeams, getTournaments } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminPage() {
   const [players, teams, tournaments, tournamentTeams, matches] = await Promise.all([
     getPlayers(),

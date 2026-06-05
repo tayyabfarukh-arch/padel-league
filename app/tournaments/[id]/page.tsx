@@ -8,6 +8,9 @@ import { calculateTeamStats } from "@/lib/scoring";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TournamentDetailPage({ params }: { params: { id: string } }) {
   const tournament = await getTournament(params.id);
   if (!tournament) notFound();
