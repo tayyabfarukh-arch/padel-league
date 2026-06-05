@@ -12,7 +12,10 @@ export default async function TeamsPage() {
   if (!rows.length) return <EmptyState title="No teams yet" body="Create teams from the Admin panel." />;
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black text-slate-950">Teams leaderboard</h1>
+      <section className="court-panel rounded-lg p-5 text-white">
+        <p className="text-sm font-bold uppercase text-limeball">Partnership rankings</p>
+        <h1 className="mt-1 text-3xl font-black">Teams leaderboard</h1>
+      </section>
       <TeamLeaderboard rows={rows} />
     </div>
   );

@@ -20,9 +20,10 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-sm">
+      <section className="court-panel rounded-lg p-5 text-white">
         <PlayerAvatar player={player} size={84} />
-        <h1 className="mt-3 text-3xl font-black text-slate-950">{player.name}</h1>
+        <p className="mt-4 text-sm font-bold uppercase text-limeball">Player profile</p>
+        <h1 className="mt-1 text-3xl font-black">{player.name}</h1>
       </section>
       <StatsGrid stats={stats} />
       <section className="grid gap-3 md:grid-cols-3">
@@ -31,17 +32,17 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
         <PartnerCard label="Most successful partner" value={stats.mostSuccessfulPartner?.name} />
       </section>
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Team history</h2>
+        <h2 className="section-title">Team history</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {playerTeams.map((team) => (
-            <div key={team.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div key={team.id} className="sport-card p-4">
               <p className="font-black text-slate-950">{teamLabel(team)}</p>
             </div>
           ))}
         </div>
       </section>
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Recent matches</h2>
+        <h2 className="section-title">Recent matches</h2>
         <div className="grid gap-3 md:grid-cols-2">{recentMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
       </section>
     </div>
@@ -50,7 +51,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
 function PartnerCard({ label, value }: { label: string; value?: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="sport-card p-4">
       <p className="text-xs font-black uppercase text-slate-500">{label}</p>
       <p className="mt-2 text-lg font-black text-slate-950">{value ?? "TBD"}</p>
     </div>

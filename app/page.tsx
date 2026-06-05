@@ -32,8 +32,8 @@ export default async function Home() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg bg-slate-950 p-5 text-white shadow-sm md:p-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <section className="court-panel rounded-lg p-5 text-white shadow-sm md:p-8">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
               <Flame className="h-3.5 w-3.5" /> Private doubles battle
@@ -43,14 +43,28 @@ export default async function Home() {
               Race to 3 games, points by game difference, bragging rights by leaderboard.
             </p>
           </div>
-          <Link href="/current" className="btn-primary bg-limeball text-ink hover:bg-lime-300">
-            View tournament
-          </Link>
+          <div className="grid grid-cols-3 gap-2 md:min-w-80">
+            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
+              <p className="text-2xl font-black text-limeball">{teams.length}</p>
+              <p className="text-xs font-bold text-slate-300">Teams</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
+              <p className="text-2xl font-black text-limeball">{players.length}</p>
+              <p className="text-xs font-bold text-slate-300">Players</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
+              <p className="text-2xl font-black text-limeball">{matches.length}</p>
+              <p className="text-xs font-bold text-slate-300">Matches</p>
+            </div>
+            <Link href="/current" className="btn-primary col-span-3 bg-limeball text-ink hover:bg-lime-300">
+              View tournament
+            </Link>
+          </div>
         </div>
       </section>
 
       {lastChampion ? (
-        <section className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+        <section className="sport-card border-yellow-200 bg-yellow-50 p-4">
           <div className="flex items-center gap-4">
             <TeamAvatar team={lastChampion} size={58} />
             <div>
@@ -66,33 +80,33 @@ export default async function Home() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-black text-slate-950">Top teams</h2>
+          <h2 className="section-title">Top teams</h2>
           <TeamLeaderboard rows={teamStats} limit={5} />
         </section>
         <section>
-          <h2 className="mb-3 text-lg font-black text-slate-950">Top players</h2>
+          <h2 className="section-title">Top players</h2>
           <PlayerLeaderboard rows={playerStats} limit={5} />
         </section>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-black text-slate-950">Latest results</h2>
+          <h2 className="section-title">Latest results</h2>
           <div className="space-y-3">{latestResults.map((match) => <MatchCard key={match.id} match={match} />)}</div>
         </section>
         <section>
-          <h2 className="mb-3 text-lg font-black text-slate-950">Upcoming matches</h2>
+          <h2 className="section-title">Upcoming matches</h2>
           <div className="space-y-3">{upcoming.map((match) => <MatchCard key={match.id} match={match} />)}</div>
         </section>
       </div>
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-black text-slate-950">
+        <h2 className="section-title flex items-center gap-2">
           <Trophy className="h-5 w-5 text-court" /> Recent champions
         </h2>
         <div className="grid gap-3 md:grid-cols-3">
           {completed.slice(0, 6).map((tournament) => (
-            <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="sport-card p-4 transition hover:-translate-y-0.5 hover:shadow-md">
               <p className="text-sm font-bold text-slate-500">{new Date(tournament.start_date).toLocaleDateString()}</p>
               <p className="mt-1 font-black text-slate-950">{tournament.name}</p>
               <p className="text-sm text-slate-600">{teamLabel(tournament.champion)}</p>

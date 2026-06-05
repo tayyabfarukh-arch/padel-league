@@ -26,7 +26,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg bg-slate-950 p-5 text-white">
+      <section className="court-panel rounded-lg p-5 text-white">
         <p className="text-sm font-bold uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
@@ -41,7 +41,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
 
       <section className="grid gap-3 md:grid-cols-3">
         {placements.map(([label, team]) => (
-          <div key={label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={label} className="sport-card p-4">
             <p className="text-xs font-black uppercase text-slate-500">{label}</p>
             <div className="mt-3 flex items-center gap-3">
               <TeamAvatar team={team} size={50} />
@@ -52,7 +52,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Full standings</h2>
+        <h2 className="section-title">Full standings</h2>
         <TeamLeaderboard rows={standings} />
       </section>
 
@@ -61,7 +61,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         if (!stageMatches.length) return null;
         return (
           <section key={stage}>
-            <h2 className="mb-3 text-lg font-black text-slate-950">{stageLabel(stage)}</h2>
+            <h2 className="section-title">{stageLabel(stage)}</h2>
             <div className="grid gap-3 md:grid-cols-2">{stageMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
           </section>
         );

@@ -12,7 +12,10 @@ export default async function PlayersPage() {
   if (!rows.length) return <EmptyState title="No players yet" body="Add players from the Admin panel." />;
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black text-slate-950">Players leaderboard</h1>
+      <section className="court-panel rounded-lg p-5 text-white">
+        <p className="text-sm font-bold uppercase text-limeball">Individual rankings</p>
+        <h1 className="mt-1 text-3xl font-black">Players leaderboard</h1>
+      </section>
       <PlayerLeaderboard rows={rows} />
     </div>
   );

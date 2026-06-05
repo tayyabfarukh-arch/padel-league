@@ -242,7 +242,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
   return (
     <div className="space-y-5">
-      <section className="rounded-lg bg-slate-950 p-5 text-white">
+      <section className="court-panel rounded-lg p-5 text-white">
         <h1 className="text-3xl font-black">Admin panel</h1>
         <p className="mt-2 text-sm text-slate-300">Fast entry for players, teams, tournaments, matches, and results.</p>
       </section>
@@ -258,7 +258,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           </button>
         </section>
       ) : (
-        <form onSubmit={signIn} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
+        <form onSubmit={signIn} className="sport-card grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto]">
           <input className="field" type="email" placeholder="Admin email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           <input className="field" type="password" placeholder="Password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           <button className="btn-primary" disabled={busy}>
@@ -383,7 +383,7 @@ function messageClass(type: "info" | "success" | "error") {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="sport-card p-4">
       <h2 className="mb-4 text-lg font-black text-slate-950">{title}</h2>
       {children}
     </section>

@@ -14,13 +14,16 @@ export default async function TournamentHistoryPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black text-slate-950">Tournament history</h1>
+      <section className="court-panel rounded-lg p-5 text-white">
+        <p className="text-sm font-bold uppercase text-limeball">Archive</p>
+        <h1 className="mt-1 text-3xl font-black">Tournament history</h1>
+      </section>
       <div className="grid gap-3">
         {completed.map((tournament) => {
           const final = matches.find((match) => match.tournament_id === tournament.id && match.stage === "final");
           const teamCount = allTournamentTeams.filter((item) => item.tournament_id === tournament.id).length;
           return (
-            <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="sport-card p-4 transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex gap-4">
                 <TeamAvatar team={tournament.champion} size={58} />
                 <div className="min-w-0 flex-1">

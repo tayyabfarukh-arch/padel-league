@@ -22,21 +22,22 @@ export default async function TeamProfilePage({ params }: { params: { id: string
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-sm">
+      <section className="court-panel rounded-lg p-5 text-white">
         <TeamAvatar team={team} size={76} />
-        <h1 className="mt-3 text-3xl font-black text-slate-950">{teamLabel(team)}</h1>
-        <p className="text-sm text-slate-500">{team.player_1?.name} / {team.player_2?.name}</p>
+        <p className="mt-4 text-sm font-bold uppercase text-limeball">Team profile</p>
+        <h1 className="mt-1 text-3xl font-black">{teamLabel(team)}</h1>
+        <p className="text-sm text-slate-300">{team.player_1?.name} / {team.player_2?.name}</p>
       </section>
       <StatsGrid stats={stats} />
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Recent matches</h2>
+        <h2 className="section-title">Recent matches</h2>
         <div className="grid gap-3 md:grid-cols-2">{recentMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
       </section>
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Head-to-head</h2>
+        <h2 className="section-title">Head-to-head</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {records.map((record) => (
-            <div key={record.other.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div key={record.other.id} className="sport-card p-4">
               <p className="font-black text-slate-950">{teamLabel(record.other)}</p>
               <p className="text-sm text-slate-600">{record.winsA}-{record.winsB} over {record.played} matches</p>
             </div>

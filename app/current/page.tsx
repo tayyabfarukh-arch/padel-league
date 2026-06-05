@@ -22,14 +22,14 @@ export default async function CurrentTournamentPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg bg-slate-950 p-5 text-white">
+      <section className="court-panel rounded-lg p-5 text-white">
         <p className="text-sm font-bold uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{teams.length} teams | {matches.length} matches</p>
       </section>
 
       {tournament.champion ? (
-        <section className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+        <section className="sport-card border-yellow-200 bg-yellow-50 p-4">
           <div className="flex items-center gap-4">
             <TeamAvatar team={tournament.champion} size={64} />
             <div>
@@ -43,10 +43,10 @@ export default async function CurrentTournamentPage() {
       ) : null}
 
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Teams</h2>
+        <h2 className="section-title">Teams</h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {teams.map((team) => (
-            <div key={team.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div key={team.id} className="sport-card flex items-center gap-3 p-3">
               <TeamAvatar team={team} size={48} />
               <p className="font-bold text-slate-950">{teamLabel(team)}</p>
             </div>
@@ -55,7 +55,7 @@ export default async function CurrentTournamentPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-black text-slate-950">Group standings</h2>
+        <h2 className="section-title">Group standings</h2>
         <TeamLeaderboard rows={standings} />
       </section>
 
@@ -64,7 +64,7 @@ export default async function CurrentTournamentPage() {
         if (!stageMatches.length) return null;
         return (
           <section key={stage}>
-            <h2 className="mb-3 text-lg font-black text-slate-950">{stageLabel(stage)}</h2>
+            <h2 className="section-title">{stageLabel(stage)}</h2>
             <div className="grid gap-3 md:grid-cols-2">{stageMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
           </section>
         );

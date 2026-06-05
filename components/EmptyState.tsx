@@ -2,10 +2,12 @@ import { Database } from "lucide-react";
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center">
-      <Database className="mx-auto mb-3 h-8 w-8 text-slate-400" />
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{body}</p>
+    <div className="sport-card border-dashed p-8 text-center">
+      <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-lg bg-slate-950 text-limeball">
+        <Database className="h-7 w-7" />
+      </div>
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{body}</p>
     </div>
   );
 }

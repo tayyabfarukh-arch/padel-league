@@ -50,11 +50,16 @@ export default async function RecordsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black text-slate-950">Records</h1>
+      <section className="court-panel rounded-lg p-5 text-white">
+        <p className="text-sm font-bold uppercase text-limeball">Hall of pressure</p>
+        <h1 className="mt-1 text-3xl font-black">Records</h1>
+      </section>
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {cards.map(([label, value, Icon]) => (
-          <div key={label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <Icon className="mb-3 h-6 w-6 text-court" />
+          <div key={label} className="sport-card p-4">
+            <div className="mb-3 grid h-10 w-10 place-items-center rounded-md bg-limeball/60 text-ink">
+              <Icon className="h-5 w-5" />
+            </div>
             <p className="text-xs font-black uppercase text-slate-500">{label}</p>
             <p className="mt-2 text-lg font-black text-slate-950">{value}</p>
           </div>
