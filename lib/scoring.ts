@@ -43,6 +43,28 @@ function baseTeamStats(team: Team): TeamStats {
   };
 }
 
+function basePlayerStats(player: Player): PlayerStats {
+  return {
+    player,
+    played: 0,
+    wins: 0,
+    losses: 0,
+    gamesWon: 0,
+    gamesLost: 0,
+    gameDiff: 0,
+    points: 0,
+    semifinalsPlayed: 0,
+    semifinalsWon: 0,
+    finalsPlayed: 0,
+    finalsWon: 0,
+    titles: 0,
+    bestFinish: "Group",
+    bestPartner: undefined,
+    mostPlayedPartner: undefined,
+    mostSuccessfulPartner: undefined
+  };
+}
+
 export function calculateTeamStats(teams: Team[], matches: Match[], tournaments: Tournament[] = []) {
   const stats = new Map(teams.map((team) => [team.id, baseTeamStats(team)]));
 
@@ -127,26 +149,8 @@ export function calculatePlayerStats(
   tournaments: Tournament[] = []
 ): PlayerStats[] {
   const teamStats = calculateTeamStats(teams, matches, tournaments);
-  const stats = new Map(
-    players.map((player) => [
-      player.id,
-      {
-        player,
-        played: 0,
-        wins: 0,
-        losses: 0,
-        gamesWon: 0,
-        gamesLost: 0,
-        gameDiff: 0,
-        points: 0,
-        semifinalsPlayed: 0,
-        semifinalsWon: 0,
-        finalsPlayed: 0,
-        finalsWon: 0,
-        titles: 0,
-        bestFinish: "Group"
-      } satisfies PlayerStats
-    ])
+  const stats = new Map<string, PlayerStats>(
+    players.map((player) => [player.id, basePlayerStats(player)])
   );
 
   for (const teamStat of teamStats) {
