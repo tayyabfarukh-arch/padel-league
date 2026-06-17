@@ -1,6 +1,7 @@
 import { Crown } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { MatchCard } from "@/components/MatchCard";
+import { GroupMatchFilter } from "@/components/GroupMatchFilter";
 import { TeamAvatar } from "@/components/Avatar";
 import { TeamLeaderboard } from "@/components/Leaderboard";
 import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
@@ -60,7 +61,9 @@ export default async function CurrentTournamentPage() {
         <TeamLeaderboard rows={standings} />
       </section>
 
-      {(["group", "semifinal", "final", "third_place"] as const).map((stage) => {
+      {groupMatches.length ? <GroupMatchFilter matches={groupMatches} teams={teams} /> : null}
+
+      {(["semifinal", "final", "third_place"] as const).map((stage) => {
         const stageMatches = matches.filter((match) => match.stage === stage);
         if (!stageMatches.length) return null;
         return (
