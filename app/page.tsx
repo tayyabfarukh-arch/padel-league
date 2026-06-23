@@ -43,7 +43,7 @@ export default async function Home() {
             </p>
             <h1 className="text-3xl font-black md:text-5xl">{active?.name ?? "Padel night is waiting"}</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-300 md:text-base">
-              Race to 3 games, points by game difference, bragging rights by leaderboard.
+              Flexible race-to formats, points by game difference, bragging rights by leaderboard.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 md:min-w-80">

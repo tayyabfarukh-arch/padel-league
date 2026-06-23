@@ -5,7 +5,7 @@ import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
-import { calculateTeamStats, validateScore } from "@/lib/scoring";
+import { calculateTeamStats, getTargetGamesForStage, validateScore } from "@/lib/scoring";
 import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type Props = {
@@ -28,6 +28,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
   const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
+  const [selectedResultMatchId, setSelectedResultMatchId] = useState("");
   const tournamentTeamIds = useMemo(
     () => new Set(tournamentTeams.filter((item) => item.tournament_id === activeTournament?.id).map((item) => item.team_id)),
     [activeTournament?.id, tournamentTeams]
@@ -36,6 +37,11 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     () => matches.filter((match) => !resultTournamentId || match.tournament_id === resultTournamentId),
     [matches, resultTournamentId]
   );
+  const selectedResultMatch = resultMatches.find((match) => match.id === selectedResultMatchId) ?? resultMatches[0];
+  const selectedResultTournament = tournaments.find((tournament) => tournament.id === selectedResultMatch?.tournament_id);
+  const selectedResultTarget = selectedResultMatch
+    ? getTargetGamesForStage(selectedResultTournament, selectedResultMatch.stage)
+    : 3;
 
   useEffect(() => {
     if (!supabase) {
@@ -172,6 +178,10 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const { error } = await supabase!.from("tournaments").insert({
         name: form.get("name"),
         friend_circle: form.get("friend_circle"),
+        group_target_games: Number(form.get("group_target_games")),
+        semifinal_target_games: Number(form.get("semifinal_target_games")),
+        final_target_games: Number(form.get("final_target_games")),
+        third_place_target_games: Number(form.get("third_place_target_games")),
         status: form.get("status"),
         start_date: form.get("start_date"),
         cover_image_url
@@ -212,9 +222,12 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     const match = matches.find((item) => item.id === form.get("match_id"));
     const team1 = Number(form.get("team_1_games"));
     const team2 = Number(form.get("team_2_games"));
-    const result = validateScore(team1, team2);
+    const tournament = tournaments.find((item) => item.id === match?.tournament_id);
+    const targetGames = match ? getTargetGamesForStage(tournament, match.stage) : 3;
+    const result = validateScore(team1, team2, targetGames);
     if (!match || !result.valid) {
-      setMessage("Score must be one of 3-0, 3-1, 3-2, 0-3, 1-3, or 2-3.");
+      setMessageType("error");
+      setMessage(`Score must be race to ${targetGames}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`);
       return;
     }
     await run(async () => {
@@ -429,6 +442,12 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             <input className="field" name="name" placeholder="Tournament name" required />
             <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
             <input className="field" name="start_date" type="date" required />
+            <div className="grid grid-cols-2 gap-3">
+              <Select name="group_target_games" label="Group race to" options={targetGameOptions()} />
+              <Select name="semifinal_target_games" label="Semifinal race to" options={targetGameOptions()} />
+              <Select name="final_target_games" label="Final race to" options={targetGameOptions()} />
+              <Select name="third_place_target_games" label="Third-place race to" options={targetGameOptions()} />
+            </div>
             <Select name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
             <FileField name="cover" label="Cover image" />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create tournament</button>
@@ -496,7 +515,10 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <select
                 className="field"
                 value={resultTournamentId}
-                onChange={(event) => setResultTournamentId(event.target.value)}
+                onChange={(event) => {
+                  setResultTournamentId(event.target.value);
+                  setSelectedResultMatchId("");
+                }}
               >
                 {tournaments.map((tournament) => (
                   <option key={`result-tournament-${tournament.id}`} value={tournament.id}>
@@ -508,16 +530,23 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             <Select
               name="match_id"
               label="Match"
+              value={selectedResultMatchId || resultMatches[0]?.id || ""}
+              onChange={(value) => setSelectedResultMatchId(value)}
               options={resultMatches.map((match) => [match.id, `${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)} (${match.stage})`])}
             />
+            {selectedResultMatch ? (
+              <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
+                This {selectedResultMatch.stage.replace("_", " ")} match is race to {selectedResultTarget}.
+              </p>
+            ) : null}
             {!resultMatches.length ? (
               <p className="rounded-md bg-amber-50 p-3 text-sm font-semibold text-amber-900">
                 No matches found for this tournament yet.
               </p>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
-              <input className="field" name="team_1_games" type="number" min={0} max={3} placeholder="Team 1 games" required />
-              <input className="field" name="team_2_games" type="number" min={0} max={3} placeholder="Team 2 games" required />
+              <input className="field" name="team_1_games" type="number" min={0} max={selectedResultTarget} placeholder="Team 1 games" required />
+              <input className="field" name="team_2_games" type="number" min={0} max={selectedResultTarget} placeholder="Team 2 games" required />
             </div>
             <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save result</button>
           </form>
@@ -554,15 +583,39 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Select({ name, label, options, required = true }: { name: string; label: string; options: string[][]; required?: boolean }) {
+function Select({
+  name,
+  label,
+  options,
+  required = true,
+  value,
+  onChange
+}: {
+  name: string;
+  label: string;
+  options: string[][];
+  required?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-black uppercase text-slate-500">{label}</span>
-      <select className="field" name={name} required={required}>
+      <select
+        className="field"
+        name={name}
+        required={required}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+      >
         {options.map(([value, text]) => <option key={`${name}-${value}`} value={value}>{text}</option>)}
       </select>
     </label>
   );
+}
+
+function targetGameOptions() {
+  return ["3", "4", "5", "6"].map((value) => [value, `Race to ${value}`]);
 }
 
 function FileField({ name, label }: { name: string; label: string }) {

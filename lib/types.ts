@@ -23,6 +23,10 @@ export type Tournament = {
   id: string;
   name: string;
   friend_circle: string;
+  group_target_games: number;
+  semifinal_target_games: number;
+  final_target_games: number;
+  third_place_target_games: number;
   status: TournamentStatus;
   start_date: string;
   end_date: string | null;

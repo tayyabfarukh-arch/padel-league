@@ -21,6 +21,10 @@ create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
+  group_target_games integer not null default 3 check (group_target_games between 1 and 10),
+  semifinal_target_games integer not null default 3 check (semifinal_target_games between 1 and 10),
+  final_target_games integer not null default 3 check (final_target_games between 1 and 10),
+  third_place_target_games integer not null default 3 check (third_place_target_games between 1 and 10),
   status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
   start_date date not null default current_date,
   end_date date,
@@ -33,6 +37,18 @@ create table if not exists tournaments (
 
 alter table tournaments
 add column if not exists friend_circle text not null default 'circle_1';
+
+alter table tournaments
+add column if not exists group_target_games integer not null default 3;
+
+alter table tournaments
+add column if not exists semifinal_target_games integer not null default 3;
+
+alter table tournaments
+add column if not exists final_target_games integer not null default 3;
+
+alter table tournaments
+add column if not exists third_place_target_games integer not null default 3;
 
 create table if not exists tournament_teams (
   id uuid primary key default gen_random_uuid(),
@@ -57,13 +73,29 @@ create table if not exists matches (
   constraint matches_valid_scores check (
     (team_1_games is null and team_2_games is null and winner_team_id is null)
     or (
-      team_1_games between 0 and 3
-      and team_2_games between 0 and 3
+      team_1_games between 0 and 10
+      and team_2_games between 0 and 10
       and team_1_games <> team_2_games
-      and greatest(team_1_games, team_2_games) = 3
-      and least(team_1_games, team_2_games) between 0 and 2
-      and winner_team_id = case when team_1_games = 3 then team_1_id else team_2_id end
+      and greatest(team_1_games, team_2_games) between 1 and 10
+      and least(team_1_games, team_2_games) < greatest(team_1_games, team_2_games)
+      and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
     )
+  )
+);
+
+alter table matches
+drop constraint if exists matches_valid_scores;
+
+alter table matches
+add constraint matches_valid_scores check (
+  (team_1_games is null and team_2_games is null and winner_team_id is null)
+  or (
+    team_1_games between 0 and 10
+    and team_2_games between 0 and 10
+    and team_1_games <> team_2_games
+    and greatest(team_1_games, team_2_games) between 1 and 10
+    and least(team_1_games, team_2_games) < greatest(team_1_games, team_2_games)
+    and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
   )
 );
 

@@ -32,6 +32,9 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <p className="text-sm font-bold uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
+        <p className="mt-3 text-xs font-bold text-slate-300">
+          Group race to {tournament.group_target_games} | Semifinal race to {tournament.semifinal_target_games} | Final race to {tournament.final_target_games}
+        </p>
       </section>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">

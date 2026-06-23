@@ -1,20 +1,31 @@
-import type { Match, Player, PlayerStats, Team, TeamStats, Tournament } from "./types";
+import type { Match, Player, PlayerStats, Stage, Team, TeamStats, Tournament } from "./types";
 
-export function validateScore(team1: number, team2: number) {
+export function getTargetGamesForStage(tournament: Tournament | undefined, stage: Stage) {
+  if (!tournament) return 3;
+  const targets: Record<Stage, number> = {
+    group: tournament.group_target_games,
+    semifinal: tournament.semifinal_target_games,
+    final: tournament.final_target_games,
+    third_place: tournament.third_place_target_games
+  };
+  return targets[stage] || 3;
+}
+
+export function validateScore(team1: number, team2: number, targetGames = 3) {
   const valid =
     Number.isInteger(team1) &&
     Number.isInteger(team2) &&
     team1 >= 0 &&
     team2 >= 0 &&
-    team1 <= 3 &&
-    team2 <= 3 &&
+    team1 <= targetGames &&
+    team2 <= targetGames &&
     team1 !== team2 &&
-    Math.max(team1, team2) === 3 &&
-    Math.min(team1, team2) <= 2;
+    Math.max(team1, team2) === targetGames &&
+    Math.min(team1, team2) < targetGames;
 
   return {
     valid,
-    winnerSide: valid ? (team1 === 3 ? "team_1" : "team_2") : null
+    winnerSide: valid ? (team1 === targetGames ? "team_1" : "team_2") : null
   } as const;
 }
 

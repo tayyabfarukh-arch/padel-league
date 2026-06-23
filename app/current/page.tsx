@@ -28,6 +28,9 @@ export default async function CurrentTournamentPage() {
         <p className="text-sm font-bold uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{teams.length} teams | {matches.length} matches</p>
+        <p className="mt-3 text-xs font-bold text-slate-300">
+          Group race to {tournament.group_target_games} | Semifinal race to {tournament.semifinal_target_games} | Final race to {tournament.final_target_games}
+        </p>
       </section>
 
       {tournament.champion ? (
