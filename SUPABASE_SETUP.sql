@@ -20,6 +20,7 @@ create table if not exists teams (
 create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
   status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
   start_date date not null default current_date,
   end_date date,
@@ -29,6 +30,9 @@ create table if not exists tournaments (
   cover_image_url text,
   created_at timestamp with time zone default now()
 );
+
+alter table tournaments
+add column if not exists friend_circle text not null default 'circle_1';
 
 create table if not exists tournament_teams (
   id uuid primary key default gen_random_uuid(),

@@ -1,13 +1,15 @@
 import { EmptyState } from "@/components/EmptyState";
 import { TeamLeaderboard } from "@/components/Leaderboard";
-import { getMatches, getTeams, getTournaments } from "@/lib/data";
+import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
 import { calculateTeamStats } from "@/lib/scoring";
+import { teamsFromTournamentTeams } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function TeamsPage() {
-  const [teams, matches, tournaments] = await Promise.all([getTeams(), getMatches(), getTournaments()]);
+  const [tournamentTeams, matches, tournaments] = await Promise.all([getTournamentTeams(), getMatches(), getTournaments()]);
+  const teams = teamsFromTournamentTeams(tournamentTeams);
   const rows = calculateTeamStats(teams, matches, tournaments);
   if (!rows.length) return <EmptyState title="No teams yet" body="Create teams from the Admin panel." />;
   return (

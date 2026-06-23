@@ -22,6 +22,7 @@ export type Team = {
 export type Tournament = {
   id: string;
   name: string;
+  friend_circle: string;
   status: TournamentStatus;
   start_date: string;
   end_date: string | null;

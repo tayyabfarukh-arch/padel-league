@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3, CalendarDays, History, Shield, Trophy, Users } from "lucide-react";
+import { FriendCircleSelector } from "@/components/FriendCircleSelector";
+import { getSelectedFriendCircle } from "@/lib/friend-circle-server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +20,8 @@ const nav = [
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const selectedCircle = getSelectedFriendCircle();
+
   return (
     <html lang="en">
       <body>
@@ -29,6 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               Padel League
             </Link>
+            <div className="ml-auto md:ml-2">
+              <FriendCircleSelector selected={selectedCircle} />
+            </div>
             <nav className="ml-auto hidden gap-1 overflow-x-auto text-sm md:flex">
               {nav.map(([label, href, Icon]) => (
                 <Link key={href as string} href={href as string} className="inline-flex items-center gap-2 rounded-md px-3 py-2 font-bold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950">

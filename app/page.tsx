@@ -4,25 +4,28 @@ import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
-import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data";
+import { getMatches, getPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
 import { teamLabel } from "@/lib/format";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
+import { playersFromTeams, teamsFromTournamentTeams } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  const [players, teams, tournaments, matches] = await Promise.all([
+  const [players, tournamentTeams, tournaments, matches] = await Promise.all([
     getPlayers(),
-    getTeams(),
+    getTournamentTeams(),
     getTournaments(),
     getMatches()
   ]);
+  const teams = teamsFromTournamentTeams(tournamentTeams);
+  const scopedPlayers = playersFromTeams(players, teams);
   const active = tournaments.find((tournament) => tournament.status === "active");
   const completed = tournaments.filter((tournament) => tournament.status === "completed");
   const lastChampion = completed[0]?.champion;
   const teamStats = calculateTeamStats(teams, matches, tournaments);
-  const playerStats = calculatePlayerStats(players, teams, matches, tournaments);
+  const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);
 

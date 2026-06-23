@@ -1,16 +1,19 @@
 import { Award, Shield, Swords, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data";
+import { getMatches, getPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
 import { formatPercent, teamLabel } from "@/lib/format";
+import { playersFromTeams, teamsFromTournamentTeams } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function RecordsPage() {
-  const [players, teams, matches, tournaments] = await Promise.all([getPlayers(), getTeams(), getMatches(), getTournaments()]);
+  const [players, tournamentTeams, matches, tournaments] = await Promise.all([getPlayers(), getTournamentTeams(), getMatches(), getTournaments()]);
+  const teams = teamsFromTournamentTeams(tournamentTeams);
+  const scopedPlayers = playersFromTeams(players, teams);
   const teamStats = calculateTeamStats(teams, matches, tournaments);
-  const playerStats = calculatePlayerStats(players, teams, matches, tournaments);
+  const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
   if (!teamStats.length && !playerStats.length) return <EmptyState title="No records yet" body="Records appear after results are entered." />;
 
   const completed = matches.filter((match) => match.winner_team_id);
