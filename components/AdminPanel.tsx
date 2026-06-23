@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { teamLabel } from "@/lib/format";
-import { validateScore } from "@/lib/scoring";
+import { calculateTeamStats, validateScore } from "@/lib/scoring";
 import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type Props = {
@@ -25,6 +25,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
+  const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
   const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
   const tournamentTeamIds = useMemo(
     () => new Set(tournamentTeams.filter((item) => item.tournament_id === activeTournament?.id).map((item) => item.team_id)),
@@ -225,6 +226,130 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
+  async function createSemifinalsFromStandings() {
+    await run(async () => {
+      const tournamentTeamsForSelection = tournamentTeams.filter(
+        (item) => item.tournament_id === knockoutTournamentId
+      );
+      const tournamentTeamIdsForSelection = new Set(tournamentTeamsForSelection.map((item) => item.team_id));
+      const tournamentTeamsList = teams.filter((team) => tournamentTeamIdsForSelection.has(team.id));
+      const groupMatches = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "group"
+      );
+      const existingSemifinals = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "semifinal"
+      );
+
+      if (!knockoutTournamentId) throw new Error("Select a tournament first.");
+      if (existingSemifinals.length) throw new Error("Semifinals already exist for this tournament.");
+      if (tournamentTeamsList.length < 4) throw new Error("You need at least 4 teams to create semifinals.");
+      if (!groupMatches.length || groupMatches.some((match) => !match.winner_team_id)) {
+        throw new Error("Finish all group match scores before creating semifinals.");
+      }
+
+      const standings = calculateTeamStats(tournamentTeamsList, groupMatches);
+      const topFour = standings.slice(0, 4);
+      if (topFour.length < 4) throw new Error("Could not find 4 ranked teams from the group standings.");
+
+      const { error } = await supabase!.from("matches").insert([
+        {
+          tournament_id: knockoutTournamentId,
+          team_1_id: topFour[0].team.id,
+          team_2_id: topFour[3].team.id,
+          stage: "semifinal"
+        },
+        {
+          tournament_id: knockoutTournamentId,
+          team_1_id: topFour[1].team.id,
+          team_2_id: topFour[2].team.id,
+          stage: "semifinal"
+        }
+      ]);
+      if (error) throw error;
+    });
+  }
+
+  async function createFinalFromSemifinals() {
+    await run(async () => {
+      const semifinals = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "semifinal"
+      );
+      const existingFinal = matches.find(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "final"
+      );
+
+      if (!knockoutTournamentId) throw new Error("Select a tournament first.");
+      if (existingFinal) throw new Error("A final match already exists for this tournament.");
+      if (semifinals.length !== 2 || semifinals.some((match) => !match.winner_team_id)) {
+        throw new Error("Enter both semifinal scores before creating the final.");
+      }
+
+      const { error } = await supabase!.from("matches").insert({
+        tournament_id: knockoutTournamentId,
+        team_1_id: semifinals[0].winner_team_id,
+        team_2_id: semifinals[1].winner_team_id,
+        stage: "final"
+      });
+      if (error) throw error;
+    });
+  }
+
+  async function createThirdPlaceFromSemifinals() {
+    await run(async () => {
+      const semifinals = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "semifinal"
+      );
+      const existingThirdPlace = matches.find(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "third_place"
+      );
+
+      if (!knockoutTournamentId) throw new Error("Select a tournament first.");
+      if (existingThirdPlace) throw new Error("A third-place match already exists for this tournament.");
+      if (semifinals.length !== 2 || semifinals.some((match) => !match.winner_team_id)) {
+        throw new Error("Enter both semifinal scores before creating the third-place match.");
+      }
+
+      const semifinalLosers = semifinals.map((match) =>
+        match.winner_team_id === match.team_1_id ? match.team_2_id : match.team_1_id
+      );
+
+      const { error } = await supabase!.from("matches").insert({
+        tournament_id: knockoutTournamentId,
+        team_1_id: semifinalLosers[0],
+        team_2_id: semifinalLosers[1],
+        stage: "third_place"
+      });
+      if (error) throw error;
+    });
+  }
+
+  async function closeTournamentFromFinal() {
+    await run(async () => {
+      const final = matches.find(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "final"
+      );
+      const thirdPlace = matches.find(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "third_place"
+      );
+
+      if (!knockoutTournamentId) throw new Error("Select a tournament first.");
+      if (!final || !final.winner_team_id) throw new Error("Enter the final score before closing the tournament.");
+      if (thirdPlace && !thirdPlace.winner_team_id) {
+        throw new Error("Enter the third-place score before closing, or remove that match if you are not using it.");
+      }
+
+      const runnerUpTeamId = final.winner_team_id === final.team_1_id ? final.team_2_id : final.team_1_id;
+      const { error } = await supabase!.from("tournaments").update({
+        champion_team_id: final.winner_team_id,
+        runner_up_team_id: runnerUpTeamId,
+        third_place_team_id: thirdPlace?.winner_team_id ?? null,
+        status: "completed",
+        end_date: new Date().toISOString().slice(0, 10)
+      }).eq("id", knockoutTournamentId);
+      if (error) throw error;
+    });
+  }
+
   async function closeTournament(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -325,6 +450,42 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           </form>
         </Panel>
 
+        <Panel title="Knockout setup">
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-black uppercase text-slate-500">Tournament</span>
+              <select
+                className="field"
+                value={knockoutTournamentId}
+                onChange={(event) => setKnockoutTournamentId(event.target.value)}
+              >
+                {tournaments.map((tournament) => (
+                  <option key={`knockout-tournament-${tournament.id}`} value={tournament.id}>
+                    {tournament.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid gap-2 md:grid-cols-2">
+              <button type="button" className="btn-secondary" onClick={createSemifinalsFromStandings} disabled={busy}>
+                Create semifinals from standings
+              </button>
+              <button type="button" className="btn-secondary" onClick={createFinalFromSemifinals} disabled={busy}>
+                Create final from semifinal winners
+              </button>
+              <button type="button" className="btn-secondary" onClick={createThirdPlaceFromSemifinals} disabled={busy}>
+                Create third-place match
+              </button>
+              <button type="button" className="btn-primary" onClick={closeTournamentFromFinal} disabled={busy}>
+                Close from final result
+              </button>
+            </div>
+            <p className="text-xs font-semibold text-slate-500">
+              Recommended flow: finish group scores, create semifinals, enter semifinal scores, create final, enter final score, then close from final result.
+            </p>
+          </div>
+        </Panel>
+
         <Panel title="Enter or edit result">
           <form onSubmit={saveResult} className="space-y-3">
             <label className="block">
@@ -359,7 +520,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           </form>
         </Panel>
 
-        <Panel title="Close tournament">
+        <Panel title="Manual close tournament">
           <form onSubmit={closeTournament} className="space-y-3">
             <Select name="tournament_id" label="Tournament" options={tournaments.map((tournament) => [tournament.id, tournament.name])} />
             <Select name="champion_team_id" label="Champion" required={false} options={[["", "None"], ...teams.map((team) => [team.id, teamLabel(team)] as [string, string])]} />

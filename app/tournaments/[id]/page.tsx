@@ -17,9 +17,9 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
   if (!tournament) notFound();
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
-  const standings = calculateTeamStats(teams, matches, [tournament]);
   const completed = matches.filter((match) => match.winner_team_id);
   const groupMatches = matches.filter((match) => match.stage === "group");
+  const standings = calculateTeamStats(teams, groupMatches, [tournament]);
   const placements: Array<[string, Team | null | undefined]> = [
     ["Champion", tournament.champion],
     ["Runner-up", tournament.runner_up],

@@ -104,6 +104,11 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
       team1.bestFinish = betterFinish(team1.bestFinish, "Runner-up");
       team2.bestFinish = betterFinish(team2.bestFinish, "Runner-up");
     }
+
+    if (match.stage === "third_place") {
+      winner.bestFinish = betterFinish(winner.bestFinish, "Third place");
+      loser.bestFinish = betterFinish(loser.bestFinish, "Semifinal");
+    }
   }
 
   for (const tournament of tournaments) {
