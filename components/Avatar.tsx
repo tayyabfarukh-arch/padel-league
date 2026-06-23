@@ -10,7 +10,7 @@ export function PlayerAvatar({ player, size = 44 }: { player?: Player | null; si
       alt={name}
       width={size}
       height={size}
-      className="aspect-square rounded-full border-2 border-white object-cover shadow-sm ring-1 ring-slate-200"
+      className="shrink-0 aspect-square rounded-full border-2 border-white object-cover shadow-sm ring-1 ring-slate-200"
     />
   );
 }
@@ -23,13 +23,13 @@ export function TeamAvatar({ team, size = 56 }: { team?: Team | null; size?: num
         alt={team.team_name}
         width={size}
         height={size}
-        className="aspect-square rounded-lg border-2 border-white object-cover shadow-sm ring-1 ring-slate-200"
+        className="shrink-0 aspect-square rounded-lg border-2 border-white object-cover shadow-sm ring-1 ring-slate-200"
       />
     );
   }
 
   return (
-    <div className="flex -space-x-3" style={{ width: size + 12 }}>
+    <div className="flex shrink-0 -space-x-3" style={{ width: size * 2 - 12 }}>
       <PlayerAvatar player={team?.player_1} size={size} />
       <PlayerAvatar player={team?.player_2} size={size} />
     </div>
