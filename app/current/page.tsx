@@ -14,7 +14,8 @@ export const revalidate = 0;
 
 export default async function CurrentTournamentPage() {
   const tournaments = await getTournaments();
-  const tournament = tournaments.find((item) => item.status === "active") ?? tournaments.find((item) => item.status === "upcoming");
+  const fixedTournaments = tournaments.filter((item) => item.tournament_format === "fixed_teams");
+  const tournament = fixedTournaments.find((item) => item.status === "active") ?? fixedTournaments.find((item) => item.status === "upcoming");
   if (!tournament) return <EmptyState title="No current tournament" body="Create a tournament in Admin and set it active." />;
 
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);

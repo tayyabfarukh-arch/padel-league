@@ -1,17 +1,19 @@
 import { AdminPanel } from "@/components/AdminPanel";
-import { getMatches, getPlayers, getTeams, getTournamentTeams, getTournaments } from "@/lib/data";
+import { getAmericanoMatches, getMatches, getPlayers, getTeams, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminPage() {
-  const [players, teams, tournaments, tournamentTeams, matches] = await Promise.all([
+  const [players, teams, tournaments, tournamentTeams, matches, tournamentPlayers, americanoMatches] = await Promise.all([
     getPlayers(),
     getTeams(),
     getTournaments(),
     getTournamentTeams(),
-    getMatches()
+    getMatches(),
+    getTournamentPlayers(),
+    getAmericanoMatches()
   ]);
 
   return (
@@ -22,6 +24,8 @@ export default async function AdminPage() {
       tournaments={tournaments}
       tournamentTeams={tournamentTeams}
       matches={matches}
+      tournamentPlayers={tournamentPlayers}
+      americanoMatches={americanoMatches}
     />
   );
 }

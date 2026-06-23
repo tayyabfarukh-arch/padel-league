@@ -1,5 +1,6 @@
 export type Stage = "group" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
+export type TournamentFormat = "fixed_teams" | "americano_doubles" | "americano_singles";
 
 export type Player = {
   id: string;
@@ -23,6 +24,7 @@ export type Tournament = {
   id: string;
   name: string;
   friend_circle: string;
+  tournament_format: TournamentFormat;
   group_target_games: number;
   semifinal_target_games: number;
   final_target_games: number;
@@ -38,6 +40,44 @@ export type Tournament = {
   champion?: Team | null;
   runner_up?: Team | null;
   third_place?: Team | null;
+};
+
+export type TournamentPlayer = {
+  id: string;
+  tournament_id: string;
+  player_id: string;
+  created_at: string;
+  player?: Player;
+};
+
+export type AmericanoMatch = {
+  id: string;
+  tournament_id: string;
+  round_number: number;
+  side_1_player_1_id: string;
+  side_1_player_2_id: string | null;
+  side_2_player_1_id: string;
+  side_2_player_2_id: string | null;
+  side_1_points: number | null;
+  side_2_points: number | null;
+  winner_side: number | null;
+  played_at: string | null;
+  created_at: string;
+  side_1_player_1?: Player;
+  side_1_player_2?: Player | null;
+  side_2_player_1?: Player;
+  side_2_player_2?: Player | null;
+};
+
+export type AmericanoPlayerStats = {
+  player: Player;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDiff: number;
 };
 
 export type TournamentTeam = {

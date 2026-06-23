@@ -1,10 +1,12 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSelectedFriendCircle } from "./friend-circle-server";
 import { supabase } from "./supabase";
-import type { Match, Player, Team, Tournament, TournamentTeam } from "./types";
+import type { AmericanoMatch, Match, Player, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
 const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect})`;
+const americanoMatchSelect =
+  "*, side_1_player_1:players!americano_matches_side_1_player_1_id_fkey(*), side_1_player_2:players!americano_matches_side_1_player_2_id_fkey(*), side_2_player_1:players!americano_matches_side_2_player_1_id_fkey(*), side_2_player_2:players!americano_matches_side_2_player_2_id_fkey(*)";
 const tournamentSelect =
   "*, champion:teams!tournaments_champion_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), runner_up:teams!tournaments_runner_up_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), third_place:teams!tournaments_third_place_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*))";
 
@@ -87,6 +89,46 @@ export async function getTournament(id: string) {
   if (error?.code === "PGRST116") return null;
   if (error) throw error;
   return data as Tournament;
+}
+
+export async function getTournamentPlayers(tournamentId?: string) {
+  noStore();
+  if (!supabase) return [] as TournamentPlayer[];
+  let query = supabase
+    .from("tournament_players")
+    .select("*, player:players(*)")
+    .order("created_at", { ascending: true });
+  if (tournamentId) query = query.eq("tournament_id", tournamentId);
+  if (!tournamentId) {
+    const tournamentIds = await getSelectedTournamentIds();
+    if (tournamentIds) {
+      if (!tournamentIds.length) return [] as TournamentPlayer[];
+      query = query.in("tournament_id", tournamentIds);
+    }
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as TournamentPlayer[];
+}
+
+export async function getAmericanoMatches(tournamentId?: string) {
+  noStore();
+  if (!supabase) return [] as AmericanoMatch[];
+  let query = supabase
+    .from("americano_matches")
+    .select(americanoMatchSelect)
+    .order("round_number", { ascending: true });
+  if (tournamentId) query = query.eq("tournament_id", tournamentId);
+  if (!tournamentId) {
+    const tournamentIds = await getSelectedTournamentIds();
+    if (tournamentIds) {
+      if (!tournamentIds.length) return [] as AmericanoMatch[];
+      query = query.in("tournament_id", tournamentIds);
+    }
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as AmericanoMatch[];
 }
 
 async function getSelectedTournamentIds() {

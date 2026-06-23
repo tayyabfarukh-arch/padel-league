@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, CalendarDays, History, Shield, Trophy, Users } from "lucide-react";
+import { BarChart3, CalendarDays, History, RotateCcw, Shield, Trophy, Users } from "lucide-react";
 import { FriendCircleSelector } from "@/components/FriendCircleSelector";
 import { getSelectedFriendCircle } from "@/lib/friend-circle-server";
 import "./globals.css";
@@ -15,6 +15,7 @@ const nav = [
   ["History", "/tournaments", History],
   ["Teams", "/teams", Shield],
   ["Players", "/players", Users],
+  ["Americano", "/americano", RotateCcw],
   ["Records", "/records", BarChart3],
   ["Admin", "/admin", Trophy]
 ];
@@ -48,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-5 md:py-8">{children}</main>
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-6 gap-1">
+          <div className="mx-auto grid max-w-lg grid-cols-7 gap-1">
             {nav.map(([label, href, Icon]) => (
               <Link key={href as string} href={href as string} className="flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[11px] font-bold text-slate-600">
                 <Icon className="h-4 w-4 text-court" />

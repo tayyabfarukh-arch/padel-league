@@ -1,4 +1,4 @@
-import type { Match, Player, PlayerStats, Stage, Team, TeamStats, Tournament } from "./types";
+import type { AmericanoMatch, AmericanoPlayerStats, Match, Player, PlayerStats, Stage, Team, TeamStats, Tournament } from "./types";
 
 export function getTargetGamesForStage(tournament: Tournament | undefined, stage: Stage) {
   if (!tournament) return 3;
@@ -33,6 +33,74 @@ export function completedMatches(matches: Match[]) {
   return matches.filter(
     (match) => match.team_1_games !== null && match.team_2_games !== null && match.winner_team_id
   );
+}
+
+export function validateAmericanoScore(side1: number, side2: number) {
+  const valid =
+    Number.isInteger(side1) &&
+    Number.isInteger(side2) &&
+    side1 >= 0 &&
+    side2 >= 0 &&
+    side1 + side2 === 24;
+
+  return {
+    valid,
+    winnerSide: valid ? (side1 === side2 ? null : side1 > side2 ? 1 : 2) : null
+  } as const;
+}
+
+export function calculateAmericanoStats(players: Player[], matches: AmericanoMatch[]): AmericanoPlayerStats[] {
+  const stats = new Map<string, AmericanoPlayerStats>(
+    players.map((player) => [
+      player.id,
+      {
+        player,
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
+        pointDiff: 0
+      }
+    ])
+  );
+
+  for (const match of matches) {
+    if (match.side_1_points === null || match.side_2_points === null) continue;
+    const side1Players = [match.side_1_player_1_id, match.side_1_player_2_id].filter(Boolean) as string[];
+    const side2Players = [match.side_2_player_1_id, match.side_2_player_2_id].filter(Boolean) as string[];
+
+    for (const playerId of side1Players) {
+      applyAmericanoResult(stats.get(playerId), match.side_1_points, match.side_2_points);
+    }
+    for (const playerId of side2Players) {
+      applyAmericanoResult(stats.get(playerId), match.side_2_points, match.side_1_points);
+    }
+  }
+
+  return [...stats.values()]
+    .filter((row) => row.played > 0)
+    .sort(
+      (a, b) =>
+        b.pointsFor - a.pointsFor ||
+        b.pointDiff - a.pointDiff ||
+        b.wins - a.wins ||
+        b.draws - a.draws ||
+        a.pointsAgainst - b.pointsAgainst ||
+        a.player.name.localeCompare(b.player.name)
+    );
+}
+
+function applyAmericanoResult(stat: AmericanoPlayerStats | undefined, pointsFor: number, pointsAgainst: number) {
+  if (!stat) return;
+  stat.played += 1;
+  stat.pointsFor += pointsFor;
+  stat.pointsAgainst += pointsAgainst;
+  stat.pointDiff = stat.pointsFor - stat.pointsAgainst;
+  if (pointsFor > pointsAgainst) stat.wins += 1;
+  else if (pointsFor === pointsAgainst) stat.draws += 1;
+  else stat.losses += 1;
 }
 
 function baseTeamStats(team: Team): TeamStats {

@@ -1,4 +1,4 @@
-import type { Player, Team, TournamentTeam } from "./types";
+import type { Player, Team, TournamentPlayer, TournamentTeam } from "./types";
 
 export function teamsFromTournamentTeams(tournamentTeams: TournamentTeam[]) {
   const byId = new Map<string, Team>();
@@ -14,5 +14,10 @@ export function playersFromTeams(players: Player[], teams: Team[]) {
     playerIds.add(team.player_1_id);
     playerIds.add(team.player_2_id);
   }
+  return players.filter((player) => playerIds.has(player.id));
+}
+
+export function playersFromTournamentPlayers(players: Player[], tournamentPlayers: TournamentPlayer[]) {
+  const playerIds = new Set(tournamentPlayers.map((entry) => entry.player_id));
   return players.filter((player) => playerIds.has(player.id));
 }

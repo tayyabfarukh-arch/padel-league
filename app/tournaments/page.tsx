@@ -9,7 +9,7 @@ export const revalidate = 0;
 
 export default async function TournamentHistoryPage() {
   const [tournaments, allTournamentTeams, matches] = await Promise.all([getTournaments(), getTournamentTeams(), getMatches()]);
-  const completed = tournaments.filter((tournament) => tournament.status === "completed");
+  const completed = tournaments.filter((tournament) => tournament.status === "completed" && tournament.tournament_format === "fixed_teams");
   if (!completed.length) return <EmptyState title="No completed tournaments yet" body="Close a tournament in Admin and it will appear here." />;
 
   return (
