@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
 import { calculateTeamStats, validateScore } from "@/lib/scoring";
 import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
@@ -170,6 +171,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const cover_image_url = await uploadPhoto("tournament-photos", form.get("cover") as File);
       const { error } = await supabase!.from("tournaments").insert({
         name: form.get("name"),
+        friend_circle: form.get("friend_circle"),
         status: form.get("status"),
         start_date: form.get("start_date"),
         cover_image_url
@@ -425,6 +427,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         <Panel title="Create tournament">
           <form onSubmit={createTournament} className="space-y-3">
             <input className="field" name="name" placeholder="Tournament name" required />
+            <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
             <input className="field" name="start_date" type="date" required />
             <Select name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
             <FileField name="cover" label="Cover image" />
