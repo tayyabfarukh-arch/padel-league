@@ -1,10 +1,18 @@
-import Link from "next/link";
-import { CalendarDays, MapPin, Pencil } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Match } from "@/lib/types";
 import { TeamAvatar } from "./Avatar";
+import { InlineMatchScore } from "./InlineMatchScore";
 
-export function MatchCard({ match, allowScoreEntry = false }: { match: Match; allowScoreEntry?: boolean }) {
+export function MatchCard({
+  match,
+  allowScoreEntry = false,
+  scoreTarget
+}: {
+  match: Match;
+  allowScoreEntry?: boolean;
+  scoreTarget?: number;
+}) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
   return (
     <article className="sport-card p-4">
@@ -39,10 +47,8 @@ export function MatchCard({ match, allowScoreEntry = false }: { match: Match; al
           <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
         </div>
       </div>
-      {!completed && allowScoreEntry ? (
-        <Link href="/scores" className="btn-secondary mt-4 w-full">
-          <Pencil className="h-4 w-4" /> Enter score
-        </Link>
+      {!completed && allowScoreEntry && scoreTarget ? (
+        <InlineMatchScore match={match} targetScore={scoreTarget} />
       ) : null}
     </article>
   );

@@ -10,12 +10,14 @@ export function GroupMatchFilter({
   matches,
   teams,
   title = "Group matches",
-  allowScoreEntry = false
+  allowScoreEntry = false,
+  scoreTarget
 }: {
   matches: Match[];
   teams: Team[];
   title?: string;
   allowScoreEntry?: boolean;
+  scoreTarget?: number;
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState("all");
 
@@ -62,7 +64,12 @@ export function GroupMatchFilter({
       {filteredMatches.length ? (
         <div className="grid gap-3 md:grid-cols-2">
           {filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} allowScoreEntry={allowScoreEntry} />
+            <MatchCard
+              key={match.id}
+              match={match}
+              allowScoreEntry={allowScoreEntry}
+              scoreTarget={scoreTarget}
+            />
           ))}
         </div>
       ) : (

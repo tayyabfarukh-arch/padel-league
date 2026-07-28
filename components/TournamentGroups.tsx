@@ -72,6 +72,7 @@ export function TournamentGroups({
                 teams={groupTeams}
                 title={`${groupLabel} matches`}
                 allowScoreEntry={allowScoreEntry}
+                scoreTarget={tournament.group_target_points}
               />
             ) : null}
           </div>
