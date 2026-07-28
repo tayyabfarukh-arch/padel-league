@@ -2,21 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, History, Shield, Trophy, Users, Vote } from "lucide-react";
+
+const navigationIcons = {
+  chart: BarChart3,
+  calendar: CalendarDays,
+  history: History,
+  shield: Shield,
+  trophy: Trophy,
+  users: Users,
+  vote: Vote
+};
+
+export type NavigationIconName = keyof typeof navigationIcons;
 
 export function NavigationLink({
   label,
   href,
-  Icon,
+  icon,
   mobile = false
 }: {
   label: string;
   href: string;
-  Icon: LucideIcon;
+  icon: NavigationIconName;
   mobile?: boolean;
 }) {
   const pathname = usePathname();
   const active = pathname === href || (href !== "/current" && pathname.startsWith(`${href}/`));
+  const Icon = navigationIcons[icon];
 
   if (mobile) {
     return (

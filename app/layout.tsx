@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, CalendarDays, History, Shield, Trophy, Users, Vote } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { FriendCircleSelector } from "@/components/FriendCircleSelector";
 import { NavigationLink } from "@/components/NavigationLink";
+import type { NavigationIconName } from "@/components/NavigationLink";
 import { getSelectedFriendCircle } from "@/lib/friend-circle-server";
 import "./globals.css";
 
@@ -12,14 +12,14 @@ export const metadata: Metadata = {
   description: "Private doubles padel tournament dashboard"
 };
 
-const nav: Array<[string, string, LucideIcon]> = [
-  ["Active", "/current", CalendarDays],
-  ["Predict", "/predictions", Vote],
-  ["History", "/tournaments", History],
-  ["Teams", "/teams", Shield],
-  ["Players", "/players", Users],
-  ["Records", "/records", BarChart3],
-  ["Admin", "/admin", Trophy]
+const nav: Array<[string, string, NavigationIconName]> = [
+  ["Active", "/current", "calendar"],
+  ["Predict", "/predictions", "vote"],
+  ["History", "/tournaments", "history"],
+  ["Teams", "/teams", "shield"],
+  ["Players", "/players", "users"],
+  ["Records", "/records", "chart"],
+  ["Admin", "/admin", "trophy"]
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,8 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <FriendCircleSelector selected={selectedCircle} />
             </div>
             <nav className="ml-auto hidden gap-1 overflow-x-auto text-sm md:flex">
-              {nav.map(([label, href, Icon]) => (
-                <NavigationLink key={href} label={label} href={href} Icon={Icon} />
+              {nav.map(([label, href, icon]) => (
+                <NavigationLink key={href} label={label} href={href} icon={icon} />
               ))}
             </nav>
           </div>
@@ -49,8 +49,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-5 md:py-8">{children}</main>
         <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-ink/95 px-2 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.2)] backdrop-blur md:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-7 gap-1">
-            {nav.map(([label, href, Icon]) => (
-              <NavigationLink key={href} label={label} href={href} Icon={Icon} mobile />
+            {nav.map(([label, href, icon]) => (
+              <NavigationLink key={href} label={label} href={href} icon={icon} mobile />
             ))}
           </div>
         </nav>
