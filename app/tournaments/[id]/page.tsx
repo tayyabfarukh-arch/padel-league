@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
 import { StatCard } from "@/components/StatCard";
 import { MatchCard } from "@/components/MatchCard";
-import { GroupMatchFilter } from "@/components/GroupMatchFilter";
 import { TeamAvatar } from "@/components/Avatar";
-import { TeamLeaderboard } from "@/components/Leaderboard";
+import { TournamentGroups } from "@/components/TournamentGroups";
 import { getMatches, getTournament, getTournamentTeams } from "@/lib/data";
-import { calculateTeamStats } from "@/lib/scoring";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
 
@@ -18,8 +16,6 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
   const completed = matches.filter((match) => match.winner_team_id);
-  const groupMatches = matches.filter((match) => match.stage === "group");
-  const standings = calculateTeamStats(teams, groupMatches, [tournament]);
   const placements: Array<[string, Team | null | undefined]> = [
     ["Champion", tournament.champion],
     ["Runner-up", tournament.runner_up],
@@ -33,7 +29,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Groups: first to {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
+          Group match total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
         </p>
       </section>
 
@@ -56,12 +52,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         ))}
       </section>
 
-      <section>
-        <h2 className="section-title">Full standings</h2>
-        <TeamLeaderboard rows={standings} />
-      </section>
-
-      {groupMatches.length ? <GroupMatchFilter matches={groupMatches} teams={teams} /> : null}
+      <TournamentGroups tournament={tournament} tournamentTeams={tournamentTeams} matches={matches} />
 
       {(["semifinal", "final", "third_place"] as const).map((stage) => {
         const stageMatches = matches.filter((match) => match.stage === stage);

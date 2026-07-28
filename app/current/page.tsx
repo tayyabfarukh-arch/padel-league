@@ -1,11 +1,10 @@
 import { Crown } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { MatchCard } from "@/components/MatchCard";
-import { GroupMatchFilter } from "@/components/GroupMatchFilter";
+import { ScoreEntryPanel } from "@/components/ScoreEntryPanel";
 import { TeamAvatar } from "@/components/Avatar";
-import { TeamLeaderboard } from "@/components/Leaderboard";
+import { TournamentGroups } from "@/components/TournamentGroups";
 import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
-import { calculateTeamStats } from "@/lib/scoring";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
 
@@ -19,8 +18,6 @@ export default async function CurrentTournamentPage() {
 
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
-  const groupMatches = matches.filter((match) => match.stage === "group");
-  const standings = calculateTeamStats(teams, groupMatches, [tournament]);
 
   return (
     <div className="space-y-6">
@@ -29,9 +26,23 @@ export default async function CurrentTournamentPage() {
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{teams.length} teams | {matches.length} matches</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Groups: first to {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
+          Group match total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
         </p>
       </section>
+
+      {tournament.status === "active" ? (
+        <section>
+          <h2 className="section-title">Add a score</h2>
+          <ScoreEntryPanel tournament={tournament} matches={matches} />
+        </section>
+      ) : (
+        <section className="sport-card border-amber-200 bg-amber-50 p-4">
+          <h2 className="font-black text-amber-950">Score entry is not open yet</h2>
+          <p className="mt-1 text-sm font-semibold text-amber-800">
+            Set this tournament to Active in Admin. The score boxes will then appear here for everyone.
+          </p>
+        </section>
+      )}
 
       {tournament.champion ? (
         <section className="sport-card border-yellow-200 bg-yellow-50 p-4">
@@ -53,18 +64,25 @@ export default async function CurrentTournamentPage() {
           {teams.map((team) => (
             <div key={team.id} className="sport-card flex items-center gap-3 p-3">
               <TeamAvatar team={team} size={48} />
-              <p className="font-bold text-slate-950">{teamLabel(team)}</p>
+              <div className="min-w-0">
+                <p className="truncate font-bold text-slate-950">{teamLabel(team)}</p>
+                {tournament.group_count === 2 ? (
+                  <p className="text-xs font-black uppercase text-court">
+                    Group {tournamentTeams.find((entry) => entry.team_id === team.id)?.group_name}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section>
-        <h2 className="section-title">Group standings</h2>
-        <TeamLeaderboard rows={standings} />
-      </section>
-
-      {groupMatches.length ? <GroupMatchFilter matches={groupMatches} teams={teams} /> : null}
+      <TournamentGroups
+        tournament={tournament}
+        tournamentTeams={tournamentTeams}
+        matches={matches}
+        allowScoreEntry={tournament.status === "active"}
+      />
 
       {(["semifinal", "final", "third_place"] as const).map((stage) => {
         const stageMatches = matches.filter((match) => match.stage === stage);
@@ -72,7 +90,11 @@ export default async function CurrentTournamentPage() {
         return (
           <section key={stage}>
             <h2 className="section-title">{stageLabel(stage)}</h2>
-            <div className="grid gap-3 md:grid-cols-2">{stageMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {stageMatches.map((match) => (
+                <MatchCard key={match.id} match={match} allowScoreEntry={tournament.status === "active"} />
+              ))}
+            </div>
           </section>
         );
       })}

@@ -236,12 +236,54 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   async function addTeamToTournament(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const teamIds = form.getAll("team_ids").map(String);
+    if (!teamIds.length) {
+      setMessageType("error");
+      setMessage("Select at least one team.");
+      return;
+    }
     await run(async () => {
-      const { error } = await supabase!.from("tournament_teams").insert({
-        tournament_id: form.get("tournament_id"),
-        team_id: form.get("team_id"),
-        group_name: form.get("group_name")
-      });
+      const { error } = await supabase!.from("tournament_teams").insert(
+        teamIds.map((teamId) => ({
+          tournament_id: form.get("tournament_id"),
+          team_id: teamId,
+          group_name: form.get("group_name")
+        }))
+      );
+      if (error) throw error;
+    });
+  }
+
+  async function updateTournamentSetup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const groupCount = Number(form.get("group_count"));
+    await run(async () => {
+      const { error } = await supabase!
+        .from("tournaments")
+        .update({
+          group_count: groupCount,
+          status: form.get("status")
+        })
+        .eq("id", teamTournamentId);
+      if (error) throw error;
+
+      if (groupCount === 1) {
+        const { error: assignmentError } = await supabase!
+          .from("tournament_teams")
+          .update({ group_name: "A" })
+          .eq("tournament_id", teamTournamentId);
+        if (assignmentError) throw assignmentError;
+      }
+    });
+  }
+
+  async function changeTournamentTeamGroup(assignmentId: string, groupName: string) {
+    await run(async () => {
+      const { error } = await supabase!
+        .from("tournament_teams")
+        .update({ group_name: groupName })
+        .eq("id", assignmentId);
       if (error) throw error;
     });
   }
@@ -329,10 +371,10 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         const groupATeams = teams.filter((team) => groupATeamIds.has(team.id));
         const groupBTeams = teams.filter((team) => groupBTeamIds.has(team.id));
         const groupAMatches = groupMatches.filter(
-          (match) => match.group_name === "A" || (groupATeamIds.has(match.team_1_id) && groupATeamIds.has(match.team_2_id))
+          (match) => groupATeamIds.has(match.team_1_id) && groupATeamIds.has(match.team_2_id)
         );
         const groupBMatches = groupMatches.filter(
-          (match) => match.group_name === "B" || (groupBTeamIds.has(match.team_1_id) && groupBTeamIds.has(match.team_2_id))
+          (match) => groupBTeamIds.has(match.team_1_id) && groupBTeamIds.has(match.team_2_id)
         );
 
         if (groupATeams.length < 2 || groupBTeams.length < 2) {
@@ -592,21 +634,60 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         </Panel>
 
         <Panel title="Add team to tournament">
-          <form onSubmit={addTeamToTournament} className="space-y-3">
+          <div className="mb-4 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
             <Select
-              name="tournament_id"
+              name="selected_tournament"
               label="Tournament"
               value={teamTournamentId}
               onChange={setTeamTournamentId}
               options={tournaments.map((tournament) => [tournament.id, tournament.name])}
             />
+            <form onSubmit={updateTournamentSetup} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-end">
+              <div>
+                <Select
+                  key={`group-setup-${teamTournamentId}`}
+                  name="group_count"
+                  label="Group setup"
+                  defaultValue={String(teamTournament?.group_count ?? 1)}
+                  options={[["1", "One group"], ["2", "Two groups (A and B)"]]}
+                />
+              </div>
+              <div>
+                <Select
+                  key={`status-setup-${teamTournamentId}`}
+                  name="status"
+                  label="Tournament status"
+                  defaultValue={teamTournament?.status ?? "upcoming"}
+                  options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]}
+                />
+              </div>
+              <button className="btn-secondary shrink-0" disabled={busy}>
+                <Save className="h-4 w-4" /> Save setup
+              </button>
+            </form>
+          </div>
+          <form onSubmit={addTeamToTournament} className="space-y-3">
+            <input type="hidden" name="tournament_id" value={teamTournamentId} />
             <Select
               name="group_name"
               label="Group"
               options={teamTournament?.group_count === 2 ? [["A", "Group A"], ["B", "Group B"]] : [["A", "Group A"]]}
             />
-            <Select name="team_id" label="Team" options={teams.map((team) => [team.id, teamLabel(team)])} />
-            <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add team</button>
+            <fieldset>
+              <legend className="mb-2 text-xs font-black uppercase text-slate-500">Select teams</legend>
+              <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                {teams.filter((team) => !selectedTournamentAssignments.some((entry) => entry.team_id === team.id)).map((team) => (
+                  <label key={team.id} className="flex cursor-pointer items-center gap-3 rounded-md bg-white p-3 text-sm shadow-sm">
+                    <input className="h-4 w-4 accent-emerald-600" type="checkbox" name="team_ids" value={team.id} />
+                    <span className="min-w-0 truncate font-bold text-slate-900">{teamLabel(team)}</span>
+                  </label>
+                ))}
+                {teams.length === selectedTournamentAssignments.length ? (
+                  <p className="p-3 text-sm font-semibold text-slate-500">All available teams are already in this tournament.</p>
+                ) : null}
+              </div>
+            </fieldset>
+            <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add selected teams</button>
           </form>
           <div className="mt-5 border-t border-slate-200 pt-4">
             <h3 className="text-sm font-black text-slate-950">Teams already added</h3>
@@ -614,9 +695,22 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               {selectedTournamentAssignments.length ? selectedTournamentAssignments.map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                   <span className="min-w-0 truncate font-bold text-slate-900">{teamLabel(entry.team)}</span>
-                  <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">
-                    Group {entry.group_name}
-                  </span>
+                  {teamTournament?.group_count === 2 ? (
+                    <select
+                      className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-700"
+                      value={entry.group_name}
+                      disabled={busy}
+                      onChange={(event) => void changeTournamentTeamGroup(entry.id, event.target.value)}
+                      aria-label={`Change group for ${teamLabel(entry.team)}`}
+                    >
+                      <option value="A">Group A</option>
+                      <option value="B">Group B</option>
+                    </select>
+                  ) : (
+                    <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">
+                      Group A
+                    </span>
+                  )}
                 </div>
               )) : (
                 <p className="p-3 text-sm font-semibold text-slate-500">No teams added to this tournament yet.</p>
@@ -822,6 +916,7 @@ function Select({
   options,
   required = true,
   value,
+  defaultValue,
   onChange
 }: {
   name: string;
@@ -829,6 +924,7 @@ function Select({
   options: string[][];
   required?: boolean;
   value?: string;
+  defaultValue?: string;
   onChange?: (value: string) => void;
 }) {
   return (
@@ -839,6 +935,7 @@ function Select({
         name={name}
         required={required}
         value={value}
+        defaultValue={defaultValue}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
       >
         {options.map(([value, text]) => <option key={`${name}-${value}`} value={value}>{text}</option>)}
