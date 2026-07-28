@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { calculateTeamStats } from "@/lib/scoring";
+import { calculateGroupStandings } from "@/lib/scoring";
 import type { GroupName, Match, Team, Tournament, TournamentTeam } from "@/lib/types";
 import { GroupMatchFilter } from "./GroupMatchFilter";
 import { TeamLeaderboard } from "./Leaderboard";
@@ -56,7 +56,7 @@ export function TournamentGroups({
               (groupTeamIds.has(match.team_1_id) && groupTeamIds.has(match.team_2_id))
             )
         );
-        const standings = calculateTeamStats(groupTeams, groupMatches, [tournament]);
+        const standings = calculateGroupStandings(groupTeams, groupMatches, [tournament]);
         const groupLabel = tournament.group_count === 2 ? `Group ${groupName}` : "Group";
 
         return (

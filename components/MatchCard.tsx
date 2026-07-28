@@ -47,6 +47,16 @@ export function MatchCard({
           <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
         </div>
       </div>
+      {completed && match.deciding_point_winner_team_id ? (
+        <p className="mt-3 rounded-md bg-limeball/30 p-2 text-center text-xs font-black text-ink">
+          Deciding point won by{" "}
+          {teamLabel(
+            match.deciding_point_winner_team_id === match.team_1_id
+              ? match.team_1
+              : match.team_2
+          )}
+        </p>
+      ) : null}
       {!completed && allowScoreEntry && scoreTarget ? (
         <InlineMatchScore match={match} targetScore={scoreTarget} />
       ) : null}

@@ -151,6 +151,29 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
   return [...stats.values()].sort(compareTeamStats);
 }
 
+export function calculateGroupStandings(
+  teams: Team[],
+  matches: Match[],
+  tournaments: Tournament[] = []
+) {
+  return calculateTeamStats(teams, matches, tournaments).sort((a, b) => {
+    const primaryOrder =
+      b.wins - a.wins ||
+      b.gameDiff - a.gameDiff;
+    if (primaryOrder) return primaryOrder;
+
+    const directResult = headToHead(a.team.id, b.team.id, matches);
+    if (directResult.winsA !== directResult.winsB) {
+      return directResult.winsA > directResult.winsB ? -1 : 1;
+    }
+
+    return (
+      b.gamesWon - a.gamesWon ||
+      a.team.team_name.localeCompare(b.team.team_name)
+    );
+  });
+}
+
 export function compareTeamStats(a: TeamStats, b: TeamStats) {
   return (
     b.points - a.points ||

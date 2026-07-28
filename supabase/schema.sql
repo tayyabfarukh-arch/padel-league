@@ -84,6 +84,7 @@ create table if not exists matches (
   team_1_games integer,
   team_2_games integer,
   winner_team_id uuid references teams(id),
+  deciding_point_winner_team_id uuid references teams(id),
   stage text not null check (stage in ('group', 'semifinal', 'final', 'third_place')),
   group_name text check (group_name in ('A', 'B')),
   court_number integer check (court_number between 1 and 20),
@@ -93,14 +94,30 @@ create table if not exists matches (
   created_at timestamp with time zone default now(),
   constraint matches_distinct_teams check (team_1_id <> team_2_id),
   constraint matches_valid_scores check (
-    (team_1_games is null and team_2_games is null and winner_team_id is null)
+    (
+      team_1_games is null
+      and team_2_games is null
+      and winner_team_id is null
+      and deciding_point_winner_team_id is null
+    )
     or (
       team_1_games between 0 and 100
       and team_2_games between 0 and 100
       and (
-        (team_1_games = team_2_games and winner_team_id is null)
+        (
+          team_1_games = team_2_games
+          and stage = 'group'
+          and (
+            (winner_team_id is null and deciding_point_winner_team_id is null)
+            or (
+              deciding_point_winner_team_id in (team_1_id, team_2_id)
+              and winner_team_id = deciding_point_winner_team_id
+            )
+          )
+        )
         or (
           team_1_games <> team_2_games
+          and deciding_point_winner_team_id is null
           and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
         )
       )
@@ -120,6 +137,9 @@ add column if not exists submitted_by uuid references auth.users(id);
 alter table matches
 add column if not exists submitted_at timestamp with time zone;
 
+alter table matches
+add column if not exists deciding_point_winner_team_id uuid references teams(id);
+
 drop table if exists americano_matches cascade;
 drop table if exists tournament_players cascade;
 
@@ -128,14 +148,30 @@ drop constraint if exists matches_valid_scores;
 
 alter table matches
 add constraint matches_valid_scores check (
-  (team_1_games is null and team_2_games is null and winner_team_id is null)
+  (
+    team_1_games is null
+    and team_2_games is null
+    and winner_team_id is null
+    and deciding_point_winner_team_id is null
+  )
   or (
     team_1_games between 0 and 100
     and team_2_games between 0 and 100
     and (
-      (team_1_games = team_2_games and winner_team_id is null)
+      (
+        team_1_games = team_2_games
+        and stage = 'group'
+        and (
+          (winner_team_id is null and deciding_point_winner_team_id is null)
+          or (
+            deciding_point_winner_team_id in (team_1_id, team_2_id)
+            and winner_team_id = deciding_point_winner_team_id
+          )
+        )
+      )
       or (
         team_1_games <> team_2_games
+        and deciding_point_winner_team_id is null
         and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
       )
     )
@@ -191,10 +227,13 @@ create index if not exists idx_predictions_tournament on predictions(tournament_
 create unique index if not exists idx_predictions_one_vote_per_browser
 on predictions(tournament_id, voter_token);
 
+drop function if exists public.submit_match_score(uuid, integer, integer);
+
 create or replace function submit_match_score(
   p_match_id uuid,
   p_team_1_score integer,
-  p_team_2_score integer
+  p_team_2_score integer,
+  p_deciding_point_winner_team_id uuid default null
 )
 returns void
 language plpgsql
@@ -206,6 +245,7 @@ declare
   selected_tournament tournaments%rowtype;
   target_score integer;
   winning_team_id uuid;
+  deciding_winner_team_id uuid;
 begin
   select * into selected_match from matches where id = p_match_id for update;
   if not found then
@@ -226,6 +266,9 @@ begin
     else selected_tournament.third_place_target_games
   end;
 
+  if p_team_1_score is null or p_team_2_score is null then
+    raise exception 'Enter both team scores.';
+  end if;
   if p_team_1_score < 0 or p_team_2_score < 0 then
     raise exception 'Scores cannot be negative.';
   end if;
@@ -234,24 +277,38 @@ begin
     if p_team_1_score + p_team_2_score <> target_score then
       raise exception 'The two team scores must total % points.', target_score;
     end if;
+    if p_team_1_score = p_team_2_score then
+      if p_deciding_point_winner_team_id is null
+        or p_deciding_point_winner_team_id not in (selected_match.team_1_id, selected_match.team_2_id) then
+        raise exception 'Select the team that won the deciding point.';
+      end if;
+      winning_team_id := p_deciding_point_winner_team_id;
+      deciding_winner_team_id := p_deciding_point_winner_team_id;
+    else
+      winning_team_id := case
+        when p_team_1_score > p_team_2_score then selected_match.team_1_id
+        else selected_match.team_2_id
+      end;
+      deciding_winner_team_id := null;
+    end if;
   else
     if p_team_1_score = p_team_2_score
       or greatest(p_team_1_score, p_team_2_score) <> target_score
       or least(p_team_1_score, p_team_2_score) >= target_score then
       raise exception 'One team must reach exactly % games.', target_score;
     end if;
+    winning_team_id := case
+      when p_team_1_score > p_team_2_score then selected_match.team_1_id
+      else selected_match.team_2_id
+    end;
+    deciding_winner_team_id := null;
   end if;
-
-  winning_team_id := case
-    when p_team_1_score > p_team_2_score then selected_match.team_1_id
-    when p_team_2_score > p_team_1_score then selected_match.team_2_id
-    else null
-  end;
 
   update matches
   set team_1_games = p_team_1_score,
       team_2_games = p_team_2_score,
       winner_team_id = winning_team_id,
+      deciding_point_winner_team_id = deciding_winner_team_id,
       submitted_by = auth.uid(),
       submitted_at = now(),
       played_at = now()
@@ -317,11 +374,11 @@ with check (
 );
 create policy "Admins manage predictions" on predictions for all using (public.is_admin()) with check (public.is_admin());
 
-revoke all on function submit_match_score(uuid, integer, integer) from public;
+revoke all on function submit_match_score(uuid, integer, integer, uuid) from public;
 grant execute on function public.is_admin() to authenticated;
 grant select, insert on predictions to anon, authenticated;
-grant execute on function public.submit_match_score(uuid, integer, integer) to anon;
-grant execute on function public.submit_match_score(uuid, integer, integer) to authenticated;
+grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to anon;
+grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to authenticated;
 
 insert into storage.buckets (id, name, public)
 values

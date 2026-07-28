@@ -69,6 +69,7 @@ export type Match = {
   team_1_games: number | null;
   team_2_games: number | null;
   winner_team_id: string | null;
+  deciding_point_winner_team_id: string | null;
   stage: Stage;
   group_name: GroupName | null;
   court_number: number | null;

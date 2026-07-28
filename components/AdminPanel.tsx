@@ -6,7 +6,7 @@ import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
-import { calculateTeamStats, getTargetGamesForStage, validateScore } from "@/lib/scoring";
+import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
 import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type Props = {
@@ -313,6 +313,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     const tournament = tournaments.find((item) => item.id === match?.tournament_id);
     const targetGames = match ? getTargetGamesForStage(tournament, match.stage) : 3;
     const result = validateScore(team1, team2, targetGames, match?.stage ?? "group");
+    const decidingPointWinnerId = emptyToNull(form.get("deciding_point_winner_team_id"));
     if (!match || !result.valid) {
       const unit = match?.stage === "group" ? "points" : "games";
       setMessageType("error");
@@ -323,11 +324,28 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       );
       return;
     }
+    const tiedGroupScore = match.stage === "group" && team1 === team2;
+    if (
+      tiedGroupScore &&
+      decidingPointWinnerId !== match.team_1_id &&
+      decidingPointWinnerId !== match.team_2_id
+    ) {
+      setMessageType("error");
+      setMessage("Select the team that won the deciding point.");
+      return;
+    }
     await run(async () => {
       const { error } = await supabase!.from("matches").update({
         team_1_games: team1,
         team_2_games: team2,
-        winner_team_id: result.winnerSide === "team_1" ? match.team_1_id : result.winnerSide === "team_2" ? match.team_2_id : null,
+        winner_team_id: tiedGroupScore
+          ? decidingPointWinnerId
+          : result.winnerSide === "team_1"
+            ? match.team_1_id
+            : result.winnerSide === "team_2"
+              ? match.team_2_id
+              : null,
+        deciding_point_winner_team_id: tiedGroupScore ? decidingPointWinnerId : null,
         played_at: new Date().toISOString()
       }).eq("id", match.id);
       if (error) throw error;
@@ -384,8 +402,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           throw new Error("Both Group A and Group B need completed group matches before creating semifinals.");
         }
 
-        const groupATopTwo = calculateTeamStats(groupATeams, groupAMatches).slice(0, 2);
-        const groupBTopTwo = calculateTeamStats(groupBTeams, groupBMatches).slice(0, 2);
+        const groupATopTwo = calculateGroupStandings(groupATeams, groupAMatches).slice(0, 2);
+        const groupBTopTwo = calculateGroupStandings(groupBTeams, groupBMatches).slice(0, 2);
         if (groupATopTwo.length < 2 || groupBTopTwo.length < 2) {
           throw new Error("Could not find the top 2 teams from both groups.");
         }
@@ -397,7 +415,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           groupBTopTwo[0].team
         ];
       } else {
-        const topFour = calculateTeamStats(tournamentTeamsList, groupMatches).slice(0, 4);
+        const topFour = calculateGroupStandings(tournamentTeamsList, groupMatches).slice(0, 4);
         if (topFour.length < 4) throw new Error("Could not find 4 ranked teams from the group standings.");
         semifinalTeams = [topFour[0].team, topFour[3].team, topFour[1].team, topFour[2].team];
       }
@@ -867,6 +885,19 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <input className="field" name="team_1_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 1 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
               <input className="field" name="team_2_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 2 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
             </div>
+            {selectedResultMatch?.stage === "group" ? (
+              <Select
+                key={`deciding-point-${selectedResultMatch.id}`}
+                name="deciding_point_winner_team_id"
+                label="Deciding point winner (only when tied)"
+                required={false}
+                options={[
+                  ["", "Not needed"],
+                  [selectedResultMatch.team_1_id, teamLabel(selectedResultMatch.team_1)],
+                  [selectedResultMatch.team_2_id, teamLabel(selectedResultMatch.team_2)]
+                ]}
+              />
+            ) : null}
             <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save result</button>
           </form>
         </Panel>
