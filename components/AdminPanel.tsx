@@ -5,8 +5,8 @@ import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
-import { calculateTeamStats, getTargetGamesForStage, validateAmericanoScore, validateScore } from "@/lib/scoring";
-import type { AmericanoMatch, Match, Player, Stage, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
+import { calculateTeamStats, getTargetGamesForStage, validateScore } from "@/lib/scoring";
+import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type Props = {
   configured: boolean;
@@ -15,11 +15,9 @@ type Props = {
   tournaments: Tournament[];
   tournamentTeams: TournamentTeam[];
   matches: Match[];
-  tournamentPlayers: TournamentPlayer[];
-  americanoMatches: AmericanoMatch[];
 };
 
-export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches, tournamentPlayers, americanoMatches }: Props) {
+export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches }: Props) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [email, setEmail] = useState("");
@@ -27,18 +25,15 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
-  const fixedTournaments = tournaments.filter((tournament) => tournament.tournament_format === "fixed_teams");
-  const activeTournament = fixedTournaments.find((item) => item.status === "active") ?? fixedTournaments[0];
+  const [adminSection, setAdminSection] = useState<"people" | "tournament" | "schedule" | "results">("people");
+  const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
   const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
   const [selectedResultMatchId, setSelectedResultMatchId] = useState("");
-  const americanoTournaments = tournaments.filter((tournament) => tournament.tournament_format !== "fixed_teams");
-  const [americanoTournamentId, setAmericanoTournamentId] = useState(americanoTournaments[0]?.id ?? "");
-  const [americanoResultTournamentId, setAmericanoResultTournamentId] = useState(americanoTournaments[0]?.id ?? "");
-  const [selectedAmericanoMatchId, setSelectedAmericanoMatchId] = useState("");
+  const [matchTournamentId, setMatchTournamentId] = useState(activeTournament?.id ?? "");
   const tournamentTeamIds = useMemo(
-    () => new Set(tournamentTeams.filter((item) => item.tournament_id === activeTournament?.id).map((item) => item.team_id)),
-    [activeTournament?.id, tournamentTeams]
+    () => new Set(tournamentTeams.filter((item) => item.tournament_id === matchTournamentId).map((item) => item.team_id)),
+    [matchTournamentId, tournamentTeams]
   );
   const resultMatches = useMemo(
     () => matches.filter((match) => !resultTournamentId || match.tournament_id === resultTournamentId),
@@ -49,9 +44,6 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const selectedResultTarget = selectedResultMatch
     ? getTargetGamesForStage(selectedResultTournament, selectedResultMatch.stage)
     : 3;
-  const americanoTournamentPlayers = tournamentPlayers.filter((entry) => entry.tournament_id === americanoTournamentId);
-  const americanoPlayers = americanoTournamentPlayers.map((entry) => entry.player).filter((player): player is Player => Boolean(player));
-  const americanoResultMatches = americanoMatches.filter((match) => match.tournament_id === americanoResultTournamentId);
 
   useEffect(() => {
     if (!supabase) {
@@ -188,8 +180,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const { error } = await supabase!.from("tournaments").insert({
         name: form.get("name"),
         friend_circle: form.get("friend_circle"),
-        tournament_format: form.get("tournament_format"),
-        group_target_games: Number(form.get("group_target_games")),
+        group_target_points: Number(form.get("group_target_points")),
         semifinal_target_games: Number(form.get("semifinal_target_games")),
         final_target_games: Number(form.get("final_target_games")),
         third_place_target_games: Number(form.get("third_place_target_games")),
@@ -227,59 +218,6 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
-  async function addAmericanoPlayer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await run(async () => {
-      const { error } = await supabase!.from("tournament_players").insert({
-        tournament_id: form.get("tournament_id"),
-        player_id: form.get("player_id")
-      });
-      if (error) throw error;
-    });
-  }
-
-  async function addAmericanoMatch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const tournament = tournaments.find((item) => item.id === form.get("tournament_id"));
-    const isSingles = tournament?.tournament_format === "americano_singles";
-    await run(async () => {
-      const { error } = await supabase!.from("americano_matches").insert({
-        tournament_id: form.get("tournament_id"),
-        round_number: Number(form.get("round_number")),
-        side_1_player_1_id: form.get("side_1_player_1_id"),
-        side_1_player_2_id: isSingles ? null : form.get("side_1_player_2_id"),
-        side_2_player_1_id: form.get("side_2_player_1_id"),
-        side_2_player_2_id: isSingles ? null : form.get("side_2_player_2_id")
-      });
-      if (error) throw error;
-    });
-  }
-
-  async function saveAmericanoResult(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const match = americanoMatches.find((item) => item.id === form.get("match_id"));
-    const side1 = Number(form.get("side_1_points"));
-    const side2 = Number(form.get("side_2_points"));
-    const result = validateAmericanoScore(side1, side2);
-    if (!match || !result.valid) {
-      setMessageType("error");
-      setMessage("Americano score must total 24. Example: 15-9, 18-6, or 12-12.");
-      return;
-    }
-    await run(async () => {
-      const { error } = await supabase!.from("americano_matches").update({
-        side_1_points: side1,
-        side_2_points: side2,
-        winner_side: result.winnerSide,
-        played_at: new Date().toISOString()
-      }).eq("id", match.id);
-      if (error) throw error;
-    });
-  }
-
   async function saveResult(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -290,8 +228,9 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     const targetGames = match ? getTargetGamesForStage(tournament, match.stage) : 3;
     const result = validateScore(team1, team2, targetGames);
     if (!match || !result.valid) {
+      const unit = match?.stage === "group" ? "points" : "games";
       setMessageType("error");
-      setMessage(`Score must be race to ${targetGames}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`);
+      setMessage(`Score must be first to ${targetGames} ${unit}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`);
       return;
     }
     await run(async () => {
@@ -482,7 +421,29 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         </section>
       ) : null}
 
-      {signedInEmail ? <div className="grid gap-5 lg:grid-cols-2">
+      {signedInEmail ? (
+        <>
+          <div className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+            {([
+              ["people", "People"],
+              ["tournament", "Tournament"],
+              ["schedule", "Schedule"],
+              ["results", "Results"]
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={adminSection === value ? "btn-primary whitespace-nowrap" : "btn-secondary whitespace-nowrap"}
+                onClick={() => setAdminSection(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+        {adminSection === "people" ? (
+          <>
         <Panel title="Add player">
           <form onSubmit={addPlayer} className="space-y-3">
             <input className="field" name="name" placeholder="Player name" required />
@@ -500,104 +461,55 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create team</button>
           </form>
         </Panel>
+          </>
+        ) : null}
 
+        {adminSection === "tournament" ? (
+          <>
         <Panel title="Create tournament">
           <form onSubmit={createTournament} className="space-y-3">
             <input className="field" name="name" placeholder="Tournament name" required />
             <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
-            <Select name="tournament_format" label="Tournament format" options={[["fixed_teams", "Fixed Teams"], ["americano_doubles", "Americano Doubles"], ["americano_singles", "Americano Singles"]]} />
             <input className="field" name="start_date" type="date" required />
             <div className="grid grid-cols-2 gap-3">
-              <Select name="group_target_games" label="Group race to" options={targetGameOptions()} />
-              <Select name="semifinal_target_games" label="Semifinal race to" options={targetGameOptions()} />
-              <Select name="final_target_games" label="Final race to" options={targetGameOptions()} />
-              <Select name="third_place_target_games" label="Third-place race to" options={targetGameOptions()} />
+              <NumberField name="group_target_points" label="Group points target" defaultValue={15} max={100} />
+              <NumberField name="semifinal_target_games" label="Semifinal games target" defaultValue={6} max={10} />
+              <NumberField name="final_target_games" label="Final games target" defaultValue={6} max={10} />
+              <NumberField name="third_place_target_games" label="Third-place games target" defaultValue={6} max={10} />
             </div>
+            <p className="text-xs font-semibold text-slate-500">
+              Group matches use points. Knockout matches use normal padel set scoring; record the final number of games won by each team.
+            </p>
             <Select name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
             <FileField name="cover" label="Cover image" />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create tournament</button>
           </form>
         </Panel>
 
-        <Panel title="Add player to Americano">
-          <form onSubmit={addAmericanoPlayer} className="space-y-3">
-            <Select name="tournament_id" label="Americano tournament" options={americanoTournaments.map((tournament) => [tournament.id, tournament.name])} />
-            <Select name="player_id" label="Player" options={players.map((player) => [player.id, player.name])} />
-            <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add player</button>
-          </form>
-        </Panel>
-
-        <Panel title="Add Americano match">
-          <form onSubmit={addAmericanoMatch} className="space-y-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase text-slate-500">Americano tournament</span>
-              <select className="field" name="tournament_id" value={americanoTournamentId} onChange={(event) => setAmericanoTournamentId(event.target.value)}>
-                {americanoTournaments.map((tournament) => (
-                  <option key={`americano-match-${tournament.id}`} value={tournament.id}>{tournament.name}</option>
-                ))}
-              </select>
-            </label>
-            <input className="field" name="round_number" type="number" min={1} placeholder="Round number" required />
-            <div className="grid grid-cols-2 gap-3">
-              <Select name="side_1_player_1_id" label="Side 1 player 1" options={americanoPlayers.map((player) => [player.id, player.name])} />
-              <Select name="side_1_player_2_id" label="Side 1 player 2" required={false} options={[["", "None"], ...americanoPlayers.map((player) => [player.id, player.name])]} />
-              <Select name="side_2_player_1_id" label="Side 2 player 1" options={americanoPlayers.map((player) => [player.id, player.name])} />
-              <Select name="side_2_player_2_id" label="Side 2 player 2" required={false} options={[["", "None"], ...americanoPlayers.map((player) => [player.id, player.name])]} />
-            </div>
-            <p className="text-xs font-semibold text-slate-500">For Americano Singles, only use player 1 on each side.</p>
-            <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add Americano match</button>
-          </form>
-        </Panel>
-
-        <Panel title="Enter Americano result">
-          <form onSubmit={saveAmericanoResult} className="space-y-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase text-slate-500">Americano tournament</span>
-              <select
-                className="field"
-                value={americanoResultTournamentId}
-                onChange={(event) => {
-                  setAmericanoResultTournamentId(event.target.value);
-                  setSelectedAmericanoMatchId("");
-                }}
-              >
-                {americanoTournaments.map((tournament) => (
-                  <option key={`americano-result-${tournament.id}`} value={tournament.id}>{tournament.name}</option>
-                ))}
-              </select>
-            </label>
-            <Select
-              name="match_id"
-              label="Americano match"
-              value={selectedAmericanoMatchId || americanoResultMatches[0]?.id || ""}
-              onChange={(value) => setSelectedAmericanoMatchId(value)}
-              options={americanoResultMatches.map((match) => [match.id, `Round ${match.round_number}: ${americanoMatchLabel(match)}`])}
-            />
-            <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
-              Americano scores must total 24. Draws like 12-12 are allowed.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <input className="field" name="side_1_points" type="number" min={0} max={24} placeholder="Side 1 points" required />
-              <input className="field" name="side_2_points" type="number" min={0} max={24} placeholder="Side 2 points" required />
-            </div>
-            <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save Americano result</button>
-          </form>
-        </Panel>
-
         <Panel title="Add team to tournament">
           <form onSubmit={addTeamToTournament} className="space-y-3">
-            <Select name="tournament_id" label="Tournament" options={fixedTournaments.map((tournament) => [tournament.id, tournament.name])} />
+            <Select name="tournament_id" label="Tournament" options={tournaments.map((tournament) => [tournament.id, tournament.name])} />
             <Select name="team_id" label="Team" options={teams.map((team) => [team.id, teamLabel(team)])} />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add team</button>
           </form>
         </Panel>
+          </>
+        ) : null}
 
+        {adminSection === "schedule" ? (
+          <>
         <Panel title="Add match">
           <form onSubmit={addMatch} className="space-y-3">
-            <Select name="tournament_id" label="Tournament" options={fixedTournaments.map((tournament) => [tournament.id, tournament.name])} />
+            <Select
+              name="tournament_id"
+              label="Tournament"
+              value={matchTournamentId}
+              onChange={setMatchTournamentId}
+              options={tournaments.map((tournament) => [tournament.id, tournament.name])}
+            />
             <Select name="stage" label="Stage" options={(["group", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])} />
-            <Select name="team_1_id" label="Team 1" options={teams.filter((team) => !activeTournament || tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
-            <Select name="team_2_id" label="Team 2" options={teams.filter((team) => !activeTournament || tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
+            <Select name="team_1_id" label="Team 1" options={teams.filter((team) => tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
+            <Select name="team_2_id" label="Team 2" options={teams.filter((team) => tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add match</button>
           </form>
         </Panel>
@@ -611,7 +523,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                 value={knockoutTournamentId}
                 onChange={(event) => setKnockoutTournamentId(event.target.value)}
               >
-                {fixedTournaments.map((tournament) => (
+                {tournaments.map((tournament) => (
                   <option key={`knockout-tournament-${tournament.id}`} value={tournament.id}>
                     {tournament.name}
                   </option>
@@ -637,7 +549,11 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             </p>
           </div>
         </Panel>
+          </>
+        ) : null}
 
+        {adminSection === "results" ? (
+          <>
         <Panel title="Enter or edit result">
           <form onSubmit={saveResult} className="space-y-3">
             <label className="block">
@@ -650,7 +566,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                   setSelectedResultMatchId("");
                 }}
               >
-                {fixedTournaments.map((tournament) => (
+                {tournaments.map((tournament) => (
                   <option key={`result-tournament-${tournament.id}`} value={tournament.id}>
                     {tournament.name}
                   </option>
@@ -666,7 +582,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             />
             {selectedResultMatch ? (
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
-                This {selectedResultMatch.stage.replace("_", " ")} match is race to {selectedResultTarget}.
+                This {selectedResultMatch.stage.replace("_", " ")} match is first to {selectedResultTarget} {selectedResultMatch.stage === "group" ? "points" : "games"}.
               </p>
             ) : null}
             {!resultMatches.length ? (
@@ -675,8 +591,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               </p>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
-              <input className="field" name="team_1_games" type="number" min={0} max={selectedResultTarget} placeholder="Team 1 games" required />
-              <input className="field" name="team_2_games" type="number" min={0} max={selectedResultTarget} placeholder="Team 2 games" required />
+              <input className="field" name="team_1_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 1 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
+              <input className="field" name="team_2_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 2 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
             </div>
             <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save result</button>
           </form>
@@ -684,7 +600,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
         <Panel title="Manual close tournament">
           <form onSubmit={closeTournament} className="space-y-3">
-            <Select name="tournament_id" label="Tournament" options={fixedTournaments.map((tournament) => [tournament.id, tournament.name])} />
+            <Select name="tournament_id" label="Tournament" options={tournaments.map((tournament) => [tournament.id, tournament.name])} />
             <Select name="champion_team_id" label="Champion" required={false} options={[["", "None"], ...teams.map((team) => [team.id, teamLabel(team)] as [string, string])]} />
             <Select name="runner_up_team_id" label="Runner-up" required={false} options={[["", "None"], ...teams.map((team) => [team.id, teamLabel(team)] as [string, string])]} />
             <Select name="third_place_team_id" label="Third place" required={false} options={[["", "None"], ...teams.map((team) => [team.id, teamLabel(team)] as [string, string])]} />
@@ -692,7 +608,11 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             <button className="btn-primary" disabled={busy}><Check className="h-4 w-4" /> Update tournament</button>
           </form>
         </Panel>
-      </div> : null}
+          </>
+        ) : null}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -744,14 +664,23 @@ function Select({
   );
 }
 
-function targetGameOptions() {
-  return ["3", "4", "5", "6"].map((value) => [value, `Race to ${value}`]);
-}
-
-function americanoMatchLabel(match: AmericanoMatch) {
-  const side1 = [match.side_1_player_1?.name, match.side_1_player_2?.name].filter(Boolean).join(" / ");
-  const side2 = [match.side_2_player_1?.name, match.side_2_player_2?.name].filter(Boolean).join(" / ");
-  return `${side1} vs ${side2}`;
+function NumberField({
+  name,
+  label,
+  defaultValue,
+  max
+}: {
+  name: string;
+  label: string;
+  defaultValue: number;
+  max: number;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-black uppercase text-slate-500">{label}</span>
+      <input className="field" name={name} type="number" min={1} max={max} defaultValue={defaultValue} required />
+    </label>
+  );
 }
 
 function FileField({ name, label }: { name: string; label: string }) {

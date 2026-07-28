@@ -31,7 +31,7 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
                 <TeamAvatar team={row.team} size={42} />
                 <div className="min-w-0">
                   <p className="truncate font-black text-slate-950">{teamLabel(row.team)}</p>
-                  <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} games</p>
+                  <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
               {teamDetails(row).slice(0, 12).map(([label, value]) => (
@@ -70,7 +70,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
                 <PlayerAvatar player={row.player} size={42} />
                 <div className="min-w-0">
                   <p className="truncate font-black text-slate-950">{row.player.name}</p>
-                  <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} games</p>
+                  <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
               {playerDetails(row).slice(0, 12).map(([label, value]) => (
@@ -93,7 +93,7 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
           <TeamAvatar team={row.team} size={42} />
           <div className="min-w-0">
             <p className="truncate font-black text-slate-950">{teamLabel(row.team)}</p>
-            <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} games</p>
+            <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
         <PointBadge value={row.points} />
@@ -113,7 +113,7 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
           <PlayerAvatar player={row.player} size={42} />
           <div className="min-w-0">
             <p className="truncate font-black text-slate-950">{row.player.name}</p>
-            <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} games</p>
+            <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
         <PointBadge value={row.points} dark />
@@ -125,7 +125,7 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
 }
 
 function Header({ label }: { label: string }) {
-  const columns = ["MP", "W", "L", "Win %", "GW", "GL", "GD", "Pts", "SF", "SFW", "F", "Titles"];
+  const columns = ["MP", "W", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
   return (
     <div className="grid grid-cols-[56px_260px_repeat(12,72px)] border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase text-slate-500">
       <div className="p-3">Rank</div>
@@ -193,9 +193,9 @@ function teamDetails(row: TeamStats): DetailItem[] {
     ["W", row.wins],
     ["L", row.losses],
     ["Win %", formatPercent(row.wins, row.played)],
-    ["GW", row.gamesWon],
-    ["GL", row.gamesLost],
-    ["GD", signed(row.gameDiff)],
+    ["Score for", row.gamesWon],
+    ["Score against", row.gamesLost],
+    ["Score diff", signed(row.gameDiff)],
     ["Pts", signed(row.points)],
     ["SF", row.semifinalsPlayed],
     ["SFW", row.semifinalsWon],
@@ -211,9 +211,9 @@ function playerDetails(row: PlayerStats): DetailItem[] {
     ["W", row.wins],
     ["L", row.losses],
     ["Win %", formatPercent(row.wins, row.played)],
-    ["GW", row.gamesWon],
-    ["GL", row.gamesLost],
-    ["GD", signed(row.gameDiff)],
+    ["Score for", row.gamesWon],
+    ["Score against", row.gamesLost],
+    ["Score diff", signed(row.gameDiff)],
     ["Pts", signed(row.points)],
     ["SF", row.semifinalsPlayed],
     ["SFW", row.semifinalsWon],

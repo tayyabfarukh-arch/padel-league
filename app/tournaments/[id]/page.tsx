@@ -33,7 +33,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Group race to {tournament.group_target_games} | Semifinal race to {tournament.semifinal_target_games} | Final race to {tournament.final_target_games}
+          Groups: first to {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
         </p>
       </section>
 
@@ -41,7 +41,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <StatCard label="Teams" value={teams.length} />
         <StatCard label="Matches" value={matches.length} />
         <StatCard label="Completed" value={completed.length} />
-        <StatCard label="Avg games" value={completed.length ? (completed.reduce((sum, match) => sum + (match.team_1_games ?? 0) + (match.team_2_games ?? 0), 0) / completed.length).toFixed(1) : "0"} />
+        <StatCard label="Avg score" value={completed.length ? (completed.reduce((sum, match) => sum + (match.team_1_games ?? 0) + (match.team_2_games ?? 0), 0) / completed.length).toFixed(1) : "0"} />
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">

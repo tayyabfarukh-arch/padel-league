@@ -21,12 +21,11 @@ export default async function Home() {
   ]);
   const teams = teamsFromTournamentTeams(tournamentTeams);
   const scopedPlayers = playersFromTeams(players, teams);
-  const fixedTournaments = tournaments.filter((tournament) => tournament.tournament_format === "fixed_teams");
-  const active = fixedTournaments.find((tournament) => tournament.status === "active");
-  const completed = fixedTournaments.filter((tournament) => tournament.status === "completed");
+  const active = tournaments.find((tournament) => tournament.status === "active");
+  const completed = tournaments.filter((tournament) => tournament.status === "completed");
   const lastChampion = completed[0]?.champion;
-  const teamStats = calculateTeamStats(teams, matches, fixedTournaments);
-  const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, fixedTournaments);
+  const teamStats = calculateTeamStats(teams, matches, tournaments);
+  const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);
 

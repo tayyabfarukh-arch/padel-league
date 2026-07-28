@@ -14,8 +14,7 @@ export const revalidate = 0;
 
 export default async function CurrentTournamentPage() {
   const tournaments = await getTournaments();
-  const fixedTournaments = tournaments.filter((item) => item.tournament_format === "fixed_teams");
-  const tournament = fixedTournaments.find((item) => item.status === "active") ?? fixedTournaments.find((item) => item.status === "upcoming");
+  const tournament = tournaments.find((item) => item.status === "active") ?? tournaments.find((item) => item.status === "upcoming");
   if (!tournament) return <EmptyState title="No current tournament" body="Create a tournament in Admin and set it active." />;
 
   const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
@@ -30,7 +29,7 @@ export default async function CurrentTournamentPage() {
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{teams.length} teams | {matches.length} matches</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Group race to {tournament.group_target_games} | Semifinal race to {tournament.semifinal_target_games} | Final race to {tournament.final_target_games}
+          Groups: first to {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
         </p>
       </section>
 

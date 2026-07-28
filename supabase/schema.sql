@@ -21,11 +21,10 @@ create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
-  tournament_format text not null default 'fixed_teams' check (tournament_format in ('fixed_teams', 'americano_doubles', 'americano_singles')),
-  group_target_games integer not null default 3 check (group_target_games between 1 and 10),
-  semifinal_target_games integer not null default 3 check (semifinal_target_games between 1 and 10),
-  final_target_games integer not null default 3 check (final_target_games between 1 and 10),
-  third_place_target_games integer not null default 3 check (third_place_target_games between 1 and 10),
+  group_target_points integer not null default 15 check (group_target_points between 1 and 100),
+  semifinal_target_games integer not null default 6 check (semifinal_target_games between 1 and 10),
+  final_target_games integer not null default 6 check (final_target_games between 1 and 10),
+  third_place_target_games integer not null default 6 check (third_place_target_games between 1 and 10),
   status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
   start_date date not null default current_date,
   end_date date,
@@ -40,19 +39,22 @@ alter table tournaments
 add column if not exists friend_circle text not null default 'circle_1';
 
 alter table tournaments
-add column if not exists tournament_format text not null default 'fixed_teams';
+add column if not exists group_target_points integer not null default 15;
 
 alter table tournaments
-add column if not exists group_target_games integer not null default 3;
+add column if not exists semifinal_target_games integer not null default 6;
 
 alter table tournaments
-add column if not exists semifinal_target_games integer not null default 3;
+add column if not exists final_target_games integer not null default 6;
 
 alter table tournaments
-add column if not exists final_target_games integer not null default 3;
+add column if not exists third_place_target_games integer not null default 6;
 
 alter table tournaments
-add column if not exists third_place_target_games integer not null default 3;
+drop column if exists tournament_format;
+
+alter table tournaments
+drop column if exists group_target_games;
 
 create table if not exists tournament_teams (
   id uuid primary key default gen_random_uuid(),
@@ -60,14 +62,6 @@ create table if not exists tournament_teams (
   team_id uuid not null references teams(id) on delete cascade,
   created_at timestamp with time zone default now(),
   unique (tournament_id, team_id)
-);
-
-create table if not exists tournament_players (
-  id uuid primary key default gen_random_uuid(),
-  tournament_id uuid not null references tournaments(id) on delete cascade,
-  player_id uuid not null references players(id) on delete cascade,
-  created_at timestamp with time zone default now(),
-  unique (tournament_id, player_id)
 );
 
 create table if not exists matches (
@@ -85,43 +79,18 @@ create table if not exists matches (
   constraint matches_valid_scores check (
     (team_1_games is null and team_2_games is null and winner_team_id is null)
     or (
-      team_1_games between 0 and 10
-      and team_2_games between 0 and 10
+      team_1_games between 0 and 100
+      and team_2_games between 0 and 100
       and team_1_games <> team_2_games
-      and greatest(team_1_games, team_2_games) between 1 and 10
+      and greatest(team_1_games, team_2_games) between 1 and 100
       and least(team_1_games, team_2_games) < greatest(team_1_games, team_2_games)
       and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
     )
   )
 );
 
-create table if not exists americano_matches (
-  id uuid primary key default gen_random_uuid(),
-  tournament_id uuid not null references tournaments(id) on delete cascade,
-  round_number integer not null default 1,
-  side_1_player_1_id uuid not null references players(id) on delete restrict,
-  side_1_player_2_id uuid references players(id) on delete restrict,
-  side_2_player_1_id uuid not null references players(id) on delete restrict,
-  side_2_player_2_id uuid references players(id) on delete restrict,
-  side_1_points integer,
-  side_2_points integer,
-  winner_side integer check (winner_side in (1, 2)),
-  played_at timestamp with time zone,
-  created_at timestamp with time zone default now(),
-  constraint americano_matches_valid_score check (
-    (side_1_points is null and side_2_points is null and winner_side is null)
-    or (
-      side_1_points between 0 and 24
-      and side_2_points between 0 and 24
-      and side_1_points + side_2_points = 24
-      and (
-        (side_1_points = side_2_points and winner_side is null)
-        or (side_1_points > side_2_points and winner_side = 1)
-        or (side_2_points > side_1_points and winner_side = 2)
-      )
-    )
-  )
-);
+drop table if exists americano_matches cascade;
+drop table if exists tournament_players cascade;
 
 alter table matches
 drop constraint if exists matches_valid_scores;
@@ -130,10 +99,10 @@ alter table matches
 add constraint matches_valid_scores check (
   (team_1_games is null and team_2_games is null and winner_team_id is null)
   or (
-    team_1_games between 0 and 10
-    and team_2_games between 0 and 10
+    team_1_games between 0 and 100
+    and team_2_games between 0 and 100
     and team_1_games <> team_2_games
-    and greatest(team_1_games, team_2_games) between 1 and 10
+    and greatest(team_1_games, team_2_games) between 1 and 100
     and least(team_1_games, team_2_games) < greatest(team_1_games, team_2_games)
     and winner_team_id = case when team_1_games > team_2_games then team_1_id else team_2_id end
   )
@@ -142,47 +111,35 @@ add constraint matches_valid_scores check (
 create index if not exists idx_matches_tournament on matches(tournament_id);
 create index if not exists idx_matches_teams on matches(team_1_id, team_2_id);
 create index if not exists idx_tournament_teams_tournament on tournament_teams(tournament_id);
-create index if not exists idx_tournament_players_tournament on tournament_players(tournament_id);
-create index if not exists idx_americano_matches_tournament on americano_matches(tournament_id);
 
 alter table players enable row level security;
 alter table teams enable row level security;
 alter table tournaments enable row level security;
 alter table tournament_teams enable row level security;
 alter table matches enable row level security;
-alter table tournament_players enable row level security;
-alter table americano_matches enable row level security;
 
 drop policy if exists "Public read players" on players;
 drop policy if exists "Public read teams" on teams;
 drop policy if exists "Public read tournaments" on tournaments;
 drop policy if exists "Public read tournament teams" on tournament_teams;
 drop policy if exists "Public read matches" on matches;
-drop policy if exists "Public read tournament players" on tournament_players;
-drop policy if exists "Public read americano matches" on americano_matches;
 drop policy if exists "Authenticated admins manage players" on players;
 drop policy if exists "Authenticated admins manage teams" on teams;
 drop policy if exists "Authenticated admins manage tournaments" on tournaments;
 drop policy if exists "Authenticated admins manage tournament teams" on tournament_teams;
 drop policy if exists "Authenticated admins manage matches" on matches;
-drop policy if exists "Authenticated admins manage tournament players" on tournament_players;
-drop policy if exists "Authenticated admins manage americano matches" on americano_matches;
 
 create policy "Public read players" on players for select using (true);
 create policy "Public read teams" on teams for select using (true);
 create policy "Public read tournaments" on tournaments for select using (true);
 create policy "Public read tournament teams" on tournament_teams for select using (true);
 create policy "Public read matches" on matches for select using (true);
-create policy "Public read tournament players" on tournament_players for select using (true);
-create policy "Public read americano matches" on americano_matches for select using (true);
 
 create policy "Authenticated admins manage players" on players for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated admins manage teams" on teams for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated admins manage tournaments" on tournaments for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated admins manage tournament teams" on tournament_teams for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "Authenticated admins manage matches" on matches for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Authenticated admins manage tournament players" on tournament_players for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "Authenticated admins manage americano matches" on americano_matches for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 insert into storage.buckets (id, name, public)
 values
