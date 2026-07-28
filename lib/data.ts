@@ -93,6 +93,9 @@ export async function getCourtStreams(tournamentId?: string) {
     }
   }
   const { data, error } = await query;
+  if (error?.code === "42P01" || error?.code === "PGRST205") {
+    return [] as CourtStream[];
+  }
   if (error) throw error;
   return data as CourtStream[];
 }
