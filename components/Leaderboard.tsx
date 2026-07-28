@@ -24,7 +24,7 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
             <Link
               href={`/teams/${row.team.id}`}
               key={row.team.id}
-              className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
+              className={`rank-row rank-row--${index + 1} grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -63,7 +63,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
             <Link
               href={`/players/${row.player.id}`}
               key={row.player.id}
-              className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
+              className={`rank-row rank-row--${index + 1} grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -86,7 +86,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
 
 function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
   return (
-    <details className="group border-b border-slate-100 last:border-b-0">
+    <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
       <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
         <div className="flex min-w-0 items-center gap-3">
@@ -106,7 +106,7 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
 
 function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
   return (
-    <details className="group border-b border-slate-100 last:border-b-0">
+    <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
       <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
         <div className="flex min-w-0 items-center gap-3">
@@ -127,7 +127,7 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
 function Header({ label }: { label: string }) {
   const columns = ["MP", "W", "D", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
   return (
-    <div className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase text-slate-500">
+    <div className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-white/10 bg-ink text-[10px] font-black uppercase text-slate-300">
       <div className="p-3">Rank</div>
       <div className="p-3">{label}</div>
       {columns.map((column) => (
@@ -165,7 +165,7 @@ function RankCell({ index }: { index: number }) {
 
 function RankBadge({ index }: { index: number }) {
   return (
-    <span className="grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-sm font-black text-slate-600">
+    <span className={`rank-badge--${index + 1} grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-sm font-black text-slate-600`}>
       #{index + 1}
     </span>
   );

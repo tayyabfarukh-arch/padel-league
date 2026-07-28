@@ -36,7 +36,7 @@ export default async function Home() {
 
   return (
     <div className="space-y-6">
-      <section className="court-panel rounded-lg p-5 text-white shadow-sm md:p-8">
+      <section className="court-panel home-hero rounded-lg p-5 text-white md:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">

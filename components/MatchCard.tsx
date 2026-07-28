@@ -16,8 +16,17 @@ export function MatchCard({
   youtubeUrl?: string;
 }) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
+  const knockout = match.stage !== "group";
   return (
-    <article className="sport-card p-4">
+    <article
+      className={`sport-card match-card p-4 ${
+        knockout
+          ? "match-card--knockout"
+          : completed
+            ? "match-card--completed"
+            : "match-card--pending"
+      }`}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
           {stageLabel(match.stage)}
