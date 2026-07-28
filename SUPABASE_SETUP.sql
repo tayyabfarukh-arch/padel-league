@@ -76,6 +76,15 @@ create table if not exists tournament_teams (
 alter table tournament_teams
 add column if not exists group_name text not null default 'A';
 
+create table if not exists tournament_court_streams (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references tournaments(id) on delete cascade,
+  court_number integer not null check (court_number between 1 and 20),
+  youtube_url text not null check (youtube_url ~* '^https?://'),
+  created_at timestamp with time zone default now(),
+  unique (tournament_id, court_number)
+);
+
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references tournaments(id) on delete cascade,
@@ -292,10 +301,18 @@ begin
       deciding_winner_team_id := null;
     end if;
   else
-    if p_team_1_score = p_team_2_score
-      or greatest(p_team_1_score, p_team_2_score) <> target_score
-      or least(p_team_1_score, p_team_2_score) >= target_score then
-      raise exception 'One team must reach exactly % games.', target_score;
+    if not (
+      (
+        greatest(p_team_1_score, p_team_2_score) = target_score
+        and least(p_team_1_score, p_team_2_score) < target_score
+      )
+      or (
+        greatest(p_team_1_score, p_team_2_score) = target_score + 2
+        and least(p_team_1_score, p_team_2_score) >= target_score
+        and least(p_team_1_score, p_team_2_score) < target_score + 2
+      )
+    ) then
+      raise exception 'Finish at %, or continue to % if both teams reach %.', target_score, target_score + 2, target_score;
     end if;
     winning_team_id := case
       when p_team_1_score > p_team_2_score then selected_match.team_1_id
@@ -324,6 +341,7 @@ alter table players enable row level security;
 alter table teams enable row level security;
 alter table tournaments enable row level security;
 alter table tournament_teams enable row level security;
+alter table tournament_court_streams enable row level security;
 alter table matches enable row level security;
 alter table admin_users enable row level security;
 alter table predictions enable row level security;
@@ -332,11 +350,13 @@ drop policy if exists "Public read players" on players;
 drop policy if exists "Public read teams" on teams;
 drop policy if exists "Public read tournaments" on tournaments;
 drop policy if exists "Public read tournament teams" on tournament_teams;
+drop policy if exists "Public read tournament court streams" on tournament_court_streams;
 drop policy if exists "Public read matches" on matches;
 drop policy if exists "Authenticated admins manage players" on players;
 drop policy if exists "Authenticated admins manage teams" on teams;
 drop policy if exists "Authenticated admins manage tournaments" on tournaments;
 drop policy if exists "Authenticated admins manage tournament teams" on tournament_teams;
+drop policy if exists "Authenticated admins manage tournament court streams" on tournament_court_streams;
 drop policy if exists "Authenticated admins manage matches" on matches;
 drop policy if exists "Users read own admin status" on admin_users;
 drop policy if exists "Public read predictions" on predictions;
@@ -348,6 +368,7 @@ create policy "Public read players" on players for select using (true);
 create policy "Public read teams" on teams for select using (true);
 create policy "Public read tournaments" on tournaments for select using (true);
 create policy "Public read tournament teams" on tournament_teams for select using (true);
+create policy "Public read tournament court streams" on tournament_court_streams for select using (true);
 create policy "Public read matches" on matches for select using (true);
 create policy "Public read predictions" on predictions for select using (true);
 
@@ -355,6 +376,7 @@ create policy "Authenticated admins manage players" on players for all using (pu
 create policy "Authenticated admins manage teams" on teams for all using (public.is_admin()) with check (public.is_admin());
 create policy "Authenticated admins manage tournaments" on tournaments for all using (public.is_admin()) with check (public.is_admin());
 create policy "Authenticated admins manage tournament teams" on tournament_teams for all using (public.is_admin()) with check (public.is_admin());
+create policy "Authenticated admins manage tournament court streams" on tournament_court_streams for all using (public.is_admin()) with check (public.is_admin());
 create policy "Authenticated admins manage matches" on matches for all using (public.is_admin()) with check (public.is_admin());
 create policy "Users read own admin status" on admin_users for select using (user_id = auth.uid());
 create policy "Visitors add one prediction" on predictions
@@ -377,6 +399,8 @@ create policy "Admins manage predictions" on predictions for all using (public.i
 revoke all on function submit_match_score(uuid, integer, integer, uuid) from public;
 grant execute on function public.is_admin() to authenticated;
 grant select, insert on predictions to anon, authenticated;
+grant select on tournament_court_streams to anon, authenticated;
+grant insert, update, delete on tournament_court_streams to authenticated;
 grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to anon;
 grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to authenticated;
 

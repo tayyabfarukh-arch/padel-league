@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Youtube } from "lucide-react";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Match } from "@/lib/types";
 import { TeamAvatar } from "./Avatar";
@@ -7,11 +7,13 @@ import { InlineMatchScore } from "./InlineMatchScore";
 export function MatchCard({
   match,
   allowScoreEntry = false,
-  scoreTarget
+  scoreTarget,
+  youtubeUrl
 }: {
   match: Match;
   allowScoreEntry?: boolean;
   scoreTarget?: number;
+  youtubeUrl?: string;
 }) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
   return (
@@ -20,13 +22,25 @@ export function MatchCard({
         <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
           {stageLabel(match.stage)}
         </span>
-        <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
           {match.court_number ? (
-            <span className="flex items-center gap-1 font-black text-court">
-              <MapPin className="h-3.5 w-3.5" /> Court {match.court_number}
+            <span className="flex items-center gap-1.5 rounded-md bg-court px-3 py-1.5 text-sm font-black text-white shadow-sm">
+              <MapPin className="h-4 w-4" /> Court {match.court_number}
             </span>
           ) : null}
-          <span className="flex items-center gap-1">
+          {youtubeUrl ? (
+            <a
+              href={youtubeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-red-600 text-white shadow-sm transition hover:bg-red-700"
+              title={`Watch Court ${match.court_number ?? ""} on YouTube`}
+              aria-label={`Watch Court ${match.court_number ?? ""} on YouTube`}
+            >
+              <Youtube className="h-5 w-5" />
+            </a>
+          ) : null}
+          <span className="hidden items-center gap-1 sm:flex">
             <CalendarDays className="h-3.5 w-3.5" />
             {match.played_at ? new Date(match.played_at).toLocaleDateString() : "Upcoming"}
           </span>

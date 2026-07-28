@@ -1,4 +1,4 @@
-import type { Team } from "./types";
+import type { CourtStream, Match, Team } from "./types";
 
 export function formatPercent(wins: number, played: number) {
   if (!played) return "0%";
@@ -28,4 +28,13 @@ export function stageLabel(stage: string) {
     third_place: "Third place"
   };
   return labels[stage] ?? stage;
+}
+
+export function courtStreamUrl(match: Match, streams: CourtStream[]) {
+  if (!match.court_number) return undefined;
+  return streams.find(
+    (stream) =>
+      stream.tournament_id === match.tournament_id &&
+      stream.court_number === match.court_number
+  )?.youtube_url;
 }

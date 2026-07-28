@@ -2,12 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
+import { Check, LogIn, LogOut, Plus, Save, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
-import type { Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
+import type { CourtStream, Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type Props = {
   configured: boolean;
@@ -16,11 +16,12 @@ type Props = {
   tournaments: Tournament[];
   tournamentTeams: TournamentTeam[];
   matches: Match[];
+  courtStreams: CourtStream[];
 };
 
 type AdminSection = "people" | "tournament" | "schedule" | "results";
 
-export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches }: Props) {
+export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches, courtStreams }: Props) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [email, setEmail] = useState("");
@@ -61,8 +62,13 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const selectedResultTarget = selectedResultMatch
     ? getTargetGamesForStage(selectedResultTournament, selectedResultMatch.stage)
     : 3;
+  const selectedResultMaximum =
+    selectedResultMatch?.stage === "group"
+      ? selectedResultTarget
+      : selectedResultTarget + 2;
   const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
   const selectedTournamentMatches = matches.filter((item) => item.tournament_id === matchTournamentId);
+  const selectedCourtStreams = courtStreams.filter((item) => item.tournament_id === matchTournamentId);
 
   useEffect(() => {
     if (!supabase) {
@@ -304,6 +310,60 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
+  async function saveCourtStreams(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!matchTournament) {
+      setMessageType("error");
+      setMessage("Select a tournament first.");
+      return;
+    }
+
+    const form = new FormData(event.currentTarget);
+    const rows = Array.from({ length: matchTournament.court_count }, (_, index) => {
+      const courtNumber = index + 1;
+      return {
+        tournament_id: matchTournament.id,
+        court_number: courtNumber,
+        youtube_url: String(form.get(`court_stream_${courtNumber}`) ?? "").trim()
+      };
+    });
+
+    for (const row of rows.filter((item) => item.youtube_url)) {
+      try {
+        const url = new URL(row.youtube_url);
+        const youtubeHost =
+          url.hostname === "youtu.be" ||
+          url.hostname === "youtube.com" ||
+          url.hostname.endsWith(".youtube.com");
+        if (!youtubeHost) throw new Error();
+      } catch {
+        setMessageType("error");
+        setMessage(`Court ${row.court_number} needs a valid YouTube link.`);
+        return;
+      }
+    }
+
+    await run(async () => {
+      const links = rows.filter((item) => item.youtube_url);
+      if (links.length) {
+        const { error } = await supabase!
+          .from("tournament_court_streams")
+          .upsert(links, { onConflict: "tournament_id,court_number" });
+        if (error) throw error;
+      }
+
+      const emptyCourts = rows.filter((item) => !item.youtube_url).map((item) => item.court_number);
+      if (emptyCourts.length) {
+        const { error } = await supabase!
+          .from("tournament_court_streams")
+          .delete()
+          .eq("tournament_id", matchTournament.id)
+          .in("court_number", emptyCourts);
+        if (error) throw error;
+      }
+    });
+  }
+
   async function saveResult(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -320,7 +380,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       setMessage(
         match?.stage === "group"
           ? `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
-          : `Score must be first to ${targetGames} ${unit}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`
+          : `Finish at ${targetGames} ${unit}. If both teams reach ${targetGames}, continue until one team reaches ${targetGames + 2}.`
       );
       return;
     }
@@ -643,7 +703,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <NumberField name="third_place_target_games" label="Third-place games target" defaultValue={6} max={10} />
             </div>
             <p className="text-xs font-semibold text-slate-500">
-              Group matches use points. Knockout matches use normal padel set scoring; record the final number of games won by each team.
+              Group matches use points. Knockout matches extend by two games if both teams reach the selected target.
             </p>
             <Select name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
             <FileField name="cover" label="Cover image" />
@@ -741,6 +801,47 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
         {adminSection === "schedule" ? (
           <>
+        <Panel title="Court YouTube streams">
+          <div className="space-y-3">
+            <Select
+              name="stream_tournament_id"
+              label="Tournament"
+              value={matchTournamentId}
+              onChange={(value) => {
+                setMatchTournamentId(value);
+                if (tournaments.find((item) => item.id === value)?.group_count !== 2) setMatchGroup("A");
+              }}
+              options={tournaments.map((tournament) => [tournament.id, tournament.name])}
+            />
+            <form key={`court-streams-${matchTournamentId}`} onSubmit={saveCourtStreams} className="space-y-3">
+              {Array.from({ length: matchTournament?.court_count ?? 0 }, (_, index) => {
+                const courtNumber = index + 1;
+                const existingUrl = selectedCourtStreams.find((stream) => stream.court_number === courtNumber)?.youtube_url ?? "";
+                return (
+                  <label key={`court-stream-${courtNumber}`} className="block">
+                    <span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500">
+                      <Youtube className="h-4 w-4 text-red-600" /> Court {courtNumber} YouTube link
+                    </span>
+                    <input
+                      className="field"
+                      name={`court_stream_${courtNumber}`}
+                      type="url"
+                      defaultValue={existingUrl}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </label>
+                );
+              })}
+              <button className="btn-primary" disabled={busy || !matchTournament}>
+                <Save className="h-4 w-4" /> Save court links
+              </button>
+            </form>
+            <p className="text-xs font-semibold text-slate-500">
+              Paste each stream once. Matches automatically use the link matching their court number.
+            </p>
+          </div>
+        </Panel>
+
         <Panel title="Add match">
           <form onSubmit={addMatch} className="space-y-3">
             <Select
@@ -873,7 +974,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
                 {selectedResultMatch.stage === "group"
                   ? `The two team scores must total ${selectedResultTarget} points.`
-                  : `This ${selectedResultMatch.stage.replace("_", " ")} match is first to ${selectedResultTarget} games.`}
+                  : `First to ${selectedResultTarget}. At ${selectedResultTarget}-${selectedResultTarget}, continue until one team reaches ${selectedResultTarget + 2}.`}
               </p>
             ) : null}
             {!resultMatches.length ? (
@@ -882,8 +983,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               </p>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
-              <input className="field" name="team_1_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 1 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
-              <input className="field" name="team_2_games" type="number" min={0} max={selectedResultTarget} placeholder={`Team 2 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
+              <input className="field" name="team_1_games" type="number" min={0} max={selectedResultMaximum} placeholder={`Team 1 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
+              <input className="field" name="team_2_games" type="number" min={0} max={selectedResultMaximum} placeholder={`Team 2 ${selectedResultMatch?.stage === "group" ? "points" : "games"}`} required />
             </div>
             {selectedResultMatch?.stage === "group" ? (
               <Select

@@ -11,13 +11,15 @@ export function GroupMatchFilter({
   teams,
   title = "Group matches",
   allowScoreEntry = false,
-  scoreTarget
+  scoreTarget,
+  youtubeUrls = {}
 }: {
   matches: Match[];
   teams: Team[];
   title?: string;
   allowScoreEntry?: boolean;
   scoreTarget?: number;
+  youtubeUrls?: Record<string, string | undefined>;
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState("all");
 
@@ -69,6 +71,7 @@ export function GroupMatchFilter({
               match={match}
               allowScoreEntry={allowScoreEntry}
               scoreTarget={scoreTarget}
+              youtubeUrl={youtubeUrls[match.id]}
             />
           ))}
         </div>

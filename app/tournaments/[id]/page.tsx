@@ -3,8 +3,8 @@ import { StatCard } from "@/components/StatCard";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
 import { TournamentGroups } from "@/components/TournamentGroups";
-import { getMatches, getTournament, getTournamentTeams } from "@/lib/data";
-import { stageLabel, teamLabel } from "@/lib/format";
+import { getCourtStreams, getMatches, getTournament, getTournamentTeams } from "@/lib/data";
+import { courtStreamUrl, stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,11 @@ export const revalidate = 0;
 export default async function TournamentDetailPage({ params }: { params: { id: string } }) {
   const tournament = await getTournament(params.id);
   if (!tournament) notFound();
-  const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
+  const [tournamentTeams, matches, courtStreams] = await Promise.all([
+    getTournamentTeams(tournament.id),
+    getMatches(tournament.id),
+    getCourtStreams(tournament.id)
+  ]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
   const completed = matches.filter((match) => match.winner_team_id);
   const placements: Array<[string, Team | null | undefined]> = [
@@ -29,7 +33,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Group match total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
+          Group total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games}, extends to {tournament.semifinal_target_games + 2} if level | Final: first to {tournament.final_target_games}, extends to {tournament.final_target_games + 2} if level
         </p>
       </section>
 
@@ -52,7 +56,12 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         ))}
       </section>
 
-      <TournamentGroups tournament={tournament} tournamentTeams={tournamentTeams} matches={matches} />
+      <TournamentGroups
+        tournament={tournament}
+        tournamentTeams={tournamentTeams}
+        matches={matches}
+        courtStreams={courtStreams}
+      />
 
       {(["semifinal", "final", "third_place"] as const).map((stage) => {
         const stageMatches = matches.filter((match) => match.stage === stage);
@@ -60,7 +69,15 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         return (
           <section key={stage}>
             <h2 className="section-title">{stageLabel(stage)}</h2>
-            <div className="grid gap-3 md:grid-cols-2">{stageMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {stageMatches.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  youtubeUrl={courtStreamUrl(match, courtStreams)}
+                />
+              ))}
+            </div>
           </section>
         );
       })}

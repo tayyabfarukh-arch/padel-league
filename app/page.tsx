@@ -4,8 +4,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
-import { getMatches, getPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
-import { teamLabel } from "@/lib/format";
+import { getCourtStreams, getMatches, getPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
+import { courtStreamUrl, teamLabel } from "@/lib/format";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
 import { playersFromTeams, teamsFromTournamentTeams } from "@/lib/scope";
 
@@ -13,11 +13,12 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  const [players, tournamentTeams, tournaments, matches] = await Promise.all([
+  const [players, tournamentTeams, tournaments, matches, courtStreams] = await Promise.all([
     getPlayers(),
     getTournamentTeams(),
     getTournaments(),
-    getMatches()
+    getMatches(),
+    getCourtStreams()
   ]);
   const teams = teamsFromTournamentTeams(tournamentTeams);
   const scopedPlayers = playersFromTeams(players, teams);
@@ -95,11 +96,19 @@ export default async function Home() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="section-title">Latest results</h2>
-          <div className="space-y-3">{latestResults.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+          <div className="space-y-3">
+            {latestResults.map((match) => (
+              <MatchCard key={match.id} match={match} youtubeUrl={courtStreamUrl(match, courtStreams)} />
+            ))}
+          </div>
         </section>
         <section>
           <h2 className="section-title">Upcoming matches</h2>
-          <div className="space-y-3">{upcoming.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+          <div className="space-y-3">
+            {upcoming.map((match) => (
+              <MatchCard key={match.id} match={match} youtubeUrl={courtStreamUrl(match, courtStreams)} />
+            ))}
+          </div>
         </section>
       </div>
 

@@ -20,6 +20,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
     team1Score !== "" &&
     team2Score !== "" &&
     Number(team1Score) === Number(team2Score);
+  const maximumScore = match.stage === "group" ? targetScore : targetScore + 2;
 
   async function submitScore(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +35,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       setMessage(
         match.stage === "group"
           ? `Both scores must total ${targetScore} points.`
-          : `One team must reach exactly ${targetScore} games.`
+          : `Finish at ${targetScore}, or continue to ${targetScore + 2} if both teams reach ${targetScore}.`
       );
       return;
     }
@@ -67,7 +68,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       <p className="mb-3 text-xs font-bold text-slate-500">
         {match.stage === "group"
           ? `Enter both scores. Their total must be ${targetScore}.`
-          : `Enter the set result. One team must reach ${targetScore} games.`}
+          : `First to ${targetScore}. If it reaches ${targetScore}-${targetScore}, continue until one team reaches ${targetScore + 2}.`}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <label className="min-w-0">
@@ -77,7 +78,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
             name="team_1_score"
             type="number"
             min={0}
-            max={targetScore}
+            max={maximumScore}
             value={team1Score}
             onChange={(event) => setTeam1Score(event.target.value)}
             required
@@ -90,7 +91,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
             name="team_2_score"
             type="number"
             min={0}
-            max={targetScore}
+            max={maximumScore}
             value={team2Score}
             onChange={(event) => setTeam2Score(event.target.value)}
             required

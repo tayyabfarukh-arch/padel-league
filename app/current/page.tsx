@@ -1,8 +1,8 @@
 import { EmptyState } from "@/components/EmptyState";
 import { MatchCard } from "@/components/MatchCard";
 import { TournamentGroups } from "@/components/TournamentGroups";
-import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
-import { stageLabel } from "@/lib/format";
+import { getCourtStreams, getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
+import { courtStreamUrl, stageLabel } from "@/lib/format";
 import { getTargetGamesForStage } from "@/lib/scoring";
 import type { Team } from "@/lib/types";
 
@@ -14,7 +14,11 @@ export default async function CurrentTournamentPage() {
   const tournament = tournaments.find((item) => item.status === "active");
   if (!tournament) return <EmptyState title="No active tournament" body="Open Admin, select a tournament, and change its status to Active." />;
 
-  const [tournamentTeams, matches] = await Promise.all([getTournamentTeams(tournament.id), getMatches(tournament.id)]);
+  const [tournamentTeams, matches, courtStreams] = await Promise.all([
+    getTournamentTeams(tournament.id),
+    getMatches(tournament.id),
+    getCourtStreams(tournament.id)
+  ]);
   const teams = tournamentTeams.map((item) => item.team).filter((team): team is Team => Boolean(team));
 
   return (
@@ -24,7 +28,7 @@ export default async function CurrentTournamentPage() {
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{teams.length} teams | {matches.length} matches</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Group match total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games} games | Final: first to {tournament.final_target_games} games
+          Group total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games}, extends to {tournament.semifinal_target_games + 2} if level | Final: first to {tournament.final_target_games}, extends to {tournament.final_target_games + 2} if level
         </p>
       </section>
 
@@ -32,6 +36,7 @@ export default async function CurrentTournamentPage() {
         tournament={tournament}
         tournamentTeams={tournamentTeams}
         matches={matches}
+        courtStreams={courtStreams}
         allowScoreEntry={tournament.status === "active"}
       />
 
@@ -48,6 +53,7 @@ export default async function CurrentTournamentPage() {
                   match={match}
                   allowScoreEntry={tournament.status === "active"}
                   scoreTarget={getTargetGamesForStage(tournament, stage)}
+                  youtubeUrl={courtStreamUrl(match, courtStreams)}
                 />
               ))}
             </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { courtStreamUrl } from "@/lib/format";
 import { calculateGroupStandings } from "@/lib/scoring";
-import type { GroupName, Match, Team, Tournament, TournamentTeam } from "@/lib/types";
+import type { CourtStream, GroupName, Match, Team, Tournament, TournamentTeam } from "@/lib/types";
 import { GroupMatchFilter } from "./GroupMatchFilter";
 import { TeamLeaderboard } from "./Leaderboard";
 
@@ -10,11 +11,13 @@ export function TournamentGroups({
   tournament,
   tournamentTeams,
   matches,
+  courtStreams = [],
   allowScoreEntry = false
 }: {
   tournament: Tournament;
   tournamentTeams: TournamentTeam[];
   matches: Match[];
+  courtStreams?: CourtStream[];
   allowScoreEntry?: boolean;
 }) {
   const groupNames: GroupName[] = tournament.group_count === 2 ? ["A", "B"] : ["A"];
@@ -73,6 +76,9 @@ export function TournamentGroups({
                 title={`${groupLabel} matches`}
                 allowScoreEntry={allowScoreEntry}
                 scoreTarget={tournament.group_target_points}
+                youtubeUrls={Object.fromEntries(
+                  groupMatches.map((match) => [match.id, courtStreamUrl(match, courtStreams)])
+                )}
               />
             ) : null}
           </div>

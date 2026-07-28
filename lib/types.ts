@@ -52,6 +52,14 @@ export type TournamentTeam = {
   team?: Team;
 };
 
+export type CourtStream = {
+  id: string;
+  tournament_id: string;
+  court_number: number;
+  youtube_url: string;
+  created_at: string;
+};
+
 export type Prediction = {
   id: string;
   tournament_id: string;

@@ -2,15 +2,20 @@ import { notFound } from "next/navigation";
 import { TeamAvatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { StatsGrid } from "@/components/StatsGrid";
-import { getMatches, getTeams, getTournaments } from "@/lib/data";
+import { getCourtStreams, getMatches, getTeams, getTournaments } from "@/lib/data";
 import { headToHead, calculateTeamStats } from "@/lib/scoring";
-import { teamLabel } from "@/lib/format";
+import { courtStreamUrl, teamLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function TeamProfilePage({ params }: { params: { id: string } }) {
-  const [teams, matches, tournaments] = await Promise.all([getTeams(), getMatches(), getTournaments()]);
+  const [teams, matches, tournaments, courtStreams] = await Promise.all([
+    getTeams(),
+    getMatches(),
+    getTournaments(),
+    getCourtStreams()
+  ]);
   const team = teams.find((item) => item.id === params.id);
   if (!team) notFound();
   const stats = calculateTeamStats(teams, matches, tournaments).find((item) => item.team.id === team.id)!;
@@ -31,7 +36,11 @@ export default async function TeamProfilePage({ params }: { params: { id: string
       <StatsGrid stats={stats} />
       <section>
         <h2 className="section-title">Recent matches</h2>
-        <div className="grid gap-3 md:grid-cols-2">{recentMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {recentMatches.map((match) => (
+            <MatchCard key={match.id} match={match} youtubeUrl={courtStreamUrl(match, courtStreams)} />
+          ))}
+        </div>
       </section>
       <section>
         <h2 className="section-title">Head-to-head</h2>

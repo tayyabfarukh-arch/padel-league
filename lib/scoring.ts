@@ -17,14 +17,20 @@ export function validateScore(team1: number, team2: number, targetScore = 3, sta
     Number.isInteger(team2) &&
     team1 >= 0 &&
     team2 >= 0;
+  const higherScore = Math.max(team1, team2);
+  const lowerScore = Math.min(team1, team2);
+  const normalKnockoutFinish =
+    higherScore === targetScore &&
+    lowerScore < targetScore;
+  const extendedKnockoutFinish =
+    higherScore === targetScore + 2 &&
+    lowerScore >= targetScore &&
+    lowerScore < targetScore + 2;
   const valid = stage === "group"
     ? validNumbers && team1 + team2 === targetScore
     : validNumbers &&
-      team1 <= targetScore &&
-      team2 <= targetScore &&
       team1 !== team2 &&
-      Math.max(team1, team2) === targetScore &&
-      Math.min(team1, team2) < targetScore;
+      (normalKnockoutFinish || extendedKnockoutFinish);
 
   return {
     valid,
