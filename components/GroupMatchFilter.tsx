@@ -6,7 +6,17 @@ import { teamLabel } from "@/lib/format";
 import type { Match, Team } from "@/lib/types";
 import { MatchCard } from "./MatchCard";
 
-export function GroupMatchFilter({ matches, teams }: { matches: Match[]; teams: Team[] }) {
+export function GroupMatchFilter({
+  matches,
+  teams,
+  title = "Group matches",
+  allowScoreEntry = false
+}: {
+  matches: Match[];
+  teams: Team[];
+  title?: string;
+  allowScoreEntry?: boolean;
+}) {
   const [selectedTeamId, setSelectedTeamId] = useState("all");
 
   const filteredMatches = useMemo(() => {
@@ -25,7 +35,7 @@ export function GroupMatchFilter({ matches, teams }: { matches: Match[]; teams: 
     <section>
       <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="section-title mb-1">Group</h2>
+          <h2 className="section-title mb-1">{title}</h2>
           <p className="text-sm font-semibold text-slate-500">
             Showing {filteredMatches.length} of {matches.length} group matches for {selectedTeamName}.
           </p>
@@ -52,7 +62,7 @@ export function GroupMatchFilter({ matches, teams }: { matches: Match[]; teams: 
       {filteredMatches.length ? (
         <div className="grid gap-3 md:grid-cols-2">
           {filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard key={match.id} match={match} allowScoreEntry={allowScoreEntry} />
           ))}
         </div>
       ) : (

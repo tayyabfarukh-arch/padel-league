@@ -1,9 +1,10 @@
-import { CalendarDays } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, MapPin, Pencil } from "lucide-react";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Match } from "@/lib/types";
 import { TeamAvatar } from "./Avatar";
 
-export function MatchCard({ match }: { match: Match }) {
+export function MatchCard({ match, allowScoreEntry = false }: { match: Match; allowScoreEntry?: boolean }) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
   return (
     <article className="sport-card p-4">
@@ -11,10 +12,17 @@ export function MatchCard({ match }: { match: Match }) {
         <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
           {stageLabel(match.stage)}
         </span>
-        <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
-          <CalendarDays className="h-3.5 w-3.5" />
-          {match.played_at ? new Date(match.played_at).toLocaleDateString() : "Upcoming"}
-        </span>
+        <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
+          {match.court_number ? (
+            <span className="flex items-center gap-1 font-black text-court">
+              <MapPin className="h-3.5 w-3.5" /> Court {match.court_number}
+            </span>
+          ) : null}
+          <span className="flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {match.played_at ? new Date(match.played_at).toLocaleDateString() : "Upcoming"}
+          </span>
+        </div>
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
@@ -31,6 +39,11 @@ export function MatchCard({ match }: { match: Match }) {
           <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
         </div>
       </div>
+      {!completed && allowScoreEntry ? (
+        <Link href="/scores" className="btn-secondary mt-4 w-full">
+          <Pencil className="h-4 w-4" /> Enter score
+        </Link>
+      ) : null}
     </article>
   );
 }

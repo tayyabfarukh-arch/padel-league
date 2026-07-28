@@ -1,7 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSelectedFriendCircle } from "./friend-circle-server";
 import { supabase } from "./supabase";
-import type { Match, Player, Team, Tournament, TournamentTeam } from "./types";
+import type { Match, Player, Prediction, Team, Tournament, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
 const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect})`;
@@ -87,6 +87,26 @@ export async function getTournament(id: string) {
   if (error?.code === "PGRST116") return null;
   if (error) throw error;
   return data as Tournament;
+}
+
+export async function getPredictions(tournamentId?: string) {
+  noStore();
+  if (!supabase) return [] as Prediction[];
+  let query = supabase
+    .from("predictions")
+    .select(`*, predicted_team:teams(${teamSelect})`)
+    .order("created_at", { ascending: true });
+  if (tournamentId) query = query.eq("tournament_id", tournamentId);
+  if (!tournamentId) {
+    const tournamentIds = await getSelectedTournamentIds();
+    if (tournamentIds) {
+      if (!tournamentIds.length) return [] as Prediction[];
+      query = query.in("tournament_id", tournamentIds);
+    }
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as Prediction[];
 }
 
 async function getSelectedTournamentIds() {

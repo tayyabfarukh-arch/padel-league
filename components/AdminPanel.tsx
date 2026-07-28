@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Check, LogIn, LogOut, Plus, Save, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
@@ -17,23 +18,39 @@ type Props = {
   matches: Match[];
 };
 
+type AdminSection = "people" | "tournament" | "schedule" | "results";
+
 export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches }: Props) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
+  const [unauthorizedEmail, setUnauthorizedEmail] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [adminSection, setAdminSection] = useState<"people" | "tournament" | "schedule" | "results">("people");
+  const [adminSection, setAdminSection] = useState<AdminSection>("people");
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
   const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
   const [selectedResultMatchId, setSelectedResultMatchId] = useState("");
+  const [teamTournamentId, setTeamTournamentId] = useState(activeTournament?.id ?? "");
   const [matchTournamentId, setMatchTournamentId] = useState(activeTournament?.id ?? "");
+  const [matchStage, setMatchStage] = useState<Stage>("group");
+  const [matchGroup, setMatchGroup] = useState("A");
+  const teamTournament = tournaments.find((item) => item.id === teamTournamentId);
+  const matchTournament = tournaments.find((item) => item.id === matchTournamentId);
   const tournamentTeamIds = useMemo(
-    () => new Set(tournamentTeams.filter((item) => item.tournament_id === matchTournamentId).map((item) => item.team_id)),
-    [matchTournamentId, tournamentTeams]
+    () => new Set(
+      tournamentTeams
+        .filter(
+          (item) =>
+            item.tournament_id === matchTournamentId &&
+            (matchStage !== "group" || item.group_name === matchGroup)
+        )
+        .map((item) => item.team_id)
+    ),
+    [matchGroup, matchStage, matchTournamentId, tournamentTeams]
   );
   const resultMatches = useMemo(
     () => matches.filter((match) => !resultTournamentId || match.tournament_id === resultTournamentId),
@@ -44,6 +61,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const selectedResultTarget = selectedResultMatch
     ? getTargetGamesForStage(selectedResultTournament, selectedResultMatch.stage)
     : 3;
+  const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
+  const selectedTournamentMatches = matches.filter((item) => item.tournament_id === matchTournamentId);
 
   useEffect(() => {
     if (!supabase) {
@@ -53,23 +72,40 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
-      setSignedInEmail(data.session?.user.email ?? null);
+      await applyAdminSession(data.session);
       setCheckingSession(false);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSignedInEmail(session?.user.email ?? null);
-      setCheckingSession(false);
+      void applyAdminSession(session).finally(() => setCheckingSession(false));
     });
 
     return () => {
       active = false;
       subscription.unsubscribe();
     };
+  }, []);
+
+  async function applyAdminSession(session: Session | null) {
+    if (!session) {
+      setSignedInEmail(null);
+      setUnauthorizedEmail(null);
+      return false;
+    }
+    const { data, error } = await supabase!.rpc("is_admin");
+    const allowed = !error && data === true;
+    setSignedInEmail(allowed ? session.user.email ?? null : null);
+    setUnauthorizedEmail(allowed ? null : session.user.email ?? null);
+    return allowed;
+  }
+
+  useEffect(() => {
+    const savedSection = window.sessionStorage.getItem("padel_admin_section");
+    if (isAdminSection(savedSection)) setAdminSection(savedSection);
   }, []);
 
   if (!configured || !supabase) {
@@ -114,13 +150,16 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     setMessage("");
     setMessageType("info");
     try {
-      const { error } = await supabase!.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase!.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      const allowed = await applyAdminSession(data.session);
+      if (!allowed) throw new Error("This account is not registered as the website administrator.");
       setPassword("");
       setMessageType("success");
       setMessage("You are signed in. You can now add players, teams, tournaments, and results.");
     } catch (error) {
       setSignedInEmail(null);
+      setUnauthorizedEmail(null);
       setMessageType("error");
       setMessage(error instanceof Error ? `Login failed: ${error.message}` : "Login failed. Please check your email and password.");
     } finally {
@@ -180,6 +219,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const { error } = await supabase!.from("tournaments").insert({
         name: form.get("name"),
         friend_circle: form.get("friend_circle"),
+        group_count: Number(form.get("group_count")),
+        court_count: Number(form.get("court_count")),
         group_target_points: Number(form.get("group_target_points")),
         semifinal_target_games: Number(form.get("semifinal_target_games")),
         final_target_games: Number(form.get("final_target_games")),
@@ -198,7 +239,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     await run(async () => {
       const { error } = await supabase!.from("tournament_teams").insert({
         tournament_id: form.get("tournament_id"),
-        team_id: form.get("team_id")
+        team_id: form.get("team_id"),
+        group_name: form.get("group_name")
       });
       if (error) throw error;
     });
@@ -212,7 +254,9 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         tournament_id: form.get("tournament_id"),
         team_1_id: form.get("team_1_id"),
         team_2_id: form.get("team_2_id"),
-        stage: form.get("stage")
+        stage: form.get("stage"),
+        group_name: form.get("stage") === "group" ? form.get("group_name") : null,
+        court_number: Number(form.get("court_number"))
       });
       if (error) throw error;
     });
@@ -226,18 +270,22 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     const team2 = Number(form.get("team_2_games"));
     const tournament = tournaments.find((item) => item.id === match?.tournament_id);
     const targetGames = match ? getTargetGamesForStage(tournament, match.stage) : 3;
-    const result = validateScore(team1, team2, targetGames);
+    const result = validateScore(team1, team2, targetGames, match?.stage ?? "group");
     if (!match || !result.valid) {
       const unit = match?.stage === "group" ? "points" : "games";
       setMessageType("error");
-      setMessage(`Score must be first to ${targetGames} ${unit}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`);
+      setMessage(
+        match?.stage === "group"
+          ? `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
+          : `Score must be first to ${targetGames} ${unit}. One team must reach exactly ${targetGames}, and the other team must be below ${targetGames}.`
+      );
       return;
     }
     await run(async () => {
       const { error } = await supabase!.from("matches").update({
         team_1_games: team1,
         team_2_games: team2,
-        winner_team_id: result.winnerSide === "team_1" ? match.team_1_id : match.team_2_id,
+        winner_team_id: result.winnerSide === "team_1" ? match.team_1_id : result.winnerSide === "team_2" ? match.team_2_id : null,
         played_at: new Date().toISOString()
       }).eq("id", match.id);
       if (error) throw error;
@@ -261,26 +309,71 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       if (!knockoutTournamentId) throw new Error("Select a tournament first.");
       if (existingSemifinals.length) throw new Error("Semifinals already exist for this tournament.");
       if (tournamentTeamsList.length < 4) throw new Error("You need at least 4 teams to create semifinals.");
-      if (!groupMatches.length || groupMatches.some((match) => !match.winner_team_id)) {
+      if (
+        !groupMatches.length ||
+        groupMatches.some((match) => match.team_1_games === null || match.team_2_games === null)
+      ) {
         throw new Error("Finish all group match scores before creating semifinals.");
       }
 
-      const standings = calculateTeamStats(tournamentTeamsList, groupMatches);
-      const topFour = standings.slice(0, 4);
-      if (topFour.length < 4) throw new Error("Could not find 4 ranked teams from the group standings.");
+      const selectedTournament = tournaments.find((item) => item.id === knockoutTournamentId);
+      let semifinalTeams: [Team, Team, Team, Team];
+
+      if (selectedTournament?.group_count === 2) {
+        const groupATeamIds = new Set(
+          tournamentTeamsForSelection.filter((item) => item.group_name === "A").map((item) => item.team_id)
+        );
+        const groupBTeamIds = new Set(
+          tournamentTeamsForSelection.filter((item) => item.group_name === "B").map((item) => item.team_id)
+        );
+        const groupATeams = teams.filter((team) => groupATeamIds.has(team.id));
+        const groupBTeams = teams.filter((team) => groupBTeamIds.has(team.id));
+        const groupAMatches = groupMatches.filter(
+          (match) => match.group_name === "A" || (groupATeamIds.has(match.team_1_id) && groupATeamIds.has(match.team_2_id))
+        );
+        const groupBMatches = groupMatches.filter(
+          (match) => match.group_name === "B" || (groupBTeamIds.has(match.team_1_id) && groupBTeamIds.has(match.team_2_id))
+        );
+
+        if (groupATeams.length < 2 || groupBTeams.length < 2) {
+          throw new Error("Two-group tournaments need at least 2 teams in both Group A and Group B.");
+        }
+        if (!groupAMatches.length || !groupBMatches.length) {
+          throw new Error("Both Group A and Group B need completed group matches before creating semifinals.");
+        }
+
+        const groupATopTwo = calculateTeamStats(groupATeams, groupAMatches).slice(0, 2);
+        const groupBTopTwo = calculateTeamStats(groupBTeams, groupBMatches).slice(0, 2);
+        if (groupATopTwo.length < 2 || groupBTopTwo.length < 2) {
+          throw new Error("Could not find the top 2 teams from both groups.");
+        }
+
+        semifinalTeams = [
+          groupATopTwo[0].team,
+          groupBTopTwo[1].team,
+          groupATopTwo[1].team,
+          groupBTopTwo[0].team
+        ];
+      } else {
+        const topFour = calculateTeamStats(tournamentTeamsList, groupMatches).slice(0, 4);
+        if (topFour.length < 4) throw new Error("Could not find 4 ranked teams from the group standings.");
+        semifinalTeams = [topFour[0].team, topFour[3].team, topFour[1].team, topFour[2].team];
+      }
 
       const { error } = await supabase!.from("matches").insert([
         {
           tournament_id: knockoutTournamentId,
-          team_1_id: topFour[0].team.id,
-          team_2_id: topFour[3].team.id,
-          stage: "semifinal"
+          team_1_id: semifinalTeams[0].id,
+          team_2_id: semifinalTeams[1].id,
+          stage: "semifinal",
+          court_number: 1
         },
         {
           tournament_id: knockoutTournamentId,
-          team_1_id: topFour[1].team.id,
-          team_2_id: topFour[2].team.id,
-          stage: "semifinal"
+          team_1_id: semifinalTeams[2].id,
+          team_2_id: semifinalTeams[3].id,
+          stage: "semifinal",
+          court_number: selectedTournament?.court_count && selectedTournament.court_count > 1 ? 2 : 1
         }
       ]);
       if (error) throw error;
@@ -306,7 +399,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         tournament_id: knockoutTournamentId,
         team_1_id: semifinals[0].winner_team_id,
         team_2_id: semifinals[1].winner_team_id,
-        stage: "final"
+        stage: "final",
+        court_number: 1
       });
       if (error) throw error;
     });
@@ -320,6 +414,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const existingThirdPlace = matches.find(
         (match) => match.tournament_id === knockoutTournamentId && match.stage === "third_place"
       );
+      const selectedTournament = tournaments.find((item) => item.id === knockoutTournamentId);
 
       if (!knockoutTournamentId) throw new Error("Select a tournament first.");
       if (existingThirdPlace) throw new Error("A third-place match already exists for this tournament.");
@@ -335,7 +430,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         tournament_id: knockoutTournamentId,
         team_1_id: semifinalLosers[0],
         team_2_id: semifinalLosers[1],
-        stage: "third_place"
+        stage: "third_place",
+        court_number: selectedTournament?.court_count && selectedTournament.court_count > 1 ? 2 : 1
       });
       if (error) throw error;
     });
@@ -415,7 +511,11 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       {!signedInEmail ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm font-bold text-amber-950">
-            {checkingSession ? "Checking login status..." : "Please sign in before editing tournament data."}
+            {checkingSession
+              ? "Checking login status..."
+              : unauthorizedEmail
+                ? `${unauthorizedEmail} is signed in as a participant, not an Admin.`
+                : "Please sign in before editing tournament data."}
           </p>
           <p className="mt-1 text-sm text-amber-800">If login fails, the message above will tell you why.</p>
         </section>
@@ -434,7 +534,10 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                 key={value}
                 type="button"
                 className={adminSection === value ? "btn-primary whitespace-nowrap" : "btn-secondary whitespace-nowrap"}
-                onClick={() => setAdminSection(value)}
+                onClick={() => {
+                  setAdminSection(value);
+                  window.sessionStorage.setItem("padel_admin_section", value);
+                }}
               >
                 {label}
               </button>
@@ -470,6 +573,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           <form onSubmit={createTournament} className="space-y-3">
             <input className="field" name="name" placeholder="Tournament name" required />
             <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
+            <Select name="group_count" label="Group setup" options={[["1", "One group"], ["2", "Two groups (A and B)"]]} />
+            <NumberField name="court_count" label="Number of courts" defaultValue={4} max={20} />
             <input className="field" name="start_date" type="date" required />
             <div className="grid grid-cols-2 gap-3">
               <NumberField name="group_target_points" label="Group points target" defaultValue={15} max={100} />
@@ -488,10 +593,36 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
         <Panel title="Add team to tournament">
           <form onSubmit={addTeamToTournament} className="space-y-3">
-            <Select name="tournament_id" label="Tournament" options={tournaments.map((tournament) => [tournament.id, tournament.name])} />
+            <Select
+              name="tournament_id"
+              label="Tournament"
+              value={teamTournamentId}
+              onChange={setTeamTournamentId}
+              options={tournaments.map((tournament) => [tournament.id, tournament.name])}
+            />
+            <Select
+              name="group_name"
+              label="Group"
+              options={teamTournament?.group_count === 2 ? [["A", "Group A"], ["B", "Group B"]] : [["A", "Group A"]]}
+            />
             <Select name="team_id" label="Team" options={teams.map((team) => [team.id, teamLabel(team)])} />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add team</button>
           </form>
+          <div className="mt-5 border-t border-slate-200 pt-4">
+            <h3 className="text-sm font-black text-slate-950">Teams already added</h3>
+            <div className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
+              {selectedTournamentAssignments.length ? selectedTournamentAssignments.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                  <span className="min-w-0 truncate font-bold text-slate-900">{teamLabel(entry.team)}</span>
+                  <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">
+                    Group {entry.group_name}
+                  </span>
+                </div>
+              )) : (
+                <p className="p-3 text-sm font-semibold text-slate-500">No teams added to this tournament yet.</p>
+              )}
+            </div>
+          </div>
         </Panel>
           </>
         ) : null}
@@ -504,14 +635,60 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               name="tournament_id"
               label="Tournament"
               value={matchTournamentId}
-              onChange={setMatchTournamentId}
+              onChange={(value) => {
+                setMatchTournamentId(value);
+                if (tournaments.find((item) => item.id === value)?.group_count !== 2) setMatchGroup("A");
+              }}
               options={tournaments.map((tournament) => [tournament.id, tournament.name])}
             />
-            <Select name="stage" label="Stage" options={(["group", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])} />
+            <Select
+              name="stage"
+              label="Stage"
+              value={matchStage}
+              onChange={(value) => setMatchStage(value as Stage)}
+              options={(["group", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])}
+            />
+            {matchStage === "group" ? (
+              <Select
+                name="group_name"
+                label="Group"
+                value={matchGroup}
+                onChange={setMatchGroup}
+                options={matchTournament?.group_count === 2 ? [["A", "Group A"], ["B", "Group B"]] : [["A", "Group A"]]}
+              />
+            ) : null}
+            <Select
+              name="court_number"
+              label="Court"
+              options={Array.from({ length: matchTournament?.court_count ?? 1 }, (_, index) => [
+                String(index + 1),
+                `Court ${index + 1}`
+              ])}
+            />
             <Select name="team_1_id" label="Team 1" options={teams.filter((team) => tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
             <Select name="team_2_id" label="Team 2" options={teams.filter((team) => tournamentTeamIds.has(team.id)).map((team) => [team.id, teamLabel(team)])} />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add match</button>
           </form>
+          <div className="mt-5 border-t border-slate-200 pt-4">
+            <h3 className="text-sm font-black text-slate-950">Matches already created</h3>
+            <div className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
+              {selectedTournamentMatches.length ? selectedTournamentMatches.map((match) => (
+                <div key={match.id} className="p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate font-bold text-slate-900">
+                      {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}
+                    </span>
+                    <span className="shrink-0 font-black text-court">Court {match.court_number ?? "TBD"}</span>
+                  </div>
+                  <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
+                    {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}
+                  </p>
+                </div>
+              )) : (
+                <p className="p-3 text-sm font-semibold text-slate-500">No matches created for this tournament yet.</p>
+              )}
+            </div>
+          </div>
         </Panel>
 
         <Panel title="Knockout setup">
@@ -582,7 +759,9 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             />
             {selectedResultMatch ? (
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
-                This {selectedResultMatch.stage.replace("_", " ")} match is first to {selectedResultTarget} {selectedResultMatch.stage === "group" ? "points" : "games"}.
+                {selectedResultMatch.stage === "group"
+                  ? `The two team scores must total ${selectedResultTarget} points.`
+                  : `This ${selectedResultMatch.stage.replace("_", " ")} match is first to ${selectedResultTarget} games.`}
               </p>
             ) : null}
             {!resultMatches.length ? (
@@ -622,6 +801,10 @@ function messageClass(type: "info" | "success" | "error") {
   if (type === "success") return `${base} border-emerald-200 bg-emerald-50 text-emerald-900`;
   if (type === "error") return `${base} border-red-200 bg-red-50 text-red-900`;
   return `${base} border-slate-200 bg-white text-slate-700`;
+}
+
+function isAdminSection(value: string | null): value is AdminSection {
+  return value === "people" || value === "tournament" || value === "schedule" || value === "results";
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

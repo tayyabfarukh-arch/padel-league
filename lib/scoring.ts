@@ -11,27 +11,30 @@ export function getTargetGamesForStage(tournament: Tournament | undefined, stage
   return targets[stage] || 3;
 }
 
-export function validateScore(team1: number, team2: number, targetGames = 3) {
-  const valid =
+export function validateScore(team1: number, team2: number, targetScore = 3, stage: Stage = "group") {
+  const validNumbers =
     Number.isInteger(team1) &&
     Number.isInteger(team2) &&
     team1 >= 0 &&
-    team2 >= 0 &&
-    team1 <= targetGames &&
-    team2 <= targetGames &&
-    team1 !== team2 &&
-    Math.max(team1, team2) === targetGames &&
-    Math.min(team1, team2) < targetGames;
+    team2 >= 0;
+  const valid = stage === "group"
+    ? validNumbers && team1 + team2 === targetScore
+    : validNumbers &&
+      team1 <= targetScore &&
+      team2 <= targetScore &&
+      team1 !== team2 &&
+      Math.max(team1, team2) === targetScore &&
+      Math.min(team1, team2) < targetScore;
 
   return {
     valid,
-    winnerSide: valid ? (team1 === targetGames ? "team_1" : "team_2") : null
+    winnerSide: valid && team1 !== team2 ? (team1 > team2 ? "team_1" : "team_2") : null
   } as const;
 }
 
 export function completedMatches(matches: Match[]) {
   return matches.filter(
-    (match) => match.team_1_games !== null && match.team_2_games !== null && match.winner_team_id
+    (match) => match.team_1_games !== null && match.team_2_games !== null
   );
 }
 
@@ -40,6 +43,7 @@ function baseTeamStats(team: Team): TeamStats {
     team,
     played: 0,
     wins: 0,
+    draws: 0,
     losses: 0,
     gamesWon: 0,
     gamesLost: 0,
@@ -59,6 +63,7 @@ function basePlayerStats(player: Player): PlayerStats {
     player,
     played: 0,
     wins: 0,
+    draws: 0,
     losses: 0,
     gamesWon: 0,
     gamesLost: 0,
@@ -95,12 +100,21 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
     team1.points = team1.gameDiff;
     team2.points = team2.gameDiff;
 
-    const winner = match.winner_team_id === team1.team.id ? team1 : team2;
-    const loser = winner === team1 ? team2 : team1;
-    winner.wins += 1;
-    loser.losses += 1;
+    const winner = match.winner_team_id === team1.team.id
+      ? team1
+      : match.winner_team_id === team2.team.id
+        ? team2
+        : null;
+    const loser = winner ? (winner === team1 ? team2 : team1) : null;
+    if (winner && loser) {
+      winner.wins += 1;
+      loser.losses += 1;
+    } else {
+      team1.draws += 1;
+      team2.draws += 1;
+    }
 
-    if (match.stage === "semifinal") {
+    if (match.stage === "semifinal" && winner) {
       team1.semifinalsPlayed += 1;
       team2.semifinalsPlayed += 1;
       winner.semifinalsWon += 1;
@@ -108,7 +122,7 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
       team2.bestFinish = betterFinish(team2.bestFinish, "Semifinal");
     }
 
-    if (match.stage === "final") {
+    if (match.stage === "final" && winner) {
       team1.finalsPlayed += 1;
       team2.finalsPlayed += 1;
       winner.finalsWon += 1;
@@ -116,7 +130,7 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
       team2.bestFinish = betterFinish(team2.bestFinish, "Runner-up");
     }
 
-    if (match.stage === "third_place") {
+    if (match.stage === "third_place" && winner && loser) {
       winner.bestFinish = betterFinish(winner.bestFinish, "Third place");
       loser.bestFinish = betterFinish(loser.bestFinish, "Semifinal");
     }
@@ -141,6 +155,7 @@ export function compareTeamStats(a: TeamStats, b: TeamStats) {
   return (
     b.points - a.points ||
     b.wins - a.wins ||
+    b.draws - a.draws ||
     b.gameDiff - a.gameDiff ||
     b.gamesWon - a.gamesWon ||
     a.team.team_name.localeCompare(b.team.team_name)
@@ -175,6 +190,7 @@ export function calculatePlayerStats(
       if (!playerStat) continue;
       playerStat.played += teamStat.played;
       playerStat.wins += teamStat.wins;
+      playerStat.draws += teamStat.draws;
       playerStat.losses += teamStat.losses;
       playerStat.gamesWon += teamStat.gamesWon;
       playerStat.gamesLost += teamStat.gamesLost;
@@ -217,6 +233,7 @@ export function calculatePlayerStats(
     (a, b) =>
       b.points - a.points ||
       b.wins - a.wins ||
+      b.draws - a.draws ||
       b.gameDiff - a.gameDiff ||
       b.gamesWon - a.gamesWon ||
       a.player.name.localeCompare(b.player.name)

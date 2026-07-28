@@ -1,5 +1,6 @@
 export type Stage = "group" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
+export type GroupName = "A" | "B";
 
 export type Player = {
   id: string;
@@ -23,6 +24,8 @@ export type Tournament = {
   id: string;
   name: string;
   friend_circle: string;
+  group_count: 1 | 2;
+  court_count: number;
   group_target_points: number;
   semifinal_target_games: number;
   final_target_games: number;
@@ -44,8 +47,18 @@ export type TournamentTeam = {
   id: string;
   tournament_id: string;
   team_id: string;
+  group_name: GroupName;
   created_at: string;
   team?: Team;
+};
+
+export type Prediction = {
+  id: string;
+  tournament_id: string;
+  voter_token: string;
+  predicted_team_id: string;
+  created_at: string;
+  predicted_team?: Team;
 };
 
 export type Match = {
@@ -57,6 +70,10 @@ export type Match = {
   team_2_games: number | null;
   winner_team_id: string | null;
   stage: Stage;
+  group_name: GroupName | null;
+  court_number: number | null;
+  submitted_by: string | null;
+  submitted_at: string | null;
   played_at: string | null;
   created_at: string;
   team_1?: Team;
@@ -67,6 +84,7 @@ export type TeamStats = {
   team: Team;
   played: number;
   wins: number;
+  draws: number;
   losses: number;
   gamesWon: number;
   gamesLost: number;

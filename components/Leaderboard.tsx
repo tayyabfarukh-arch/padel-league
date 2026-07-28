@@ -18,13 +18,13 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <div className="min-w-[1040px]">
+        <div className="min-w-[1112px]">
           <Header label="Team" />
           {displayRows.map((row, index) => (
             <Link
               href={`/teams/${row.team.id}`}
               key={row.team.id}
-              className="grid grid-cols-[56px_260px_repeat(12,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
+              className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -34,7 +34,7 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
-              {teamDetails(row).slice(0, 12).map(([label, value]) => (
+              {teamDetails(row).slice(0, 13).map(([label, value]) => (
                 <TableMetric key={label} value={value} featured={label === "Pts"} />
               ))}
             </Link>
@@ -57,13 +57,13 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <div className="min-w-[1040px]">
+        <div className="min-w-[1112px]">
           <Header label="Player" />
           {displayRows.map((row, index) => (
             <Link
               href={`/players/${row.player.id}`}
               key={row.player.id}
-              className="grid grid-cols-[56px_260px_repeat(12,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
+              className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60"
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -73,7 +73,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
-              {playerDetails(row).slice(0, 12).map(([label, value]) => (
+              {playerDetails(row).slice(0, 13).map(([label, value]) => (
                 <TableMetric key={label} value={value} featured={label === "Pts"} dark />
               ))}
             </Link>
@@ -125,9 +125,9 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
 }
 
 function Header({ label }: { label: string }) {
-  const columns = ["MP", "W", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
+  const columns = ["MP", "W", "D", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
   return (
-    <div className="grid grid-cols-[56px_260px_repeat(12,72px)] border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase text-slate-500">
+    <div className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase text-slate-500">
       <div className="p-3">Rank</div>
       <div className="p-3">{label}</div>
       {columns.map((column) => (
@@ -191,6 +191,7 @@ function teamDetails(row: TeamStats): DetailItem[] {
   return [
     ["MP", row.played],
     ["W", row.wins],
+    ["D", row.draws],
     ["L", row.losses],
     ["Win %", formatPercent(row.wins, row.played)],
     ["Score for", row.gamesWon],
@@ -209,6 +210,7 @@ function playerDetails(row: PlayerStats): DetailItem[] {
   return [
     ["MP", row.played],
     ["W", row.wins],
+    ["D", row.draws],
     ["L", row.losses],
     ["Win %", formatPercent(row.wins, row.played)],
     ["Score for", row.gamesWon],
