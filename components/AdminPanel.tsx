@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Check, LogIn, LogOut, Plus, Save, Trash2, Upload, Youtube } from "lucide-react";
+import { Check, LogIn, LogOut, Plus, RotateCcw, Save, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
@@ -616,6 +616,48 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
+  async function clearTournamentScores() {
+    const tournament = tournaments.find((item) => item.id === resultTournamentId);
+    if (!tournament) {
+      setMessageType("error");
+      setMessage("Select a tournament first.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Clear every score for ${tournament.name}? All scheduled matches, teams, groups, courts, and YouTube links will be kept.`
+    );
+    if (!confirmed) return;
+
+    await run(async () => {
+      const { error: matchError } = await supabase!
+        .from("matches")
+        .update({
+          team_1_games: null,
+          team_2_games: null,
+          winner_team_id: null,
+          deciding_point_winner_team_id: null,
+          submitted_by: null,
+          submitted_at: null,
+          played_at: null
+        })
+        .eq("tournament_id", tournament.id);
+      if (matchError) throw matchError;
+
+      const { error: tournamentError } = await supabase!
+        .from("tournaments")
+        .update({
+          champion_team_id: null,
+          runner_up_team_id: null,
+          third_place_team_id: null,
+          status: tournament.status === "completed" ? "active" : tournament.status,
+          end_date: null
+        })
+        .eq("id", tournament.id);
+      if (tournamentError) throw tournamentError;
+    });
+  }
+
   return (
     <div className="space-y-5">
       <section className="court-panel rounded-lg p-5 text-white">
@@ -1030,6 +1072,25 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             ) : null}
             <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save result</button>
           </form>
+        </Panel>
+
+        <Panel title="Testing reset">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-slate-700">
+              Clear every test score from <span className="font-black text-slate-950">
+                {tournaments.find((item) => item.id === resultTournamentId)?.name ?? "the selected tournament"}
+              </span>.
+              Matches, teams, groups, courts, and YouTube links will stay exactly as they are.
+            </p>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2.5 font-black text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void clearTournamentScores()}
+              disabled={busy || !resultTournamentId}
+            >
+              <RotateCcw className="h-4 w-4" /> Clear all tournament scores
+            </button>
+          </div>
         </Panel>
 
         <Panel title="Manual close tournament">
