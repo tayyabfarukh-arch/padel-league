@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Check, LogIn, LogOut, Plus, Save, Upload, Youtube } from "lucide-react";
+import { Check, LogIn, LogOut, Plus, Save, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { teamLabel } from "@/lib/format";
@@ -310,6 +310,18 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
+  async function deleteMatch(match: Match) {
+    const confirmed = window.confirm(
+      `Delete ${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}? This will also remove its score from the standings.`
+    );
+    if (!confirmed) return;
+
+    await run(async () => {
+      const { error } = await supabase!.from("matches").delete().eq("id", match.id);
+      if (error) throw error;
+    });
+  }
+
   async function saveCourtStreams(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!matchTournament) {
@@ -391,7 +403,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       decidingPointWinnerId !== match.team_2_id
     ) {
       setMessageType("error");
-      setMessage("Select the team that won the deciding point.");
+      setMessage("Select the team that won the Golden point.");
       return;
     }
     await run(async () => {
@@ -891,7 +903,19 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                     <span className="min-w-0 truncate font-bold text-slate-900">
                       {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}
                     </span>
-                    <span className="shrink-0 font-black text-court">Court {match.court_number ?? "TBD"}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="font-black text-court">Court {match.court_number ?? "TBD"}</span>
+                      <button
+                        type="button"
+                        className="grid h-8 w-8 place-items-center rounded-md text-red-600 transition hover:bg-red-50"
+                        onClick={() => void deleteMatch(match)}
+                        disabled={busy}
+                        title="Delete match"
+                        aria-label={`Delete ${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                   <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
                     {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}
@@ -990,7 +1014,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <Select
                 key={`deciding-point-${selectedResultMatch.id}`}
                 name="deciding_point_winner_team_id"
-                label="Deciding point winner (only when tied)"
+                label="Golden point winner (only when tied)"
                 required={false}
                 options={[
                   ["", "Not needed"],

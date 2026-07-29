@@ -289,7 +289,7 @@ begin
     if p_team_1_score = p_team_2_score then
       if p_deciding_point_winner_team_id is null
         or p_deciding_point_winner_team_id not in (selected_match.team_1_id, selected_match.team_2_id) then
-        raise exception 'Select the team that won the deciding point.';
+        raise exception 'Select the team that won the Golden point.';
       end if;
       winning_team_id := p_deciding_point_winner_team_id;
       deciding_winner_team_id := p_deciding_point_winner_team_id;

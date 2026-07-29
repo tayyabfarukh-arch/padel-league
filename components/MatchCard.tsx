@@ -72,7 +72,7 @@ export function MatchCard({
       </div>
       {completed && match.deciding_point_winner_team_id ? (
         <p className="mt-3 rounded-md bg-limeball/30 p-2 text-center text-xs font-black text-ink">
-          Deciding point won by{" "}
+          Golden point won by{" "}
           {teamLabel(
             match.deciding_point_winner_team_id === match.team_1_id
               ? match.team_1

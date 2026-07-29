@@ -87,7 +87,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
 function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
   return (
     <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
-      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
+      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-2 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
         <div className="flex min-w-0 items-center gap-3">
           <TeamAvatar team={row.team} size={42} />
@@ -96,7 +96,7 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
-        <PointBadge value={row.points} />
+        <MobileSummaryStats wins={row.wins} points={row.points} />
         <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
       </summary>
       <ExpandedDetails href={`/teams/${row.team.id}`} items={teamDetails(row)} />
@@ -107,7 +107,7 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
 function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
   return (
     <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
-      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-3 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
+      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-2 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
         <div className="flex min-w-0 items-center gap-3">
           <PlayerAvatar player={row.player} size={42} />
@@ -116,7 +116,7 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
-        <PointBadge value={row.points} dark />
+        <MobileSummaryStats wins={row.wins} points={row.points} dark />
         <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
       </summary>
       <ExpandedDetails href={`/players/${row.player.id}`} items={playerDetails(row)} />
@@ -171,11 +171,26 @@ function RankBadge({ index }: { index: number }) {
   );
 }
 
-function PointBadge({ value, dark = false }: { value: number; dark?: boolean }) {
+function MobileSummaryStats({
+  wins,
+  points,
+  dark = false
+}: {
+  wins: number;
+  points: number;
+  dark?: boolean;
+}) {
   return (
-    <span className={`rounded-md px-3 py-1.5 text-sm font-black text-white shadow-sm ${dark ? "bg-ink" : "bg-court"}`}>
-      {signed(value)}
-    </span>
+    <div className="flex shrink-0 items-center gap-1.5">
+      <span className="min-w-10 rounded-md bg-slate-100 px-2 py-1 text-center">
+        <span className="block text-[9px] font-black uppercase text-slate-500">W</span>
+        <span className="block text-sm font-black leading-none text-slate-950">{wins}</span>
+      </span>
+      <span className={`min-w-12 rounded-md px-2 py-1 text-center text-white shadow-sm ${dark ? "bg-ink" : "bg-court"}`}>
+        <span className="block text-[9px] font-black uppercase opacity-75">Pts</span>
+        <span className="block text-sm font-black leading-none">{signed(points)}</span>
+      </span>
+    </div>
   );
 }
 

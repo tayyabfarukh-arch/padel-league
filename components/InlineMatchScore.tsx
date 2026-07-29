@@ -40,7 +40,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       return;
     }
     if (tiedGroupScore && !decidingWinnerId) {
-      setMessage("Select the team that won the deciding point.");
+      setMessage("Select the team that won the Golden point.");
       return;
     }
 
@@ -99,7 +99,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
         </label>
         {tiedGroupScore ? (
           <label className="col-span-2">
-            <span className="mb-1 block text-xs font-black text-slate-600">Deciding point winner</span>
+            <span className="mb-1 block text-xs font-black text-slate-600">Golden point winner</span>
             <select
               className="field"
               value={decidingWinnerId}
