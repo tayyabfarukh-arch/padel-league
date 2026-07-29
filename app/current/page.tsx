@@ -41,7 +41,7 @@ export default async function CurrentTournamentPage() {
         const stageMatches = matches.filter((match) => match.stage === stage);
         if (!stageMatches.length) return null;
         return (
-          <details key={stage} open className="group">
+          <details key={stage} className="group">
             <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
               <span>{stageLabel(stage)}</span>
               <span className="flex items-center gap-2 text-xs font-black">

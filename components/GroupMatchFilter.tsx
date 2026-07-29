@@ -36,7 +36,7 @@ export function GroupMatchFilter({
       : teamLabel(teams.find((team) => team.id === selectedTeamId));
 
   return (
-    <details open className="group">
+    <details className="group">
       <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
         <span className="flex items-center gap-2 text-xs font-black">
