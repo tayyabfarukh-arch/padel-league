@@ -27,15 +27,15 @@ export function validateScore(
   const lowerScore = Math.min(team1, team2);
   const normalKnockoutFinish =
     higherScore === targetScore &&
-    lowerScore < targetScore;
+    lowerScore < targetScore - 1;
   const extendedKnockoutFinish =
-    higherScore === targetScore + 2 &&
-    lowerScore >= targetScore &&
-    lowerScore < targetScore + 2;
+    higherScore === targetScore + 1 &&
+    lowerScore >= targetScore - 1 &&
+    lowerScore < targetScore + 1;
   const timedKnockoutFinish =
     endedDueToTime &&
-    higherScore === targetScore + 1 &&
-    lowerScore === targetScore;
+    higherScore === targetScore &&
+    lowerScore === targetScore - 1;
   const valid = stage === "group"
     ? validNumbers && team1 + team2 === targetScore
     : validNumbers &&

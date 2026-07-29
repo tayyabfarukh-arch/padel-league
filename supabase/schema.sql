@@ -312,28 +312,28 @@ begin
     end if;
   else
     if p_ended_due_to_time and not (
-      greatest(p_team_1_score, p_team_2_score) = target_score + 1
-      and least(p_team_1_score, p_team_2_score) = target_score
+      greatest(p_team_1_score, p_team_2_score) = target_score
+      and least(p_team_1_score, p_team_2_score) = target_score - 1
     ) then
-      raise exception 'A time-limited finish must end at %-% only.', target_score + 1, target_score;
+      raise exception 'A time-limited finish must end at %-% only.', target_score, target_score - 1;
     end if;
     if not (
       (
         greatest(p_team_1_score, p_team_2_score) = target_score
-        and least(p_team_1_score, p_team_2_score) < target_score
+        and least(p_team_1_score, p_team_2_score) < target_score - 1
       )
       or (
-        greatest(p_team_1_score, p_team_2_score) = target_score + 2
-        and least(p_team_1_score, p_team_2_score) >= target_score
-        and least(p_team_1_score, p_team_2_score) < target_score + 2
+        greatest(p_team_1_score, p_team_2_score) = target_score + 1
+        and least(p_team_1_score, p_team_2_score) >= target_score - 1
+        and least(p_team_1_score, p_team_2_score) < target_score + 1
       )
       or (
         p_ended_due_to_time
-        and greatest(p_team_1_score, p_team_2_score) = target_score + 1
-        and least(p_team_1_score, p_team_2_score) = target_score
+        and greatest(p_team_1_score, p_team_2_score) = target_score
+        and least(p_team_1_score, p_team_2_score) = target_score - 1
       )
     ) then
-      raise exception 'Finish at %, continue to %, or confirm a time-limited finish at %-% only.', target_score, target_score + 2, target_score + 1, target_score;
+      raise exception 'Finish at %, continue to % after %-% or confirm a time-limited finish at %-% only.', target_score, target_score + 1, target_score - 1, target_score - 1, target_score, target_score - 1;
     end if;
     winning_team_id := case
       when p_team_1_score > p_team_2_score then selected_match.team_1_id

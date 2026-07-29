@@ -34,6 +34,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
   const [resultTournamentId, setResultTournamentId] = useState(activeTournament?.id ?? "");
+  const [resultTeamFilterId, setResultTeamFilterId] = useState("all");
   const [selectedResultMatchId, setSelectedResultMatchId] = useState("");
   const [teamTournamentId, setTeamTournamentId] = useState(activeTournament?.id ?? "");
   const [matchTournamentId, setMatchTournamentId] = useState(activeTournament?.id ?? "");
@@ -53,9 +54,32 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     ),
     [matchGroup, matchStage, matchTournamentId, tournamentTeams]
   );
+  const resultTeamOptions = useMemo(() => {
+    const tournamentMatches = matches.filter(
+      (match) => !resultTournamentId || match.tournament_id === resultTournamentId
+    );
+    const teamIds = new Set(
+      tournamentMatches.flatMap((match) => [match.team_1_id, match.team_2_id])
+    );
+    return teams.filter((team) => teamIds.has(team.id));
+  }, [matches, resultTournamentId, teams]);
   const resultMatches = useMemo(
-    () => matches.filter((match) => !resultTournamentId || match.tournament_id === resultTournamentId),
-    [matches, resultTournamentId]
+    () =>
+      matches
+        .filter(
+          (match) =>
+            (!resultTournamentId || match.tournament_id === resultTournamentId) &&
+            (
+              resultTeamFilterId === "all" ||
+              match.team_1_id === resultTeamFilterId ||
+              match.team_2_id === resultTeamFilterId
+            )
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        ),
+    [matches, resultTeamFilterId, resultTournamentId]
   );
   const selectedResultMatch = resultMatches.find((match) => match.id === selectedResultMatchId) ?? resultMatches[0];
   const selectedResultTournament = tournaments.find((tournament) => tournament.id === selectedResultMatch?.tournament_id);
@@ -65,7 +89,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const selectedResultMaximum =
     selectedResultMatch?.stage === "group"
       ? selectedResultTarget
-      : selectedResultTarget + 2;
+      : selectedResultTarget + 1;
   const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
   const selectedTournamentMatches = matches
     .filter((item) => item.tournament_id === matchTournamentId)
@@ -402,16 +426,16 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       const isTimedFinishScore =
         Boolean(match) &&
         match?.stage !== "group" &&
-        Math.max(team1, team2) === targetGames + 1 &&
-        Math.min(team1, team2) === targetGames;
+        Math.max(team1, team2) === targetGames &&
+        Math.min(team1, team2) === targetGames - 1;
       const unit = match?.stage === "group" ? "points" : "games";
       setMessageType("error");
       setMessage(
         match?.stage === "group"
           ? `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
           : isTimedFinishScore
-            ? `Choose "Finished early due to court time" to accept ${team1}-${team2}, or continue playing to ${targetGames + 2}.`
-          : `Finish at ${targetGames} ${unit}. If both teams reach ${targetGames}, continue until one team reaches ${targetGames + 2}.`
+            ? `Choose "Closed at ${targetGames} because court time ended" to accept ${team1}-${team2}, or continue the extra game to ${targetGames + 1}.`
+          : `Finish at ${targetGames} ${unit}. After ${targetGames - 1}-${targetGames - 1}, continue until one team reaches ${targetGames + 1}.`
       );
       return;
     }
@@ -1040,6 +1064,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                 value={resultTournamentId}
                 onChange={(event) => {
                   setResultTournamentId(event.target.value);
+                  setResultTeamFilterId("all");
                   setSelectedResultMatchId("");
                 }}
               >
@@ -1051,6 +1076,19 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               </select>
             </label>
             <Select
+              name="result_team_filter"
+              label="Filter matches by team"
+              value={resultTeamFilterId}
+              onChange={(value) => {
+                setResultTeamFilterId(value);
+                setSelectedResultMatchId("");
+              }}
+              options={[
+                ["all", "All teams"],
+                ...resultTeamOptions.map((team) => [team.id, teamLabel(team)] as [string, string])
+              ]}
+            />
+            <Select
               name="match_id"
               label="Match"
               value={selectedResultMatchId || resultMatches[0]?.id || ""}
@@ -1061,7 +1099,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
                 {selectedResultMatch.stage === "group"
                   ? `The two team scores must total ${selectedResultTarget} points.`
-                  : `First to ${selectedResultTarget}. At ${selectedResultTarget}-${selectedResultTarget}, play to ${selectedResultTarget + 2}; a ${selectedResultTarget + 1}-${selectedResultTarget} finish must be marked as ended due to court time.`}
+                  : `First to ${selectedResultTarget}. After ${selectedResultTarget - 1}-${selectedResultTarget - 1}, play to ${selectedResultTarget + 1}; a ${selectedResultTarget}-${selectedResultTarget - 1} finish must be marked as ended due to court time.`}
               </p>
             ) : null}
             {!resultMatches.length ? (
@@ -1091,8 +1129,8 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                 name="ended_due_to_time"
                 label="Match ending"
                 options={[
-                  ["false", `Normal finish (continue to ${selectedResultTarget + 2} after ${selectedResultTarget}-${selectedResultTarget})`],
-                  ["true", `Finished early at ${selectedResultTarget + 1}-${selectedResultTarget} because court time ended`]
+                  ["false", `Normal result (after ${selectedResultTarget - 1}-${selectedResultTarget - 1}, continue to ${selectedResultTarget + 1})`],
+                  ["true", `Closed at ${selectedResultTarget}-${selectedResultTarget - 1} because court time ended`]
                 ]}
               />
             ) : null}

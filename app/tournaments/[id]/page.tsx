@@ -34,7 +34,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
         <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
         <p className="mt-3 text-xs font-bold text-slate-300">
-          Group total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games}, play to {tournament.semifinal_target_games + 2} if level | Final: first to {tournament.final_target_games}, play to {tournament.final_target_games + 2} if level | One-game-early finish allowed only when court time ends
+          Group total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games}, play to {tournament.semifinal_target_games + 1} after {tournament.semifinal_target_games - 1}-{tournament.semifinal_target_games - 1} | Final: first to {tournament.final_target_games}, play to {tournament.final_target_games + 1} after {tournament.final_target_games - 1}-{tournament.final_target_games - 1} | Closing at the normal target after a tie requires court-time confirmation
         </p>
       </section>
 

@@ -21,13 +21,13 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
     team1Score !== "" &&
     team2Score !== "" &&
     Number(team1Score) === Number(team2Score);
-  const maximumScore = match.stage === "group" ? targetScore : targetScore + 2;
+  const maximumScore = match.stage === "group" ? targetScore : targetScore + 1;
   const isTimedFinishScore =
     match.stage !== "group" &&
     team1Score !== "" &&
     team2Score !== "" &&
-    Math.max(Number(team1Score), Number(team2Score)) === targetScore + 1 &&
-    Math.min(Number(team1Score), Number(team2Score)) === targetScore;
+    Math.max(Number(team1Score), Number(team2Score)) === targetScore &&
+    Math.min(Number(team1Score), Number(team2Score)) === targetScore - 1;
 
   async function submitScore(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,14 +47,14 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
     if (!validation.valid) {
       if (isTimedFinishScore && !endedDueToTime) {
         setMessage(
-          `Confirm that the match was closed at ${targetScore + 1} because court time ended, or continue playing to ${targetScore + 2}.`
+          `Choose whether the match closed at ${targetScore} because court time ended, or continue the extra game to ${targetScore + 1}.`
         );
         return;
       }
       setMessage(
         match.stage === "group"
           ? `Both scores must total ${targetScore} points.`
-          : `Finish at ${targetScore}, or continue to ${targetScore + 2} if both teams reach ${targetScore}.`
+          : `Finish at ${targetScore}, or play to ${targetScore + 1} after ${targetScore - 1}-${targetScore - 1}.`
       );
       return;
     }
@@ -88,7 +88,7 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       <p className="mb-3 text-xs font-bold text-slate-500">
         {match.stage === "group"
           ? `Enter both scores. Their total must be ${targetScore}.`
-          : `First to ${targetScore}. At ${targetScore}-${targetScore}, play to ${targetScore + 2}; a ${targetScore + 1}-${targetScore} finish requires confirmation that court time ended.`}
+          : `First to ${targetScore}. After ${targetScore - 1}-${targetScore - 1}, play one extra game to ${targetScore + 1}, or confirm a ${targetScore}-${targetScore - 1} finish if court time ends.`}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <label className="min-w-0">
@@ -141,15 +141,15 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
         {isTimedFinishScore ? (
           <label className="col-span-2 rounded-md border border-amber-200 bg-amber-50 p-3">
             <span className="mb-2 block text-xs font-black text-amber-950">
-              The score is {team1Score}-{team2Score}. Was the match closed at {targetScore + 1} because court time ended?
+              The score is {team1Score}-{team2Score} after reaching {targetScore - 1}-{targetScore - 1}. What happens next?
             </span>
             <select
               className="field"
               value={endedDueToTime ? "yes" : "no"}
               onChange={(event) => setEndedDueToTime(event.target.value === "yes")}
             >
-              <option value="no">No - continue playing to {targetScore + 2}</option>
-              <option value="yes">Yes - finish early due to court time</option>
+              <option value="no">Continue the extra game to {targetScore + 1}</option>
+              <option value="yes">Close at {targetScore} because court time ended</option>
             </select>
           </label>
         ) : null}
