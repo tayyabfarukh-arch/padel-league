@@ -67,7 +67,12 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
       ? selectedResultTarget
       : selectedResultTarget + 2;
   const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
-  const selectedTournamentMatches = matches.filter((item) => item.tournament_id === matchTournamentId);
+  const selectedTournamentMatches = matches
+    .filter((item) => item.tournament_id === matchTournamentId)
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
   const selectedCourtStreams = courtStreams.filter((item) => item.tournament_id === matchTournamentId);
 
   useEffect(() => {
