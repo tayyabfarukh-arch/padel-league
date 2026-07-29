@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trophy } from "lucide-react";
+import { ShieldCheck, Trophy } from "lucide-react";
 import { FriendCircleSelector } from "@/components/FriendCircleSelector";
 import { NavigationLink } from "@/components/NavigationLink";
 import type { NavigationIconName } from "@/components/NavigationLink";
@@ -13,13 +13,13 @@ export const metadata: Metadata = {
 };
 
 const nav: Array<[string, string, NavigationIconName]> = [
+  ["Upcoming", "/upcoming", "upcoming"],
   ["Active", "/current", "calendar"],
-  ["Predict", "/predictions", "vote"],
   ["History", "/tournaments", "history"],
+  ["Predict", "/predictions", "vote"],
   ["Teams", "/teams", "shield"],
   ["Players", "/players", "users"],
-  ["Records", "/records", "chart"],
-  ["Admin", "/admin", "trophy"]
+  ["Records", "/records", "chart"]
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +44,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavigationLink key={href} label={label} href={href} icon={icon} />
               ))}
             </nav>
+            <Link
+              href="/admin"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/15 bg-white/10 text-slate-200 transition hover:bg-limeball hover:text-ink"
+              title="Admin panel"
+              aria-label="Admin panel"
+            >
+              <ShieldCheck className="h-5 w-5" />
+            </Link>
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-5 md:py-8">{children}</main>

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarDays, History, Shield, Trophy, Users, Vote } from "lucide-react";
+import { BarChart3, CalendarClock, CalendarDays, History, Shield, Trophy, Users, Vote } from "lucide-react";
 
 const navigationIcons = {
   chart: BarChart3,
   calendar: CalendarDays,
+  upcoming: CalendarClock,
   history: History,
   shield: Shield,
   trophy: Trophy,

@@ -1,7 +1,11 @@
-LATEST FIXED-HEIGHT MOBILE TEAM NAME LAYOUT
+LATEST UPCOMING TOURNAMENT AND NAVIGATION UPDATE
 Created: July 29, 2026
 
 This version includes:
+- Upcoming opens the nearest upcoming tournament directly.
+- Upcoming uses the Active layout with score entry hidden.
+- Upcoming, Active, History, Predict, Teams, Players and Records appear in the bottom navigation.
+- Admin appears as a shield icon in the top header.
 - Mobile leaderboard rows stay at one consistent height.
 - Team names use a compact single-line layout with more available space.
 - Full team names appear in expanded standings.
