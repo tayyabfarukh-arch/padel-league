@@ -29,12 +29,11 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
 
   return (
     <div className="space-y-6">
-      <section className="court-panel rounded-lg p-5 text-white">
-        <p className="text-sm font-bold uppercase text-limeball">{tournament.status}</p>
-        <h1 className="mt-1 text-3xl font-black">{tournament.name}</h1>
-        <p className="mt-2 text-sm text-slate-300">{new Date(tournament.start_date).toLocaleDateString()}</p>
-        <p className="mt-3 text-xs font-bold text-slate-300">
-          Group total: {tournament.group_target_points} points | Semifinal: first to {tournament.semifinal_target_games}, play to {tournament.semifinal_target_games + 1} after {tournament.semifinal_target_games - 1}-{tournament.semifinal_target_games - 1} | Final: first to {tournament.final_target_games}, play to {tournament.final_target_games + 1} after {tournament.final_target_games - 1}-{tournament.final_target_games - 1} | Closing at the normal target after a tie requires court-time confirmation
+      <section className="court-panel rounded-lg px-4 py-3 text-white">
+        <p className="text-[10px] font-black uppercase text-limeball">{tournament.status}</p>
+        <h1 className="mt-0.5 text-xl font-black md:text-2xl">{tournament.name}</h1>
+        <p className="mt-1.5 text-xs font-bold text-slate-300">
+          {new Date(tournament.start_date).toLocaleDateString()} | Group: {tournament.group_target_points} total points | Final: race to {tournament.final_target_games}
         </p>
       </section>
 
