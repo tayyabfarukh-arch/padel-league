@@ -17,6 +17,16 @@ export function MatchCard({
 }) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
   const knockout = match.stage !== "group";
+  const visualWinnerId = completed
+    ? match.winner_team_id ??
+      (match.team_1_games! > match.team_2_games!
+        ? match.team_1_id
+        : match.team_2_games! > match.team_1_games!
+          ? match.team_2_id
+          : null)
+    : null;
+  const drawn = completed && !visualWinnerId;
+
   return (
     <article
       className={`sport-card match-card p-4 ${
@@ -57,7 +67,13 @@ export function MatchCard({
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
-          <TeamAvatar team={match.team_1} size={38} />
+          <ResultAvatar
+            team={match.team_1}
+            result={drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : completed ? "loser" : null}
+          />
+          {completed ? (
+            <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : "loser"} />
+          ) : null}
           <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_1)}</p>
         </div>
         <div className="min-w-14 rounded-md bg-slate-950 px-3 py-2 text-center text-lg font-black text-white shadow-sm">
@@ -65,8 +81,14 @@ export function MatchCard({
         </div>
         <div className="min-w-0 text-right">
           <div className="flex justify-end">
-            <TeamAvatar team={match.team_2} size={38} />
+            <ResultAvatar
+              team={match.team_2}
+              result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : completed ? "loser" : null}
+            />
           </div>
+          {completed ? (
+            <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : "loser"} align="right" />
+          ) : null}
           <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
         </div>
       </div>
@@ -89,5 +111,38 @@ export function MatchCard({
         <InlineMatchScore match={match} targetScore={scoreTarget} />
       ) : null}
     </article>
+  );
+}
+
+type Result = "winner" | "loser" | "draw";
+
+function ResultAvatar({ team, result }: { team: Match["team_1"]; result: Result | null }) {
+  return (
+    <div className="relative inline-flex">
+      <TeamAvatar team={team} size={38} />
+      {result ? (
+        <span
+          className="absolute -bottom-1 -right-2 text-xl drop-shadow-sm"
+          role="img"
+          aria-label={result === "winner" ? "Winner" : result === "loser" ? "Loser" : "Draw"}
+        >
+          {result === "winner" ? "😎" : result === "loser" ? "😭" : "🤝"}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ResultLabel({ result, align = "left" }: { result: Result; align?: "left" | "right" }) {
+  const styles = result === "winner"
+    ? "text-emerald-700"
+    : result === "loser"
+      ? "text-rose-600"
+      : "text-amber-700";
+
+  return (
+    <p className={`mt-2 text-[10px] font-black uppercase ${styles} ${align === "right" ? "text-right" : ""}`}>
+      {result === "winner" ? "Winner" : result === "loser" ? "Loser" : "Draw"}
+    </p>
   );
 }

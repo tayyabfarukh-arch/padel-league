@@ -1,7 +1,10 @@
-LATEST UPCOMING TOURNAMENT AND NAVIGATION UPDATE
+LATEST MATCH WINNER AND LOSER EMOJI UPDATE
 Created: July 29, 2026
 
 This version includes:
+- Completed matches show a sunglasses emoji and green Winner label.
+- Losing teams show a crying emoji and red Loser label.
+- Drawn matches show a neutral handshake and Draw label.
 - Upcoming opens the nearest upcoming tournament directly.
 - Upcoming uses the Active layout with score entry hidden.
 - Upcoming, Active, History, Predict, Teams, Players and Records appear in the bottom navigation.
