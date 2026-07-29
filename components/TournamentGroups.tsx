@@ -65,7 +65,7 @@ export function TournamentGroups({
         return (
           <div key={groupName} className="space-y-6">
             <section>
-              <h2 className="section-title">{groupLabel} standings</h2>
+              <h2 className="section-bar">{groupLabel} standings</h2>
               <TeamLeaderboard rows={standings} />
             </section>
 

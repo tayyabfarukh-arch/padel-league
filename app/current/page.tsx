@@ -46,7 +46,7 @@ export default async function CurrentTournamentPage() {
         if (!stageMatches.length) return null;
         return (
           <details key={stage} open className="group">
-            <summary className="section-title flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+            <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
               <span>{stageLabel(stage)}</span>
               <span className="flex items-center gap-2 text-xs font-black">
                 {stageMatches.length} {stageMatches.length === 1 ? "match" : "matches"}

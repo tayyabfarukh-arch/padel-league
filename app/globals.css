@@ -61,6 +61,18 @@ button {
   background: var(--court);
 }
 
+.section-bar {
+  @apply mb-3 flex min-h-12 w-full items-center gap-3 rounded-md border border-slate-700 bg-ink px-4 py-3 text-base font-black text-white;
+  border-left: 6px solid var(--lime);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.12),
+    0 10px 24px rgba(20, 33, 61, 0.12);
+}
+
+summary.section-bar {
+  @apply justify-between transition hover:border-court hover:bg-slate-800;
+}
+
 .court-panel {
   position: relative;
   overflow: hidden;
