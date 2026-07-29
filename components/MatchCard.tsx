@@ -80,6 +80,11 @@ export function MatchCard({
           )}
         </p>
       ) : null}
+      {completed && match.ended_due_to_time ? (
+        <p className="mt-3 rounded-md bg-amber-100 p-2 text-center text-xs font-black text-amber-950">
+          Match finished early due to court time
+        </p>
+      ) : null}
       {!completed && allowScoreEntry && scoreTarget ? (
         <InlineMatchScore match={match} targetScore={scoreTarget} />
       ) : null}

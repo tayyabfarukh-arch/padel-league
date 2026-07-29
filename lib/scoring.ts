@@ -11,7 +11,13 @@ export function getTargetGamesForStage(tournament: Tournament | undefined, stage
   return targets[stage] || 3;
 }
 
-export function validateScore(team1: number, team2: number, targetScore = 3, stage: Stage = "group") {
+export function validateScore(
+  team1: number,
+  team2: number,
+  targetScore = 3,
+  stage: Stage = "group",
+  endedDueToTime = false
+) {
   const validNumbers =
     Number.isInteger(team1) &&
     Number.isInteger(team2) &&
@@ -26,11 +32,16 @@ export function validateScore(team1: number, team2: number, targetScore = 3, sta
     higherScore === targetScore + 2 &&
     lowerScore >= targetScore &&
     lowerScore < targetScore + 2;
+  const timedKnockoutFinish =
+    endedDueToTime &&
+    higherScore === targetScore + 1 &&
+    lowerScore === targetScore;
   const valid = stage === "group"
     ? validNumbers && team1 + team2 === targetScore
     : validNumbers &&
       team1 !== team2 &&
-      (normalKnockoutFinish || extendedKnockoutFinish);
+      (normalKnockoutFinish || extendedKnockoutFinish || timedKnockoutFinish) &&
+      (!endedDueToTime || timedKnockoutFinish);
 
   return {
     valid,

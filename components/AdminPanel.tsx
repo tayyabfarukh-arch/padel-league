@@ -389,14 +389,28 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     const team2 = Number(form.get("team_2_games"));
     const tournament = tournaments.find((item) => item.id === match?.tournament_id);
     const targetGames = match ? getTargetGamesForStage(tournament, match.stage) : 3;
-    const result = validateScore(team1, team2, targetGames, match?.stage ?? "group");
+    const endedDueToTime = form.get("ended_due_to_time") === "true";
+    const result = validateScore(
+      team1,
+      team2,
+      targetGames,
+      match?.stage ?? "group",
+      endedDueToTime
+    );
     const decidingPointWinnerId = emptyToNull(form.get("deciding_point_winner_team_id"));
     if (!match || !result.valid) {
+      const isTimedFinishScore =
+        Boolean(match) &&
+        match?.stage !== "group" &&
+        Math.max(team1, team2) === targetGames + 1 &&
+        Math.min(team1, team2) === targetGames;
       const unit = match?.stage === "group" ? "points" : "games";
       setMessageType("error");
       setMessage(
         match?.stage === "group"
           ? `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
+          : isTimedFinishScore
+            ? `Choose "Finished early due to court time" to accept ${team1}-${team2}, or continue playing to ${targetGames + 2}.`
           : `Finish at ${targetGames} ${unit}. If both teams reach ${targetGames}, continue until one team reaches ${targetGames + 2}.`
       );
       return;
@@ -423,6 +437,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               ? match.team_2_id
               : null,
         deciding_point_winner_team_id: tiedGroupScore ? decidingPointWinnerId : null,
+        ended_due_to_time: match.stage === "group" ? false : endedDueToTime,
         played_at: new Date().toISOString()
       }).eq("id", match.id);
       if (error) throw error;
@@ -637,6 +652,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           team_2_games: null,
           winner_team_id: null,
           deciding_point_winner_team_id: null,
+          ended_due_to_time: false,
           submitted_by: null,
           submitted_at: null,
           played_at: null
@@ -1045,7 +1061,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
                 {selectedResultMatch.stage === "group"
                   ? `The two team scores must total ${selectedResultTarget} points.`
-                  : `First to ${selectedResultTarget}. At ${selectedResultTarget}-${selectedResultTarget}, continue until one team reaches ${selectedResultTarget + 2}.`}
+                  : `First to ${selectedResultTarget}. At ${selectedResultTarget}-${selectedResultTarget}, play to ${selectedResultTarget + 2}; a ${selectedResultTarget + 1}-${selectedResultTarget} finish must be marked as ended due to court time.`}
               </p>
             ) : null}
             {!resultMatches.length ? (
@@ -1067,6 +1083,16 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
                   ["", "Not needed"],
                   [selectedResultMatch.team_1_id, teamLabel(selectedResultMatch.team_1)],
                   [selectedResultMatch.team_2_id, teamLabel(selectedResultMatch.team_2)]
+                ]}
+              />
+            ) : selectedResultMatch ? (
+              <Select
+                key={`match-ending-${selectedResultMatch.id}`}
+                name="ended_due_to_time"
+                label="Match ending"
+                options={[
+                  ["false", `Normal finish (continue to ${selectedResultTarget + 2} after ${selectedResultTarget}-${selectedResultTarget})`],
+                  ["true", `Finished early at ${selectedResultTarget + 1}-${selectedResultTarget} because court time ended`]
                 ]}
               />
             ) : null}

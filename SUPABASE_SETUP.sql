@@ -94,6 +94,7 @@ create table if not exists matches (
   team_2_games integer,
   winner_team_id uuid references teams(id),
   deciding_point_winner_team_id uuid references teams(id),
+  ended_due_to_time boolean not null default false,
   stage text not null check (stage in ('group', 'semifinal', 'final', 'third_place')),
   group_name text check (group_name in ('A', 'B')),
   court_number integer check (court_number between 1 and 20),
@@ -148,6 +149,9 @@ add column if not exists submitted_at timestamp with time zone;
 
 alter table matches
 add column if not exists deciding_point_winner_team_id uuid references teams(id);
+
+alter table matches
+add column if not exists ended_due_to_time boolean not null default false;
 
 drop table if exists americano_matches cascade;
 drop table if exists tournament_players cascade;
@@ -237,12 +241,15 @@ create unique index if not exists idx_predictions_one_vote_per_browser
 on predictions(tournament_id, voter_token);
 
 drop function if exists public.submit_match_score(uuid, integer, integer);
+drop function if exists public.submit_match_score(uuid, integer, integer, uuid);
+drop function if exists public.submit_match_score(uuid, integer, integer, uuid, boolean);
 
 create or replace function submit_match_score(
   p_match_id uuid,
   p_team_1_score integer,
   p_team_2_score integer,
-  p_deciding_point_winner_team_id uuid default null
+  p_deciding_point_winner_team_id uuid default null,
+  p_ended_due_to_time boolean default false
 )
 returns void
 language plpgsql
@@ -283,6 +290,9 @@ begin
   end if;
 
   if selected_match.stage = 'group' then
+    if p_ended_due_to_time then
+      raise exception 'Group matches cannot be marked as ended due to court time.';
+    end if;
     if p_team_1_score + p_team_2_score <> target_score then
       raise exception 'The two team scores must total % points.', target_score;
     end if;
@@ -301,6 +311,12 @@ begin
       deciding_winner_team_id := null;
     end if;
   else
+    if p_ended_due_to_time and not (
+      greatest(p_team_1_score, p_team_2_score) = target_score + 1
+      and least(p_team_1_score, p_team_2_score) = target_score
+    ) then
+      raise exception 'A time-limited finish must end at %-% only.', target_score + 1, target_score;
+    end if;
     if not (
       (
         greatest(p_team_1_score, p_team_2_score) = target_score
@@ -311,8 +327,13 @@ begin
         and least(p_team_1_score, p_team_2_score) >= target_score
         and least(p_team_1_score, p_team_2_score) < target_score + 2
       )
+      or (
+        p_ended_due_to_time
+        and greatest(p_team_1_score, p_team_2_score) = target_score + 1
+        and least(p_team_1_score, p_team_2_score) = target_score
+      )
     ) then
-      raise exception 'Finish at %, or continue to % if both teams reach %.', target_score, target_score + 2, target_score;
+      raise exception 'Finish at %, continue to %, or confirm a time-limited finish at %-% only.', target_score, target_score + 2, target_score + 1, target_score;
     end if;
     winning_team_id := case
       when p_team_1_score > p_team_2_score then selected_match.team_1_id
@@ -326,6 +347,7 @@ begin
       team_2_games = p_team_2_score,
       winner_team_id = winning_team_id,
       deciding_point_winner_team_id = deciding_winner_team_id,
+      ended_due_to_time = p_ended_due_to_time,
       submitted_by = auth.uid(),
       submitted_at = now(),
       played_at = now()
@@ -396,13 +418,13 @@ with check (
 );
 create policy "Admins manage predictions" on predictions for all using (public.is_admin()) with check (public.is_admin());
 
-revoke all on function submit_match_score(uuid, integer, integer, uuid) from public;
+revoke all on function submit_match_score(uuid, integer, integer, uuid, boolean) from public;
 grant execute on function public.is_admin() to authenticated;
 grant select, insert on predictions to anon, authenticated;
 grant select on tournament_court_streams to anon, authenticated;
 grant insert, update, delete on tournament_court_streams to authenticated;
-grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to anon;
-grant execute on function public.submit_match_score(uuid, integer, integer, uuid) to authenticated;
+grant execute on function public.submit_match_score(uuid, integer, integer, uuid, boolean) to anon;
+grant execute on function public.submit_match_score(uuid, integer, integer, uuid, boolean) to authenticated;
 
 insert into storage.buckets (id, name, public)
 values
