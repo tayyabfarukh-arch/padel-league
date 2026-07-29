@@ -229,6 +229,18 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     });
   }
 
+  async function updatePlayerPhoto(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const playerId = String(form.get("player_id") ?? "");
+    await run(async () => {
+      const photo_url = await uploadPhoto("player-photos", form.get("photo") as File);
+      if (!photo_url) throw new Error("Please choose a player photo.");
+      const { error } = await supabase!.from("players").update({ photo_url }).eq("id", playerId);
+      if (error) throw error;
+    });
+  }
+
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -774,6 +786,14 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           </form>
         </Panel>
 
+        <Panel title="Update player photo">
+          <form onSubmit={updatePlayerPhoto} className="space-y-3">
+            <Select name="player_id" label="Player" options={players.map((player) => [player.id, player.name])} />
+            <FileField name="photo" label="New player photo" required />
+            <button className="btn-primary" disabled={busy}><Upload className="h-4 w-4" /> Update photo</button>
+          </form>
+        </Panel>
+
         <Panel title="Create team">
           <form onSubmit={createTeam} className="space-y-3">
             <Select name="player_1_id" label="Player 1" options={players.map((player) => [player.id, player.name])} />
@@ -1249,11 +1269,11 @@ function NumberField({
   );
 }
 
-function FileField({ name, label }: { name: string; label: string }) {
+function FileField({ name, label, required = false }: { name: string; label: string; required?: boolean }) {
   return (
     <label className="block">
       <span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500"><Upload className="h-3.5 w-3.5" /> {label}</span>
-      <input className="field" name={name} type="file" accept="image/*" />
+      <input className="field" name={name} type="file" accept="image/*" required={required} />
     </label>
   );
 }

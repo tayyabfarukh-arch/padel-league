@@ -24,12 +24,12 @@ export default async function TournamentHistoryPage() {
           const teamCount = allTournamentTeams.filter((item) => item.tournament_id === tournament.id).length;
           return (
             <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="sport-card p-2 transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="grid grid-cols-[80px_1fr] items-center gap-2.5">
+              <div className="grid grid-cols-[96px_1fr] items-center gap-2.5">
                 <TournamentCover
                   url={tournament.cover_image_url}
                   name={tournament.name}
-                  width={80}
-                  height={60}
+                  width={96}
+                  height={54}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-bold text-slate-500">{new Date(tournament.start_date).toLocaleDateString()}</p>

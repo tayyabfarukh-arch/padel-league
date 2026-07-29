@@ -61,8 +61,8 @@ export function TeamAvatar({ team, size = 56 }: { team?: Team | null; size?: num
 export function TournamentCover({
   url,
   name,
-  width = 104,
-  height = 78
+  width = 96,
+  height = 54
 }: {
   url?: string | null;
   name: string;
@@ -95,7 +95,7 @@ export function TournamentCover({
       unoptimized
       onError={() => setFailed(true)}
       style={{ width, height }}
-      className="shrink-0 rounded-md object-cover ring-1 ring-slate-200"
+      className="shrink-0 rounded-md bg-slate-100 object-contain ring-1 ring-slate-200"
     />
   );
 }
