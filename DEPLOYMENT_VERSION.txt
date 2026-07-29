@@ -1,0 +1,9 @@
+LATEST MOBILE TEAM NAME FIX
+Created: July 29, 2026
+
+This version includes:
+- Team names wrap onto two lines on mobile.
+- Full team names appear in expanded standings.
+- Mobile team portraits use the improved compact size.
+- Player photo update control in Admin.
+- Tournament cover aspect-ratio correction.

@@ -85,21 +85,23 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
 }
 
 function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
+  const name = teamLabel(row.team);
+
   return (
     <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
-      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-2 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
+      <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-1.5 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
-        <div className="flex min-w-0 items-center gap-3">
-          <TeamAvatar team={row.team} size={42} />
+        <div className="flex min-w-0 items-center gap-2">
+          <TeamAvatar team={row.team} size={38} />
           <div className="min-w-0">
-            <p className="truncate font-black text-slate-950">{teamLabel(row.team)}</p>
+            <p className="line-clamp-2 break-words font-black leading-tight text-slate-950">{name}</p>
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
         <MobileSummaryStats wins={row.wins} points={row.points} />
         <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
       </summary>
-      <ExpandedDetails href={`/teams/${row.team.id}`} items={teamDetails(row)} />
+      <ExpandedDetails href={`/teams/${row.team.id}`} title={name} items={teamDetails(row)} />
     </details>
   );
 }
@@ -137,9 +139,10 @@ function Header({ label }: { label: string }) {
   );
 }
 
-function ExpandedDetails({ href, items }: { href: string; items: DetailItem[] }) {
+function ExpandedDetails({ href, items, title }: { href: string; items: DetailItem[]; title?: string }) {
   return (
     <div className="border-t border-slate-100 bg-slate-50/80 p-3">
+      {title ? <p className="mb-3 break-words text-base font-black text-slate-950">{title}</p> : null}
       <div className="grid grid-cols-2 gap-2">
         {items.map(([label, value]) => (
           <div key={label} className="rounded-md bg-white p-3 ring-1 ring-slate-200">
