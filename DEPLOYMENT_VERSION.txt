@@ -1,8 +1,9 @@
-LATEST MOBILE TEAM NAME FIX
+LATEST FIXED-HEIGHT MOBILE TEAM NAME LAYOUT
 Created: July 29, 2026
 
 This version includes:
-- Team names wrap onto two lines on mobile.
+- Mobile leaderboard rows stay at one consistent height.
+- Team names use a compact single-line layout with more available space.
 - Full team names appear in expanded standings.
 - Mobile team portraits use the improved compact size.
 - Player photo update control in Admin.

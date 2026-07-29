@@ -89,12 +89,12 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
 
   return (
     <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
-      <summary className="grid cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-1.5 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
+      <summary className="grid min-h-[66px] cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-1.5 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
         <RankBadge index={index} />
         <div className="flex min-w-0 items-center gap-2">
           <TeamAvatar team={row.team} size={38} />
           <div className="min-w-0">
-            <p className="line-clamp-2 break-words font-black leading-tight text-slate-950">{name}</p>
+            <p className="truncate whitespace-nowrap text-[13px] font-black leading-none text-slate-950">{name}</p>
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
@@ -185,11 +185,11 @@ function MobileSummaryStats({
 }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5">
-      <span className="min-w-10 rounded-md bg-slate-100 px-2 py-1 text-center">
+      <span className="min-w-9 rounded-md bg-slate-100 px-1.5 py-1 text-center">
         <span className="block text-[9px] font-black uppercase text-slate-500">W</span>
         <span className="block text-sm font-black leading-none text-slate-950">{wins}</span>
       </span>
-      <span className={`min-w-12 rounded-md px-2 py-1 text-center text-white shadow-sm ${dark ? "bg-ink" : "bg-court"}`}>
+      <span className={`min-w-11 rounded-md px-1.5 py-1 text-center text-white shadow-sm ${dark ? "bg-ink" : "bg-court"}`}>
         <span className="block text-[9px] font-black uppercase opacity-75">Pts</span>
         <span className="block text-sm font-black leading-none">{signed(points)}</span>
       </span>
