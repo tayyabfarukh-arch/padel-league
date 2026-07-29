@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, Flame, Trophy } from "lucide-react";
+import { Crown, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
@@ -23,6 +23,14 @@ export default async function Home() {
   const teams = teamsFromTournamentTeams(tournamentTeams);
   const scopedPlayers = playersFromTeams(players, teams);
   const active = tournaments.find((tournament) => tournament.status === "active");
+  const heroTournamentTeams = active
+    ? tournamentTeams.filter((entry) => entry.tournament_id === active.id)
+    : tournamentTeams;
+  const heroTeams = teamsFromTournamentTeams(heroTournamentTeams);
+  const heroPlayers = playersFromTeams(players, heroTeams);
+  const heroMatches = active
+    ? matches.filter((match) => match.tournament_id === active.id)
+    : matches;
   const completed = tournaments.filter((tournament) => tournament.status === "completed");
   const lastChampion = completed[0]?.champion;
   const teamStats = calculateTeamStats(teams, matches, tournaments);
@@ -36,32 +44,36 @@ export default async function Home() {
 
   return (
     <div className="space-y-6">
-      <section className="court-panel home-hero rounded-lg p-5 text-white md:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
-              <Flame className="h-3.5 w-3.5" /> Private doubles battle
+      <section className="court-panel home-hero rounded-lg p-4 text-white md:p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase text-limeball">
+              {active ? "Active tournament" : "Padel League"}
             </p>
-            <h1 className="text-3xl font-black md:text-5xl">{active?.name ?? "Padel night is waiting"}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300 md:text-base">
-              Flexible race-to formats, points by game difference, bragging rights by leaderboard.
-            </p>
+            <h1 className="mt-0.5 truncate text-xl font-black md:text-2xl">
+              {active?.name ?? "Padel night is waiting"}
+            </h1>
+            {active ? (
+              <p className="mt-1.5 text-xs font-bold text-slate-300">
+                Group: {active.group_target_points} total points | Final: race to {active.final_target_games}
+              </p>
+            ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-2 md:min-w-80">
-            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
-              <p className="text-2xl font-black text-limeball">{teams.length}</p>
-              <p className="text-xs font-bold text-slate-300">Teams</p>
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-[64px_64px_64px_auto]">
+            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+              <p className="text-lg font-black leading-none text-limeball">{heroTeams.length}</p>
+              <p className="mt-1 text-[10px] font-bold text-slate-300">Teams</p>
             </div>
-            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
-              <p className="text-2xl font-black text-limeball">{players.length}</p>
-              <p className="text-xs font-bold text-slate-300">Players</p>
+            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+              <p className="text-lg font-black leading-none text-limeball">{heroPlayers.length}</p>
+              <p className="mt-1 text-[10px] font-bold text-slate-300">Players</p>
             </div>
-            <div className="rounded-lg bg-white/10 p-3 text-center ring-1 ring-white/10">
-              <p className="text-2xl font-black text-limeball">{matches.length}</p>
-              <p className="text-xs font-bold text-slate-300">Matches</p>
+            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+              <p className="text-lg font-black leading-none text-limeball">{heroMatches.length}</p>
+              <p className="mt-1 text-[10px] font-bold text-slate-300">Matches</p>
             </div>
-            <Link href="/current" className="btn-primary col-span-3 bg-limeball text-ink hover:bg-lime-300">
-              View tournament
+            <Link href="/current" className="btn-primary col-span-3 bg-limeball text-ink hover:bg-lime-300 md:col-span-1">
+              View
             </Link>
           </div>
         </div>

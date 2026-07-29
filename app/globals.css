@@ -107,9 +107,7 @@ summary.section-bar {
 }
 
 .home-hero {
-  min-height: 410px;
-  display: flex;
-  align-items: flex-end;
+  min-height: 0;
   background-image:
     linear-gradient(90deg, rgba(8, 18, 29, 0.96) 0%, rgba(8, 18, 29, 0.74) 45%, rgba(8, 18, 29, 0.2) 100%),
     url("/images/padel-court-hero.webp");
@@ -197,7 +195,6 @@ summary.section-bar {
 
 @media (max-width: 640px) {
   .home-hero {
-    min-height: 360px;
     background-position: 64% center;
   }
 }
