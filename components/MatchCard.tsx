@@ -126,7 +126,7 @@ function ResultAvatar({ team, result }: { team: Match["team_1"]; result: Result 
           role="img"
           aria-label={result === "winner" ? "Winner" : result === "loser" ? "Loser" : "Draw"}
         >
-          {result === "winner" ? "😎" : result === "loser" ? "😭" : "🤝"}
+          {result === "winner" ? "😎" : result === "loser" ? "😔" : "🤝"}
         </span>
       ) : null}
     </div>

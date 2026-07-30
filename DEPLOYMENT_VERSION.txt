@@ -1,7 +1,8 @@
-LATEST TEAM AND COURT MATCH FILTER UPDATE
+LATEST SAD LOSER EMOJI UPDATE
 Created: July 30, 2026
 
 This version includes:
+- Losing teams show a sad-face emoji instead of a crying emoji.
 - Group match sections can be filtered by team and court together.
 - Court options are generated automatically from scheduled matches.
 - Matches without a court can be found with the Unassigned court option.
