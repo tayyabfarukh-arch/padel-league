@@ -676,12 +676,12 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
     }
 
     const confirmed = window.confirm(
-      `Clear every score for ${tournament.name}? All scheduled matches, teams, groups, courts, and YouTube links will be kept.`
+      `Reset ${tournament.name}? Group matches will be kept with blank scores. Semifinal, final, and third-place matches will be deleted so they can be created again from fresh standings.`
     );
     if (!confirmed) return;
 
     await run(async () => {
-      const { error: matchError } = await supabase!
+      const { error: groupMatchError } = await supabase!
         .from("matches")
         .update({
           team_1_games: null,
@@ -693,8 +693,16 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           submitted_at: null,
           played_at: null
         })
-        .eq("tournament_id", tournament.id);
-      if (matchError) throw matchError;
+        .eq("tournament_id", tournament.id)
+        .eq("stage", "group");
+      if (groupMatchError) throw groupMatchError;
+
+      const { error: knockoutMatchError } = await supabase!
+        .from("matches")
+        .delete()
+        .eq("tournament_id", tournament.id)
+        .neq("stage", "group");
+      if (knockoutMatchError) throw knockoutMatchError;
 
       const { error: tournamentError } = await supabase!
         .from("tournaments")
@@ -1161,10 +1169,10 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
         <Panel title="Testing reset">
           <div className="space-y-3">
             <p className="text-sm font-semibold text-slate-700">
-              Clear every test score from <span className="font-black text-slate-950">
+              Reset test results for <span className="font-black text-slate-950">
                 {tournaments.find((item) => item.id === resultTournamentId)?.name ?? "the selected tournament"}
               </span>.
-              Matches, teams, groups, courts, and YouTube links will stay exactly as they are.
+              Group matches stay scheduled with blank scores. Semifinal, final, and third-place matches are removed so you can generate them again from fresh standings.
             </p>
             <button
               type="button"
@@ -1172,7 +1180,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
               onClick={() => void clearTournamentScores()}
               disabled={busy || !resultTournamentId}
             >
-              <RotateCcw className="h-4 w-4" /> Clear all tournament scores
+              <RotateCcw className="h-4 w-4" /> Reset tournament results
             </button>
           </div>
         </Panel>

@@ -1,7 +1,13 @@
-LATEST MATCH WINNER AND LOSER EMOJI UPDATE
-Created: July 29, 2026
+LATEST TEAM AND COURT MATCH FILTER UPDATE
+Created: July 30, 2026
 
 This version includes:
+- Group match sections can be filtered by team and court together.
+- Court options are generated automatically from scheduled matches.
+- Matches without a court can be found with the Unassigned court option.
+- Reset tournament results keeps group matches but clears their scores.
+- Reset tournament results deletes semifinal, final, and third-place matches.
+- Group schedules display in match creation order, including team-filtered results.
 - Completed matches show a sunglasses emoji and green Winner label.
 - Losing teams show a crying emoji and red Loser label.
 - Drawn matches show a neutral handshake and Draw label.
