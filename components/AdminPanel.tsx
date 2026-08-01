@@ -5,23 +5,27 @@ import type { Session } from "@supabase/supabase-js";
 import { Check, LogIn, LogOut, Plus, RotateCcw, Save, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
+import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
-import type { CourtStream, Match, Player, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
+import type { AmericanoMatch, CourtStream, Match, Player, Stage, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
 
 type Props = {
   configured: boolean;
   players: Player[];
   teams: Team[];
   tournaments: Tournament[];
+  tournamentPlayers: TournamentPlayer[];
   tournamentTeams: TournamentTeam[];
   matches: Match[];
+  americanoMatches: AmericanoMatch[];
   courtStreams: CourtStream[];
 };
 
 type AdminSection = "people" | "tournament" | "schedule" | "results";
 
-export function AdminPanel({ configured, players, teams, tournaments, tournamentTeams, matches, courtStreams }: Props) {
+export function AdminPanel({ configured, players, teams, tournaments: allTournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams }: Props) {
+  const tournaments = allTournaments.filter((item) => item.tournament_format === "regular");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
   const [email, setEmail] = useState("");
@@ -30,6 +34,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   const [unauthorizedEmail, setUnauthorizedEmail] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [adminWorkspace, setAdminWorkspace] = useState<"regular" | "americano">("regular");
   const [adminSection, setAdminSection] = useState<AdminSection>("people");
   const activeTournament = tournaments.find((item) => item.status === "active") ?? tournaments[0];
   const [knockoutTournamentId, setKnockoutTournamentId] = useState(activeTournament?.id ?? "");
@@ -141,6 +146,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
   useEffect(() => {
     const savedSection = window.sessionStorage.getItem("padel_admin_section");
     if (isAdminSection(savedSection)) setAdminSection(savedSection);
+    if (window.sessionStorage.getItem("padel_admin_workspace") === "americano") setAdminWorkspace("americano");
   }, []);
 
   if (!configured || !supabase) {
@@ -762,7 +768,12 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
 
       {signedInEmail ? (
         <>
-          <div className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-ink p-2 shadow-sm">
+            <button type="button" className={adminWorkspace === "regular" ? "btn-primary" : "btn-secondary border-transparent bg-white/10 text-white hover:bg-white/20"} onClick={() => { setAdminWorkspace("regular"); window.sessionStorage.setItem("padel_admin_workspace", "regular"); }}>Regular Tournament</button>
+            <button type="button" className={adminWorkspace === "americano" ? "btn-primary" : "btn-secondary border-transparent bg-white/10 text-white hover:bg-white/20"} onClick={() => { setAdminWorkspace("americano"); window.sessionStorage.setItem("padel_admin_workspace", "americano"); }}>Americano</button>
+          </div>
+
+          <div className={adminWorkspace === "regular" ? "flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm" : "hidden"}>
             {([
               ["people", "People"],
               ["tournament", "Tournament"],
@@ -783,7 +794,7 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
             ))}
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className={adminWorkspace === "regular" ? "grid gap-5 lg:grid-cols-2" : "hidden"}>
         {adminSection === "people" ? (
           <>
         <Panel title="Add player">
@@ -1198,6 +1209,17 @@ export function AdminPanel({ configured, players, teams, tournaments, tournament
           </>
         ) : null}
           </div>
+          {adminWorkspace === "americano" ? (
+            <AmericanoAdminPanel
+              players={players}
+              teams={teams}
+              tournaments={allTournaments}
+              tournamentPlayers={tournamentPlayers}
+              tournamentTeams={tournamentTeams}
+              matches={americanoMatches}
+              courtStreams={courtStreams}
+            />
+          ) : null}
         </>
       ) : null}
     </div>

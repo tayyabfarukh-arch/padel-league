@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/EmptyState";
-import { TournamentDashboard } from "@/components/TournamentDashboard";
-import { getCourtStreams, getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
+import { TournamentExperience } from "@/components/TournamentExperience";
+import { getTournaments } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,19 +20,5 @@ export default async function UpcomingTournamentPage() {
     );
   }
 
-  const [tournamentTeams, matches, courtStreams] = await Promise.all([
-    getTournamentTeams(tournament.id),
-    getMatches(tournament.id),
-    getCourtStreams(tournament.id)
-  ]);
-
-  return (
-    <TournamentDashboard
-      tournament={tournament}
-      tournamentTeams={tournamentTeams}
-      matches={matches}
-      courtStreams={courtStreams}
-      allowScoreEntry={false}
-    />
-  );
+  return <TournamentExperience tournament={tournament} allowScoreEntry={false} />;
 }

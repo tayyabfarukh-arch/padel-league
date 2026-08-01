@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ChevronDown } from "lucide-react";
+import { TournamentExperience } from "@/components/TournamentExperience";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
 import { TournamentGroups } from "@/components/TournamentGroups";
@@ -13,6 +14,9 @@ export const revalidate = 0;
 export default async function TournamentDetailPage({ params }: { params: { id: string } }) {
   const tournament = await getTournament(params.id);
   if (!tournament) notFound();
+  if (tournament.tournament_format !== "regular") {
+    return <TournamentExperience tournament={tournament} allowScoreEntry={false} />;
+  }
   const [tournamentTeams, matches, courtStreams] = await Promise.all([
     getTournamentTeams(tournament.id),
     getMatches(tournament.id),

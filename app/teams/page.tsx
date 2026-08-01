@@ -9,7 +9,8 @@ export const revalidate = 0;
 
 export default async function TeamsPage() {
   const [tournamentTeams, matches, tournaments] = await Promise.all([getTournamentTeams(), getMatches(), getTournaments()]);
-  const teams = teamsFromTournamentTeams(tournamentTeams);
+  const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
+  const teams = teamsFromTournamentTeams(tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id)));
   const rows = calculateTeamStats(teams, matches, tournaments);
   if (!rows.length) return <EmptyState title="No teams yet" body="Create teams from the Admin panel." />;
   return (

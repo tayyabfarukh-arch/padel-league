@@ -11,7 +11,7 @@ export default async function PredictionsPage() {
     getTournamentTeams(),
     getPredictions()
   ]);
-  const tournaments = allTournaments.filter((item) => item.status !== "completed");
+  const tournaments = allTournaments.filter((item) => item.status !== "completed" && item.tournament_format !== "singles_americano");
   if (!tournaments.length) {
     return <EmptyState title="No prediction available" body="Predictions appear after the Admin creates an upcoming tournament." />;
   }

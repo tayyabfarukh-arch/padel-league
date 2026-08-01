@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { TournamentCover } from "@/components/Avatar";
-import { getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
+import { getAmericanoMatches, getMatches, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
+import { calculateSinglesAmericanoStandings, calculateTeamAmericanoStandings } from "@/lib/americano-scoring";
 import { teamLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function TournamentHistoryPage() {
-  const [tournaments, allTournamentTeams, matches] = await Promise.all([getTournaments(), getTournamentTeams(), getMatches()]);
+  const [tournaments, allTournamentPlayers, allTournamentTeams, matches, americanoMatches] = await Promise.all([getTournaments(), getTournamentPlayers(), getTournamentTeams(), getMatches(), getAmericanoMatches()]);
   const completed = tournaments.filter((tournament) => tournament.status === "completed");
   if (!completed.length) return <EmptyState title="No completed tournaments yet" body="Close a tournament in Admin and it will appear here." />;
 
@@ -20,8 +21,15 @@ export default async function TournamentHistoryPage() {
       </section>
       <div className="grid gap-2 md:grid-cols-2">
         {completed.map((tournament) => {
+          const isAmericano = tournament.tournament_format !== "regular";
           const final = matches.find((match) => match.tournament_id === tournament.id && match.stage === "final");
           const teamCount = allTournamentTeams.filter((item) => item.tournament_id === tournament.id).length;
+          const playerEntries = allTournamentPlayers.filter((item) => item.tournament_id === tournament.id);
+          const tournamentAmericanoMatches = americanoMatches.filter((item) => item.tournament_id === tournament.id);
+          const americanoStandings = tournament.tournament_format === "singles_americano"
+            ? calculateSinglesAmericanoStandings(playerEntries.map((item) => item.player).filter(Boolean) as NonNullable<(typeof playerEntries)[number]["player"]>[], tournamentAmericanoMatches)
+            : calculateTeamAmericanoStandings(allTournamentTeams.filter((item) => item.tournament_id === tournament.id).map((item) => item.team).filter(Boolean) as NonNullable<(typeof allTournamentTeams)[number]["team"]>[], tournamentAmericanoMatches);
+          const formatLabel = tournament.tournament_format === "singles_americano" ? "Singles Americano" : tournament.tournament_format === "team_americano" ? "Team Americano" : "Regular tournament";
           return (
             <Link href={`/tournaments/${tournament.id}`} key={tournament.id} className="sport-card p-2 transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="grid grid-cols-[96px_1fr] items-center gap-2.5">
@@ -35,10 +43,10 @@ export default async function TournamentHistoryPage() {
                   <p className="text-[10px] font-bold text-slate-500">{new Date(tournament.start_date).toLocaleDateString()}</p>
                   <h2 className="truncate text-sm font-black text-slate-950">{tournament.name}</h2>
                   <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                    {teamCount} teams | Final {final ? `${final.team_1_games}-${final.team_2_games}` : "TBD"}
+                    {isAmericano ? `${tournament.tournament_format === "singles_americano" ? playerEntries.length : teamCount} participants | ${formatLabel}` : `${teamCount} teams | Final ${final ? `${final.team_1_games}-${final.team_2_games}` : "TBD"}`}
                   </p>
-                  <p className="mt-1 truncate text-xs text-slate-700"><b>Champion:</b> {teamLabel(tournament.champion)}</p>
-                  <p className="truncate text-[11px] text-slate-600"><b>Runner-up:</b> {teamLabel(tournament.runner_up)}</p>
+                  <p className="mt-1 truncate text-xs text-slate-700"><b>Winner:</b> {isAmericano ? americanoStandings[0]?.name ?? "TBD" : teamLabel(tournament.champion)}</p>
+                  <p className="truncate text-[11px] text-slate-600"><b>Runner-up:</b> {isAmericano ? americanoStandings[1]?.name ?? "TBD" : teamLabel(tournament.runner_up)}</p>
                 </div>
               </div>
             </Link>

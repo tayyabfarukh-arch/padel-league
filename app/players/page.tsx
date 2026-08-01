@@ -9,7 +9,8 @@ export const revalidate = 0;
 
 export default async function PlayersPage() {
   const [players, tournamentTeams, matches, tournaments] = await Promise.all([getPlayers(), getTournamentTeams(), getMatches(), getTournaments()]);
-  const teams = teamsFromTournamentTeams(tournamentTeams);
+  const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
+  const teams = teamsFromTournamentTeams(tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id)));
   const scopedPlayers = playersFromTeams(players, teams);
   const rows = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
   if (!rows.length) return <EmptyState title="No players yet" body="Add players from the Admin panel." />;

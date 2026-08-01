@@ -30,7 +30,7 @@ export function stageLabel(stage: string) {
   return labels[stage] ?? stage;
 }
 
-export function courtStreamUrl(match: Match, streams: CourtStream[]) {
+export function courtStreamUrl(match: Pick<Match, "court_number" | "tournament_id">, streams: CourtStream[]) {
   if (!match.court_number) return undefined;
   return streams.find(
     (stream) =>

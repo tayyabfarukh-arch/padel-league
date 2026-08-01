@@ -73,6 +73,10 @@ summary.section-bar {
   @apply justify-between transition hover:border-court hover:bg-slate-800;
 }
 
+.field-label {
+  @apply mb-1 block text-xs font-black uppercase text-slate-500;
+}
+
 .court-panel {
   position: relative;
   overflow: hidden;

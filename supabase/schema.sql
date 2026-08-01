@@ -20,6 +20,7 @@ create table if not exists teams (
 create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  tournament_format text not null default 'regular' check (tournament_format in ('regular', 'singles_americano', 'team_americano')),
   friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
   group_count integer not null default 1 check (group_count in (1, 2)),
   court_count integer not null default 4 check (court_count between 1 and 20),
@@ -27,6 +28,8 @@ create table if not exists tournaments (
   semifinal_target_games integer not null default 6 check (semifinal_target_games between 1 and 10),
   final_target_games integer not null default 6 check (final_target_games between 1 and 10),
   third_place_target_games integer not null default 6 check (third_place_target_games between 1 and 10),
+  americano_target_points integer not null default 24 check (americano_target_points between 1 and 100),
+  americano_round_count integer not null default 5 check (americano_round_count between 1 and 100),
   status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
   start_date date not null default current_date,
   end_date date,
@@ -39,6 +42,9 @@ create table if not exists tournaments (
 
 alter table tournaments
 add column if not exists friend_circle text not null default 'circle_1';
+
+alter table tournaments
+add column if not exists tournament_format text not null default 'regular';
 
 alter table tournaments
 add column if not exists group_count integer not null default 1;
@@ -57,6 +63,28 @@ add column if not exists final_target_games integer not null default 6;
 
 alter table tournaments
 add column if not exists third_place_target_games integer not null default 6;
+
+alter table tournaments
+add column if not exists americano_target_points integer not null default 24;
+
+alter table tournaments
+add column if not exists americano_round_count integer not null default 5;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'tournaments_format_check') then
+    alter table tournaments add constraint tournaments_format_check
+    check (tournament_format in ('regular', 'singles_americano', 'team_americano'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'tournaments_americano_target_check') then
+    alter table tournaments add constraint tournaments_americano_target_check
+    check (americano_target_points between 1 and 100);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'tournaments_americano_rounds_check') then
+    alter table tournaments add constraint tournaments_americano_rounds_check
+    check (americano_round_count between 1 and 100);
+  end if;
+end $$;
 
 alter table tournaments
 drop column if exists tournament_format;
@@ -153,8 +181,64 @@ add column if not exists deciding_point_winner_team_id uuid references teams(id)
 alter table matches
 add column if not exists ended_due_to_time boolean not null default false;
 
-drop table if exists americano_matches cascade;
-drop table if exists tournament_players cascade;
+create table if not exists tournament_players (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references tournaments(id) on delete cascade,
+  player_id uuid not null references players(id) on delete cascade,
+  created_at timestamp with time zone default now(),
+  unique (tournament_id, player_id)
+);
+
+create table if not exists americano_matches (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references tournaments(id) on delete cascade,
+  round_number integer not null check (round_number between 1 and 200),
+  court_number integer check (court_number between 1 and 20),
+  side_1_team_id uuid references teams(id) on delete restrict,
+  side_2_team_id uuid references teams(id) on delete restrict,
+  side_1_player_1_id uuid references players(id) on delete restrict,
+  side_1_player_2_id uuid references players(id) on delete restrict,
+  side_2_player_1_id uuid references players(id) on delete restrict,
+  side_2_player_2_id uuid references players(id) on delete restrict,
+  side_1_points integer check (side_1_points between 0 and 100),
+  side_2_points integer check (side_2_points between 0 and 100),
+  winner_side smallint check (winner_side in (1, 2)),
+  submitted_at timestamp with time zone,
+  played_at timestamp with time zone,
+  created_at timestamp with time zone default now(),
+  constraint americano_match_participants check (
+    (
+      side_1_team_id is not null and side_2_team_id is not null
+      and side_1_team_id <> side_2_team_id
+      and side_1_player_1_id is null and side_1_player_2_id is null
+      and side_2_player_1_id is null and side_2_player_2_id is null
+    )
+    or
+    (
+      side_1_team_id is null and side_2_team_id is null
+      and side_1_player_1_id is not null and side_1_player_2_id is not null
+      and side_2_player_1_id is not null and side_2_player_2_id is not null
+      and side_1_player_1_id <> side_1_player_2_id
+      and side_1_player_1_id <> side_2_player_1_id
+      and side_1_player_1_id <> side_2_player_2_id
+      and side_1_player_2_id <> side_2_player_1_id
+      and side_1_player_2_id <> side_2_player_2_id
+      and side_2_player_1_id <> side_2_player_2_id
+    )
+  ),
+  constraint americano_match_scores check (
+    (side_1_points is null and side_2_points is null and winner_side is null)
+    or
+    (
+      side_1_points is not null and side_2_points is not null
+      and (
+        (side_1_points = side_2_points and winner_side is null)
+        or (side_1_points > side_2_points and winner_side = 1)
+        or (side_2_points > side_1_points and winner_side = 2)
+      )
+    )
+  )
+);
 
 alter table matches
 drop constraint if exists matches_valid_scores;
@@ -355,9 +439,64 @@ begin
 end;
 $$;
 
+drop function if exists public.submit_americano_score(uuid, integer, integer);
+
+create or replace function public.submit_americano_score(
+  p_match_id uuid,
+  p_side_1_points integer,
+  p_side_2_points integer
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  selected_match americano_matches%rowtype;
+  selected_tournament tournaments%rowtype;
+  winning_side smallint;
+begin
+  select * into selected_match from americano_matches where id = p_match_id for update;
+  if not found then raise exception 'Americano match not found.'; end if;
+  if selected_match.side_1_points is not null or selected_match.side_2_points is not null then
+    raise exception 'This match already has a result. Ask the Admin to reset it if needed.';
+  end if;
+
+  select * into selected_tournament from tournaments where id = selected_match.tournament_id;
+  if selected_tournament.status <> 'active' then
+    raise exception 'Participant score entry opens when the tournament is active.';
+  end if;
+  if selected_tournament.tournament_format not in ('singles_americano', 'team_americano') then
+    raise exception 'This is not an Americano tournament.';
+  end if;
+  if p_side_1_points is null or p_side_2_points is null then raise exception 'Enter both scores.'; end if;
+  if p_side_1_points < 0 or p_side_2_points < 0 then raise exception 'Scores cannot be negative.'; end if;
+  if p_side_1_points + p_side_2_points <> selected_tournament.americano_target_points then
+    raise exception 'The two scores must total % points.', selected_tournament.americano_target_points;
+  end if;
+
+  winning_side := case
+    when p_side_1_points > p_side_2_points then 1
+    when p_side_2_points > p_side_1_points then 2
+    else null
+  end;
+
+  update americano_matches
+  set side_1_points = p_side_1_points,
+      side_2_points = p_side_2_points,
+      winner_side = winning_side,
+      submitted_at = now(),
+      played_at = now()
+  where id = p_match_id;
+end;
+$$;
+
 create index if not exists idx_matches_tournament on matches(tournament_id);
 create index if not exists idx_matches_teams on matches(team_1_id, team_2_id);
 create index if not exists idx_tournament_teams_tournament on tournament_teams(tournament_id);
+create index if not exists idx_tournament_players_tournament on tournament_players(tournament_id);
+create index if not exists idx_americano_matches_tournament on americano_matches(tournament_id);
+create index if not exists idx_americano_matches_round on americano_matches(tournament_id, round_number, court_number);
 
 alter table players enable row level security;
 alter table teams enable row level security;
@@ -365,6 +504,8 @@ alter table tournaments enable row level security;
 alter table tournament_teams enable row level security;
 alter table tournament_court_streams enable row level security;
 alter table matches enable row level security;
+alter table tournament_players enable row level security;
+alter table americano_matches enable row level security;
 alter table admin_users enable row level security;
 alter table predictions enable row level security;
 
@@ -374,12 +515,16 @@ drop policy if exists "Public read tournaments" on tournaments;
 drop policy if exists "Public read tournament teams" on tournament_teams;
 drop policy if exists "Public read tournament court streams" on tournament_court_streams;
 drop policy if exists "Public read matches" on matches;
+drop policy if exists "Public read tournament players" on tournament_players;
+drop policy if exists "Public read americano matches" on americano_matches;
 drop policy if exists "Authenticated admins manage players" on players;
 drop policy if exists "Authenticated admins manage teams" on teams;
 drop policy if exists "Authenticated admins manage tournaments" on tournaments;
 drop policy if exists "Authenticated admins manage tournament teams" on tournament_teams;
 drop policy if exists "Authenticated admins manage tournament court streams" on tournament_court_streams;
 drop policy if exists "Authenticated admins manage matches" on matches;
+drop policy if exists "Authenticated admins manage tournament players" on tournament_players;
+drop policy if exists "Authenticated admins manage americano matches" on americano_matches;
 drop policy if exists "Users read own admin status" on admin_users;
 drop policy if exists "Public read predictions" on predictions;
 drop policy if exists "Participants add one prediction" on predictions;
@@ -392,6 +537,8 @@ create policy "Public read tournaments" on tournaments for select using (true);
 create policy "Public read tournament teams" on tournament_teams for select using (true);
 create policy "Public read tournament court streams" on tournament_court_streams for select using (true);
 create policy "Public read matches" on matches for select using (true);
+create policy "Public read tournament players" on tournament_players for select using (true);
+create policy "Public read americano matches" on americano_matches for select using (true);
 create policy "Public read predictions" on predictions for select using (true);
 
 create policy "Authenticated admins manage players" on players for all using (public.is_admin()) with check (public.is_admin());
@@ -400,6 +547,8 @@ create policy "Authenticated admins manage tournaments" on tournaments for all u
 create policy "Authenticated admins manage tournament teams" on tournament_teams for all using (public.is_admin()) with check (public.is_admin());
 create policy "Authenticated admins manage tournament court streams" on tournament_court_streams for all using (public.is_admin()) with check (public.is_admin());
 create policy "Authenticated admins manage matches" on matches for all using (public.is_admin()) with check (public.is_admin());
+create policy "Authenticated admins manage tournament players" on tournament_players for all using (public.is_admin()) with check (public.is_admin());
+create policy "Authenticated admins manage americano matches" on americano_matches for all using (public.is_admin()) with check (public.is_admin());
 create policy "Users read own admin status" on admin_users for select using (user_id = auth.uid());
 create policy "Visitors add one prediction" on predictions
 for insert
@@ -419,12 +568,17 @@ with check (
 create policy "Admins manage predictions" on predictions for all using (public.is_admin()) with check (public.is_admin());
 
 revoke all on function submit_match_score(uuid, integer, integer, uuid, boolean) from public;
+revoke all on function submit_americano_score(uuid, integer, integer) from public;
 grant execute on function public.is_admin() to authenticated;
 grant select, insert on predictions to anon, authenticated;
 grant select on tournament_court_streams to anon, authenticated;
 grant insert, update, delete on tournament_court_streams to authenticated;
 grant execute on function public.submit_match_score(uuid, integer, integer, uuid, boolean) to anon;
 grant execute on function public.submit_match_score(uuid, integer, integer, uuid, boolean) to authenticated;
+grant execute on function public.submit_americano_score(uuid, integer, integer) to anon;
+grant execute on function public.submit_americano_score(uuid, integer, integer) to authenticated;
+grant select on tournament_players, americano_matches to anon, authenticated;
+grant insert, update, delete on tournament_players, americano_matches to authenticated;
 
 insert into storage.buckets (id, name, public)
 values

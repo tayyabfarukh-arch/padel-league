@@ -1,7 +1,18 @@
-LATEST SAD LOSER EMOJI UPDATE
-Created: July 30, 2026
+AMERICANO AUTOMATIC SCHEDULING UPDATE
+Created: August 1, 2026
 
 This version includes:
+- Three tournament formats: Regular Team Tournament, Singles Americano, and Team Americano.
+- A clean Regular Tournament / Americano switch at the top of Admin.
+- Automatic rotating-partner schedules for Singles Americano.
+- Automatic full round-robin schedules for Team Americano.
+- Automatic round and court assignments based on available courts.
+- Public Americano score entry with no sign-in.
+- Live player or team Americano standings.
+- Americano participant and court match filters.
+- Americano results in Active, Upcoming, and History pages.
+- Admin tools to clear test scores while keeping the schedule.
+- A one-time Supabase migration that preserves all existing regular tournament records.
 - Losing teams show a sad-face emoji instead of a crying emoji.
 - Group match sections can be filtered by team and court together.
 - Court options are generated automatically from scheduled matches.

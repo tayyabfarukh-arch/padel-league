@@ -1,6 +1,7 @@
 export type Stage = "group" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
 export type GroupName = "A" | "B";
+export type TournamentFormat = "regular" | "singles_americano" | "team_americano";
 
 export type Player = {
   id: string;
@@ -23,6 +24,7 @@ export type Team = {
 export type Tournament = {
   id: string;
   name: string;
+  tournament_format: TournamentFormat;
   friend_circle: string;
   group_count: 1 | 2;
   court_count: number;
@@ -30,6 +32,8 @@ export type Tournament = {
   semifinal_target_games: number;
   final_target_games: number;
   third_place_target_games: number;
+  americano_target_points: number;
+  americano_round_count: number;
   status: TournamentStatus;
   start_date: string;
   end_date: string | null;
@@ -41,6 +45,14 @@ export type Tournament = {
   champion?: Team | null;
   runner_up?: Team | null;
   third_place?: Team | null;
+};
+
+export type TournamentPlayer = {
+  id: string;
+  tournament_id: string;
+  player_id: string;
+  created_at: string;
+  player?: Player;
 };
 
 export type TournamentTeam = {
@@ -88,6 +100,45 @@ export type Match = {
   created_at: string;
   team_1?: Team;
   team_2?: Team;
+};
+
+export type AmericanoMatch = {
+  id: string;
+  tournament_id: string;
+  round_number: number;
+  court_number: number | null;
+  side_1_team_id: string | null;
+  side_2_team_id: string | null;
+  side_1_player_1_id: string | null;
+  side_1_player_2_id: string | null;
+  side_2_player_1_id: string | null;
+  side_2_player_2_id: string | null;
+  side_1_points: number | null;
+  side_2_points: number | null;
+  winner_side: 1 | 2 | null;
+  submitted_at: string | null;
+  played_at: string | null;
+  created_at: string;
+  side_1_team?: Team | null;
+  side_2_team?: Team | null;
+  side_1_player_1?: Player | null;
+  side_1_player_2?: Player | null;
+  side_2_player_1?: Player | null;
+  side_2_player_2?: Player | null;
+};
+
+export type AmericanoStanding = {
+  id: string;
+  name: string;
+  player?: Player;
+  team?: Team;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDiff: number;
 };
 
 export type TeamStats = {

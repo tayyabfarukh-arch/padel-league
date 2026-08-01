@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/EmptyState";
-import { TournamentDashboard } from "@/components/TournamentDashboard";
-import { getCourtStreams, getMatches, getTournamentTeams, getTournaments } from "@/lib/data";
+import { TournamentExperience } from "@/components/TournamentExperience";
+import { getTournaments } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,19 +10,5 @@ export default async function CurrentTournamentPage() {
   const tournament = tournaments.find((item) => item.status === "active");
   if (!tournament) return <EmptyState title="No active tournament" body="Open Admin, select a tournament, and change its status to Active." />;
 
-  const [tournamentTeams, matches, courtStreams] = await Promise.all([
-    getTournamentTeams(tournament.id),
-    getMatches(tournament.id),
-    getCourtStreams(tournament.id)
-  ]);
-
-  return (
-    <TournamentDashboard
-      tournament={tournament}
-      tournamentTeams={tournamentTeams}
-      matches={matches}
-      courtStreams={courtStreams}
-      allowScoreEntry
-    />
-  );
+  return <TournamentExperience tournament={tournament} allowScoreEntry />;
 }
