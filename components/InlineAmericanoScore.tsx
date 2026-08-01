@@ -3,9 +3,9 @@
 import { FormEvent, useState } from "react";
 import { Save } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { AmericanoMatch } from "@/lib/types";
+import type { AmericanoMatch, PointsScoringMode } from "@/lib/types";
 
-export function InlineAmericanoScore({ match, targetPoints }: { match: AmericanoMatch; targetPoints: number }) {
+export function InlineAmericanoScore({ match, targetPoints, pointsScoringMode }: { match: AmericanoMatch; targetPoints: number; pointsScoringMode: PointsScoringMode }) {
   const [side1, setSide1] = useState("");
   const [side2, setSide2] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,9 +21,12 @@ export function InlineAmericanoScore({ match, targetPoints }: { match: Americano
       setMessage("Enter two valid scores.");
       return;
     }
-    if (first + second !== targetPoints) {
+    const validScore = pointsScoringMode === "race_to"
+      ? first !== second && Math.max(first, second) === targetPoints && Math.min(first, second) < targetPoints
+      : first + second === targetPoints;
+    if (!validScore) {
       setError(true);
-      setMessage(`The scores must total ${targetPoints} points.`);
+      setMessage(pointsScoringMode === "race_to" ? `One side must reach ${targetPoints}.` : `The scores must total ${targetPoints} points.`);
       return;
     }
 
@@ -48,7 +51,7 @@ export function InlineAmericanoScore({ match, targetPoints }: { match: Americano
   return (
     <form onSubmit={submit} className="mt-4 border-t border-slate-200 pt-4">
       <p className="mb-2 text-center text-xs font-black text-slate-600">
-        Enter both scores. They must total {targetPoints}.
+        {pointsScoringMode === "race_to" ? `Race to ${targetPoints}: one side must reach the target.` : `Enter both scores. They must total ${targetPoints}.`}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <input className="field text-center" type="number" min={0} max={targetPoints} value={side1} onChange={(event) => setSide1(event.target.value)} placeholder="Side 1" required />

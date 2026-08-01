@@ -1,6 +1,6 @@
 import { CalendarDays, MapPin, Youtube } from "lucide-react";
 import { stageLabel, teamLabel } from "@/lib/format";
-import type { Match } from "@/lib/types";
+import type { Match, PointsScoringMode } from "@/lib/types";
 import { TeamAvatar } from "./Avatar";
 import { InlineMatchScore } from "./InlineMatchScore";
 
@@ -8,11 +8,13 @@ export function MatchCard({
   match,
   allowScoreEntry = false,
   scoreTarget,
+  pointsScoringMode,
   youtubeUrl
 }: {
   match: Match;
   allowScoreEntry?: boolean;
   scoreTarget?: number;
+  pointsScoringMode?: PointsScoringMode;
   youtubeUrl?: string;
 }) {
   const completed = match.team_1_games !== null && match.team_2_games !== null;
@@ -108,7 +110,7 @@ export function MatchCard({
         </p>
       ) : null}
       {!completed && allowScoreEntry && scoreTarget ? (
-        <InlineMatchScore match={match} targetScore={scoreTarget} />
+        <InlineMatchScore match={match} targetScore={scoreTarget} pointsScoringMode={pointsScoringMode} />
       ) : null}
     </article>
   );

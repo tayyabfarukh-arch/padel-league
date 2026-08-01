@@ -272,6 +272,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       const { error } = await supabase!.from("tournaments").insert({
         name: form.get("name"),
         friend_circle: form.get("friend_circle"),
+        points_scoring_mode: form.get("points_scoring_mode"),
         group_count: Number(form.get("group_count")),
         court_count: Number(form.get("court_count")),
         group_target_points: Number(form.get("group_target_points")),
@@ -316,6 +317,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         .from("tournaments")
         .update({
           group_count: groupCount,
+          points_scoring_mode: form.get("points_scoring_mode"),
           status: form.get("status")
         })
         .eq("id", teamTournamentId);
@@ -437,7 +439,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       team2,
       targetGames,
       match?.stage ?? "group",
-      endedDueToTime
+      endedDueToTime,
+      selectedResultTournament?.points_scoring_mode ?? "fixed_total"
     );
     const decidingPointWinnerId = emptyToNull(form.get("deciding_point_winner_team_id"));
     if (!match || !result.valid) {
@@ -450,7 +453,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       setMessageType("error");
       setMessage(
         match?.stage === "group"
-          ? `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
+          ? selectedResultTournament?.points_scoring_mode === "race_to"
+            ? `One team must reach ${targetGames} points and the other score must be lower.`
+            : `The two team scores must total ${targetGames} points. Example: ${Math.ceil(targetGames / 2)}-${Math.floor(targetGames / 2)}.`
           : isTimedFinishScore
             ? `Choose "Closed at ${targetGames} because court time ended" to accept ${team1}-${team2}, or continue the extra game to ${targetGames + 1}.`
           : `Finish at ${targetGames} ${unit}. After ${targetGames - 1}-${targetGames - 1}, continue until one team reaches ${targetGames + 1}.`
@@ -832,6 +837,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <input className="field" name="name" placeholder="Tournament name" required />
             <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
             <Select name="group_count" label="Group setup" options={[["1", "One group"], ["2", "Two groups (A and B)"]]} />
+            <Select name="points_scoring_mode" label="Group points scoring rule" options={[["race_to", "Race to target (example: 20-19)"], ["fixed_total", "Fixed combined total (example: 12-8 = 20)"]]} />
             <NumberField name="court_count" label="Number of courts" defaultValue={4} max={20} />
             <input className="field" name="start_date" type="date" required />
             <div className="grid grid-cols-2 gap-3">
@@ -858,7 +864,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               onChange={setTeamTournamentId}
               options={tournaments.map((tournament) => [tournament.id, tournament.name])}
             />
-            <form onSubmit={updateTournamentSetup} className="grid gap-2 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <form onSubmit={updateTournamentSetup} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
               <div>
                 <Select
                   key={`group-setup-${teamTournamentId}`}
@@ -866,6 +872,15 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                   label="Group setup"
                   defaultValue={String(teamTournament?.group_count ?? 1)}
                   options={[["1", "One group"], ["2", "Two groups (A and B)"]]}
+                />
+              </div>
+              <div>
+                <Select
+                  key={`scoring-setup-${teamTournamentId}`}
+                  name="points_scoring_mode"
+                  label="Group scoring"
+                  defaultValue={teamTournament?.points_scoring_mode ?? "fixed_total"}
+                  options={[["race_to", "Race to target"], ["fixed_total", "Fixed combined total"]]}
                 />
               </div>
               <div>
@@ -1137,7 +1152,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             {selectedResultMatch ? (
               <p className="rounded-md bg-limeball/40 p-3 text-sm font-black text-ink">
                 {selectedResultMatch.stage === "group"
-                  ? `The two team scores must total ${selectedResultTarget} points.`
+                  ? selectedResultTournament?.points_scoring_mode === "race_to"
+                    ? `Race to ${selectedResultTarget}: one team must finish on ${selectedResultTarget}.`
+                    : `The two team scores must total ${selectedResultTarget} points.`
                   : `First to ${selectedResultTarget}. After ${selectedResultTarget - 1}-${selectedResultTarget - 1}, play to ${selectedResultTarget + 1}; a ${selectedResultTarget}-${selectedResultTarget - 1} finish must be marked as ended due to court time.`}
               </p>
             ) : null}

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, Filter, MapPin } from "lucide-react";
 import { teamLabel } from "@/lib/format";
-import type { Match, Team } from "@/lib/types";
+import type { Match, PointsScoringMode, Team } from "@/lib/types";
 import { MatchCard } from "./MatchCard";
 
 export function GroupMatchFilter({
@@ -12,6 +12,7 @@ export function GroupMatchFilter({
   title = "Group matches",
   allowScoreEntry = false,
   scoreTarget,
+  pointsScoringMode,
   youtubeUrls = {}
 }: {
   matches: Match[];
@@ -19,6 +20,7 @@ export function GroupMatchFilter({
   title?: string;
   allowScoreEntry?: boolean;
   scoreTarget?: number;
+  pointsScoringMode?: PointsScoringMode;
   youtubeUrls?: Record<string, string | undefined>;
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState("all");
@@ -131,6 +133,7 @@ export function GroupMatchFilter({
                 match={match}
                 allowScoreEntry={allowScoreEntry}
                 scoreTarget={scoreTarget}
+                pointsScoringMode={pointsScoringMode}
                 youtubeUrl={youtubeUrls[match.id]}
               />
             ))}

@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { teamLabel } from "@/lib/format";
 import { validateScore } from "@/lib/scoring";
 import { supabase } from "@/lib/supabase";
-import type { Match } from "@/lib/types";
+import type { Match, PointsScoringMode } from "@/lib/types";
 
-export function InlineMatchScore({ match, targetScore }: { match: Match; targetScore: number }) {
+export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixed_total" }: { match: Match; targetScore: number; pointsScoringMode?: PointsScoringMode }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,7 +41,8 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       enteredTeam2Score,
       targetScore,
       match.stage,
-      isTimedFinishScore && endedDueToTime
+      isTimedFinishScore && endedDueToTime,
+      pointsScoringMode
     );
 
     if (!validation.valid) {
@@ -53,7 +54,9 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
       }
       setMessage(
         match.stage === "group"
-          ? `Both scores must total ${targetScore} points.`
+          ? pointsScoringMode === "race_to"
+            ? `One team must reach ${targetScore}; the other score must be lower.`
+            : `Both scores must total ${targetScore} points.`
           : `Finish at ${targetScore}, or play to ${targetScore + 1} after ${targetScore - 1}-${targetScore - 1}.`
       );
       return;
@@ -87,7 +90,9 @@ export function InlineMatchScore({ match, targetScore }: { match: Match; targetS
     <form onSubmit={submitScore} className="mt-4 border-t border-slate-200 pt-3">
       <p className="mb-3 text-xs font-bold text-slate-500">
         {match.stage === "group"
-          ? `Enter both scores. Their total must be ${targetScore}.`
+          ? pointsScoringMode === "race_to"
+            ? `Race to ${targetScore}: one team must finish on ${targetScore}.`
+            : `Enter both scores. Their total must be ${targetScore}.`
           : `First to ${targetScore}. After ${targetScore - 1}-${targetScore - 1}, play one extra game to ${targetScore + 1}, or confirm a ${targetScore}-${targetScore - 1} finish if court time ends.`}
       </p>
       <div className="grid grid-cols-2 gap-2">

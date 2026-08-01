@@ -1,6 +1,6 @@
 import { MapPin, Users, Youtube } from "lucide-react";
 import { teamLabel } from "@/lib/format";
-import type { AmericanoMatch, TournamentFormat } from "@/lib/types";
+import type { AmericanoMatch, PointsScoringMode, TournamentFormat } from "@/lib/types";
 import { PlayerAvatar, TeamAvatar } from "./Avatar";
 import { InlineAmericanoScore } from "./InlineAmericanoScore";
 
@@ -8,12 +8,14 @@ export function AmericanoMatchCard({
   match,
   format,
   targetPoints,
+  pointsScoringMode,
   allowScoreEntry,
   youtubeUrl
 }: {
   match: AmericanoMatch;
   format: TournamentFormat;
   targetPoints: number;
+  pointsScoringMode: PointsScoringMode;
   allowScoreEntry: boolean;
   youtubeUrl?: string;
 }) {
@@ -44,7 +46,7 @@ export function AmericanoMatchCard({
         <AmericanoSide match={match} side={2} format={format} result={completed ? match.winner_side === 2 ? "winner" : match.winner_side === 1 ? "loser" : "draw" : null} align="right" />
       </div>
 
-      {!completed && allowScoreEntry ? <InlineAmericanoScore match={match} targetPoints={targetPoints} /> : null}
+      {!completed && allowScoreEntry ? <InlineAmericanoScore match={match} targetPoints={targetPoints} pointsScoringMode={pointsScoringMode} /> : null}
     </article>
   );
 }

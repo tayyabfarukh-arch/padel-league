@@ -1,4 +1,4 @@
-import type { Match, Player, PlayerStats, Stage, Team, TeamStats, Tournament } from "./types";
+import type { Match, Player, PlayerStats, PointsScoringMode, Stage, Team, TeamStats, Tournament } from "./types";
 
 export function getTargetGamesForStage(tournament: Tournament | undefined, stage: Stage) {
   if (!tournament) return 3;
@@ -16,7 +16,8 @@ export function validateScore(
   team2: number,
   targetScore = 3,
   stage: Stage = "group",
-  endedDueToTime = false
+  endedDueToTime = false,
+  pointsScoringMode: PointsScoringMode = "fixed_total"
 ) {
   const validNumbers =
     Number.isInteger(team1) &&
@@ -36,8 +37,11 @@ export function validateScore(
     endedDueToTime &&
     higherScore === targetScore &&
     lowerScore === targetScore - 1;
+  const validGroupScore = pointsScoringMode === "race_to"
+    ? validNumbers && team1 !== team2 && higherScore === targetScore && lowerScore < targetScore
+    : validNumbers && team1 + team2 === targetScore;
   const valid = stage === "group"
-    ? validNumbers && team1 + team2 === targetScore
+    ? validGroupScore
     : validNumbers &&
       team1 !== team2 &&
       (normalKnockoutFinish || extendedKnockoutFinish || timedKnockoutFinish) &&

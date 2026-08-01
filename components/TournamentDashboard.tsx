@@ -24,7 +24,7 @@ export function TournamentDashboard({
         <p className="text-[10px] font-black uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-0.5 text-xl font-black md:text-2xl">{tournament.name}</h1>
         <p className="mt-1.5 text-xs font-bold text-slate-300">
-          Group: {tournament.group_target_points} total points | Final: race to {tournament.final_target_games}
+          Group: {tournament.points_scoring_mode === "race_to" ? "race to" : "combined total"} {tournament.group_target_points} | Final: race to {tournament.final_target_games}
         </p>
       </section>
 

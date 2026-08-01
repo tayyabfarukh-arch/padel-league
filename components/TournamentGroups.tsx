@@ -76,6 +76,7 @@ export function TournamentGroups({
                 title={`${groupLabel} matches`}
                 allowScoreEntry={allowScoreEntry}
                 scoreTarget={tournament.group_target_points}
+                pointsScoringMode={tournament.points_scoring_mode}
                 youtubeUrls={Object.fromEntries(
                   groupMatches.map((match) => [match.id, courtStreamUrl(match, courtStreams)])
                 )}

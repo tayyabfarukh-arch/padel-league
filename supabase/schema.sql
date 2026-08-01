@@ -21,6 +21,7 @@ create table if not exists tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   tournament_format text not null default 'regular' check (tournament_format in ('regular', 'singles_americano', 'team_americano')),
+  points_scoring_mode text not null default 'fixed_total' check (points_scoring_mode in ('fixed_total', 'race_to')),
   friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
   group_count integer not null default 1 check (group_count in (1, 2)),
   court_count integer not null default 4 check (court_count between 1 and 20),
@@ -70,6 +71,9 @@ add column if not exists americano_target_points integer not null default 24;
 alter table tournaments
 add column if not exists americano_round_count integer not null default 5;
 
+alter table tournaments
+add column if not exists points_scoring_mode text not null default 'fixed_total';
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'tournaments_format_check') then
@@ -84,10 +88,11 @@ begin
     alter table tournaments add constraint tournaments_americano_rounds_check
     check (americano_round_count between 1 and 100);
   end if;
+  if not exists (select 1 from pg_constraint where conname = 'tournaments_points_scoring_mode_check') then
+    alter table tournaments add constraint tournaments_points_scoring_mode_check
+    check (points_scoring_mode in ('fixed_total', 'race_to'));
+  end if;
 end $$;
-
-alter table tournaments
-drop column if exists tournament_format;
 
 alter table tournaments
 drop column if exists group_target_games;
@@ -377,7 +382,13 @@ begin
     if p_ended_due_to_time then
       raise exception 'Group matches cannot be marked as ended due to court time.';
     end if;
-    if p_team_1_score + p_team_2_score <> target_score then
+    if selected_tournament.points_scoring_mode = 'race_to' then
+      if greatest(p_team_1_score, p_team_2_score) <> target_score
+        or least(p_team_1_score, p_team_2_score) >= target_score
+        or p_team_1_score = p_team_2_score then
+        raise exception 'One team must reach % points and the other score must be lower.', target_score;
+      end if;
+    elsif p_team_1_score + p_team_2_score <> target_score then
       raise exception 'The two team scores must total % points.', target_score;
     end if;
     if p_team_1_score = p_team_2_score then
@@ -471,7 +482,13 @@ begin
   end if;
   if p_side_1_points is null or p_side_2_points is null then raise exception 'Enter both scores.'; end if;
   if p_side_1_points < 0 or p_side_2_points < 0 then raise exception 'Scores cannot be negative.'; end if;
-  if p_side_1_points + p_side_2_points <> selected_tournament.americano_target_points then
+  if selected_tournament.points_scoring_mode = 'race_to' then
+    if greatest(p_side_1_points, p_side_2_points) <> selected_tournament.americano_target_points
+      or least(p_side_1_points, p_side_2_points) >= selected_tournament.americano_target_points
+      or p_side_1_points = p_side_2_points then
+      raise exception 'One side must reach % points and the other score must be lower.', selected_tournament.americano_target_points;
+    end if;
+  elsif p_side_1_points + p_side_2_points <> selected_tournament.americano_target_points then
     raise exception 'The two scores must total % points.', selected_tournament.americano_target_points;
   end if;
 

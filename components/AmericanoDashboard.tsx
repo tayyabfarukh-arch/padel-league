@@ -49,7 +49,7 @@ export function AmericanoDashboard({
       <section className="court-panel rounded-lg px-4 py-3 text-white">
         <p className="text-[10px] font-black uppercase text-limeball">{tournament.status} | {formatLabel}</p>
         <h1 className="mt-0.5 text-xl font-black md:text-2xl">{tournament.name}</h1>
-        <p className="mt-1.5 text-xs font-bold text-slate-300">{tournament.americano_target_points} total points per match | {tournament.americano_round_count} rounds | {tournament.court_count} courts</p>
+        <p className="mt-1.5 text-xs font-bold text-slate-300">{tournament.points_scoring_mode === "race_to" ? "Race to" : "Combined total"} {tournament.americano_target_points} points | {tournament.americano_round_count} rounds | {tournament.court_count} courts</p>
       </section>
 
       <section>
@@ -83,7 +83,7 @@ export function AmericanoDashboard({
               <span className="flex items-center gap-2 text-xs">{roundMatches.length} matches <ChevronDown className="h-4 w-4 transition group-open:rotate-180" /></span>
             </summary>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {roundMatches.map((match) => <AmericanoMatchCard key={match.id} match={match} format={tournament.tournament_format} targetPoints={tournament.americano_target_points} allowScoreEntry={allowScoreEntry} youtubeUrl={courtStreamUrl(match, courtStreams)} />)}
+              {roundMatches.map((match) => <AmericanoMatchCard key={match.id} match={match} format={tournament.tournament_format} targetPoints={tournament.americano_target_points} pointsScoringMode={tournament.points_scoring_mode} allowScoreEntry={allowScoreEntry} youtubeUrl={courtStreamUrl(match, courtStreams)} />)}
             </div>
           </details>
         );

@@ -76,6 +76,7 @@ export function AmericanoAdminPanel({
       const { error } = await supabase!.from("tournaments").insert({
         name: String(form.get("name")),
         tournament_format: String(form.get("tournament_format")),
+        points_scoring_mode: String(form.get("points_scoring_mode")),
         friend_circle: String(form.get("friend_circle")),
         court_count: Number(form.get("court_count")),
         americano_target_points: Number(form.get("target_points")),
@@ -153,6 +154,7 @@ export function AmericanoAdminPanel({
       const status = String(form.get("status"));
       const { error } = await supabase!.from("tournaments").update({
         status,
+        points_scoring_mode: String(form.get("points_scoring_mode")),
         americano_target_points: Number(form.get("target_points")),
         end_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null
       }).eq("id", tournamentId);
@@ -203,8 +205,11 @@ export function AmericanoAdminPanel({
     const form = new FormData(event.currentTarget);
     const side1 = Number(form.get("side_1_points"));
     const side2 = Number(form.get("side_2_points"));
-    if (!Number.isInteger(side1) || !Number.isInteger(side2) || side1 < 0 || side2 < 0 || side1 + side2 !== selectedTournament.americano_target_points) {
-      setMessage(`The two scores must be whole numbers totalling ${selectedTournament.americano_target_points}.`);
+    const validScore = selectedTournament.points_scoring_mode === "race_to"
+      ? side1 !== side2 && Math.max(side1, side2) === selectedTournament.americano_target_points && Math.min(side1, side2) < selectedTournament.americano_target_points
+      : side1 + side2 === selectedTournament.americano_target_points;
+    if (!Number.isInteger(side1) || !Number.isInteger(side2) || side1 < 0 || side2 < 0 || !validScore) {
+      setMessage(selectedTournament.points_scoring_mode === "race_to" ? `One side must reach ${selectedTournament.americano_target_points}.` : `The two scores must total ${selectedTournament.americano_target_points}.`);
       return;
     }
     const matchId = resultMatchId || selectedMatches[0]?.id;
@@ -266,10 +271,11 @@ export function AmericanoAdminPanel({
           <form onSubmit={createTournament} className="space-y-3">
             <input className="field" name="name" placeholder="Tournament name" required />
             <FieldSelect name="tournament_format" label="Americano format" options={[["singles_americano", "Singles Americano (rotating partners)"], ["team_americano", "Team Americano (fixed teams)"]]} />
+            <FieldSelect name="points_scoring_mode" label="Points scoring rule" options={[["race_to", "Race to target (example: 20-19)"], ["fixed_total", "Fixed combined total (example: 14-10 = 24)"]]} />
             <FieldSelect name="friend_circle" label="Tournament category" options={FRIEND_CIRCLES.filter((item) => item.value !== "overall").map((item) => [item.value, item.label] as [string, string])} />
             <div className="grid grid-cols-2 gap-3">
               <NumberInput name="court_count" label="Courts" value={4} max={20} />
-              <NumberInput name="target_points" label="Total points per match" value={24} max={100} />
+              <NumberInput name="target_points" label="Points target" value={20} max={100} />
               <NumberInput name="round_count" label="Singles rounds" value={5} max={50} />
               <label><span className="field-label">Start date</span><input className="field" name="start_date" type="date" required /></label>
             </div>
@@ -326,7 +332,8 @@ export function AmericanoAdminPanel({
             <h2 className="mb-4 text-lg font-black">Event status and scoring</h2>
             <form key={`settings-${tournamentId}`} onSubmit={updateTournament} className="space-y-3">
               <FieldSelect name="status" label="Status" defaultValue={selectedTournament.status} options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
-              <NumberInput name="target_points" label="Total points per match" value={selectedTournament.americano_target_points} max={100} />
+              <FieldSelect name="points_scoring_mode" label="Points scoring rule" defaultValue={selectedTournament.points_scoring_mode} options={[["race_to", "Race to target"], ["fixed_total", "Fixed combined total"]]} />
+              <NumberInput name="target_points" label="Points target" value={selectedTournament.americano_target_points} max={100} />
               <button className="btn-primary" disabled={busy}><Check className="h-4 w-4" /> Save settings</button>
             </form>
             <div className="mt-5 grid gap-2 border-t border-slate-200 pt-4 sm:grid-cols-2">

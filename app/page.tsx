@@ -66,8 +66,8 @@ export default async function Home() {
             {active ? (
               <p className="mt-1.5 text-xs font-bold text-slate-300">
                 {activeIsAmericano
-                  ? `${active.tournament_format === "singles_americano" ? "Singles" : "Team"} Americano | ${active.americano_target_points} total points per match`
-                  : `Group: ${active.group_target_points} total points | Final: race to ${active.final_target_games}`}
+                  ? `${active.tournament_format === "singles_americano" ? "Singles" : "Team"} Americano | ${active.points_scoring_mode === "race_to" ? "race to" : "combined total"} ${active.americano_target_points}`
+                  : `Group: ${active.points_scoring_mode === "race_to" ? "race to" : "combined total"} ${active.group_target_points} | Final: race to ${active.final_target_games}`}
               </p>
             ) : null}
           </div>

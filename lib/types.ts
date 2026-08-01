@@ -2,6 +2,7 @@ export type Stage = "group" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
 export type GroupName = "A" | "B";
 export type TournamentFormat = "regular" | "singles_americano" | "team_americano";
+export type PointsScoringMode = "fixed_total" | "race_to";
 
 export type Player = {
   id: string;
@@ -25,6 +26,7 @@ export type Tournament = {
   id: string;
   name: string;
   tournament_format: TournamentFormat;
+  points_scoring_mode: PointsScoringMode;
   friend_circle: string;
   group_count: 1 | 2;
   court_count: number;

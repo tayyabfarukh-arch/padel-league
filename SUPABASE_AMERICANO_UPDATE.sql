@@ -10,6 +10,9 @@ add column if not exists americano_target_points integer not null default 24;
 alter table tournaments
 add column if not exists americano_round_count integer not null default 5;
 
+alter table tournaments
+add column if not exists points_scoring_mode text not null default 'fixed_total';
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'tournaments_format_check') then
@@ -26,6 +29,11 @@ begin
     alter table tournaments
     add constraint tournaments_americano_rounds_check
     check (americano_round_count between 1 and 100);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'tournaments_points_scoring_mode_check') then
+    alter table tournaments
+    add constraint tournaments_points_scoring_mode_check
+    check (points_scoring_mode in ('fixed_total', 'race_to'));
   end if;
 end $$;
 
@@ -125,6 +133,98 @@ on americano_matches for select using (true);
 create policy "Authenticated admins manage americano matches"
 on americano_matches for all using (public.is_admin()) with check (public.is_admin());
 
+create or replace function public.submit_match_score(
+  p_match_id uuid,
+  p_team_1_score integer,
+  p_team_2_score integer,
+  p_deciding_point_winner_team_id uuid default null,
+  p_ended_due_to_time boolean default false
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  selected_match matches%rowtype;
+  selected_tournament tournaments%rowtype;
+  target_score integer;
+  winning_team_id uuid;
+  deciding_winner_team_id uuid;
+begin
+  select * into selected_match from matches where id = p_match_id for update;
+  if not found then raise exception 'Match not found.'; end if;
+  if selected_match.team_1_games is not null or selected_match.team_2_games is not null then
+    raise exception 'This match already has a result. Ask the Admin to correct it if needed.';
+  end if;
+
+  select * into selected_tournament from tournaments where id = selected_match.tournament_id;
+  if selected_tournament.status <> 'active' then
+    raise exception 'Participant score entry opens when the tournament is active.';
+  end if;
+  target_score := case selected_match.stage
+    when 'group' then selected_tournament.group_target_points
+    when 'semifinal' then selected_tournament.semifinal_target_games
+    when 'final' then selected_tournament.final_target_games
+    else selected_tournament.third_place_target_games
+  end;
+
+  if p_team_1_score is null or p_team_2_score is null then raise exception 'Enter both team scores.'; end if;
+  if p_team_1_score < 0 or p_team_2_score < 0 then raise exception 'Scores cannot be negative.'; end if;
+
+  if selected_match.stage = 'group' then
+    if p_ended_due_to_time then raise exception 'Group matches cannot be marked as ended due to court time.'; end if;
+    if selected_tournament.points_scoring_mode = 'race_to' then
+      if greatest(p_team_1_score, p_team_2_score) <> target_score
+        or least(p_team_1_score, p_team_2_score) >= target_score
+        or p_team_1_score = p_team_2_score then
+        raise exception 'One team must reach % points and the other score must be lower.', target_score;
+      end if;
+    elsif p_team_1_score + p_team_2_score <> target_score then
+      raise exception 'The two team scores must total % points.', target_score;
+    end if;
+    if p_team_1_score = p_team_2_score then
+      if p_deciding_point_winner_team_id is null
+        or p_deciding_point_winner_team_id not in (selected_match.team_1_id, selected_match.team_2_id) then
+        raise exception 'Select the team that won the Golden point.';
+      end if;
+      winning_team_id := p_deciding_point_winner_team_id;
+      deciding_winner_team_id := p_deciding_point_winner_team_id;
+    else
+      winning_team_id := case when p_team_1_score > p_team_2_score then selected_match.team_1_id else selected_match.team_2_id end;
+      deciding_winner_team_id := null;
+    end if;
+  else
+    if p_ended_due_to_time and not (
+      greatest(p_team_1_score, p_team_2_score) = target_score
+      and least(p_team_1_score, p_team_2_score) = target_score - 1
+    ) then
+      raise exception 'A time-limited finish must end at %-% only.', target_score, target_score - 1;
+    end if;
+    if not (
+      (greatest(p_team_1_score, p_team_2_score) = target_score and least(p_team_1_score, p_team_2_score) < target_score - 1)
+      or (greatest(p_team_1_score, p_team_2_score) = target_score + 1 and least(p_team_1_score, p_team_2_score) >= target_score - 1 and least(p_team_1_score, p_team_2_score) < target_score + 1)
+      or (p_ended_due_to_time and greatest(p_team_1_score, p_team_2_score) = target_score and least(p_team_1_score, p_team_2_score) = target_score - 1)
+    ) then
+      raise exception 'Finish at %, continue to % after %-% or confirm a time-limited finish at %-% only.', target_score, target_score + 1, target_score - 1, target_score - 1, target_score, target_score - 1;
+    end if;
+    winning_team_id := case when p_team_1_score > p_team_2_score then selected_match.team_1_id else selected_match.team_2_id end;
+    deciding_winner_team_id := null;
+  end if;
+
+  update matches
+  set team_1_games = p_team_1_score,
+      team_2_games = p_team_2_score,
+      winner_team_id = winning_team_id,
+      deciding_point_winner_team_id = deciding_winner_team_id,
+      ended_due_to_time = p_ended_due_to_time,
+      submitted_by = auth.uid(),
+      submitted_at = now(),
+      played_at = now()
+  where id = p_match_id;
+end;
+$$;
+
 drop function if exists public.submit_americano_score(uuid, integer, integer);
 
 create or replace function public.submit_americano_score(
@@ -170,7 +270,13 @@ begin
   if p_side_1_points < 0 or p_side_2_points < 0 then
     raise exception 'Scores cannot be negative.';
   end if;
-  if p_side_1_points + p_side_2_points <> selected_tournament.americano_target_points then
+  if selected_tournament.points_scoring_mode = 'race_to' then
+    if greatest(p_side_1_points, p_side_2_points) <> selected_tournament.americano_target_points
+      or least(p_side_1_points, p_side_2_points) >= selected_tournament.americano_target_points
+      or p_side_1_points = p_side_2_points then
+      raise exception 'One side must reach % points and the other score must be lower.', selected_tournament.americano_target_points;
+    end if;
+  elsif p_side_1_points + p_side_2_points <> selected_tournament.americano_target_points then
     raise exception 'The two scores must total % points.', selected_tournament.americano_target_points;
   end if;
 

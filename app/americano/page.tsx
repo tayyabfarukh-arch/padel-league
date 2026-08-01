@@ -25,7 +25,7 @@ export default async function AmericanoPage() {
             <span className="min-w-0">
               <span className="block text-[10px] font-black uppercase text-court">{tournament.status} | {tournament.tournament_format === "singles_americano" ? "Singles Americano" : "Team Americano"}</span>
               <span className="block truncate text-base font-black text-slate-950">{tournament.name}</span>
-              <span className="block text-xs font-semibold text-slate-500">{tournament.americano_target_points} total points | {tournament.americano_round_count} rounds</span>
+              <span className="block text-xs font-semibold text-slate-500">{tournament.points_scoring_mode === "race_to" ? "Race to" : "Combined total"} {tournament.americano_target_points} | {tournament.americano_round_count} rounds</span>
             </span>
           </Link>
         ))}
