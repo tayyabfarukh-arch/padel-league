@@ -1,7 +1,11 @@
-REGULAR TOURNAMENT SCHEDULE GENERATOR UPDATE
-Created: August 24, 2026
+REGULAR TOURNAMENT COURT DISTRIBUTION UPDATE
+Created: August 25, 2026
 
 This version includes:
+- Number of courts can be changed from the existing Tournament setup box.
+- Changing court count redistributes existing matches across all available courts.
+- Newly generated matches are assigned to the least-used court.
+- Individual match court assignments remain editable afterward.
 - Automatic round-robin group schedule generation for regular tournaments.
 - Separate fixture generation inside Group A and Group B.
 - Missing-pair detection so rerunning the generator does not create duplicates.

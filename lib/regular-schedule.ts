@@ -13,21 +13,24 @@ export function generateRegularGroupSchedule(
   courtCount: number
 ) {
   const groups: GroupName[] = groupCount === 2 ? ["A", "B"] : ["A"];
-  return groups.flatMap((groupName) =>
+  const schedule = groups.flatMap((groupName) =>
     generateGroupRoundRobin(
       assignments.filter((entry) => entry.group_name === groupName).map((entry) => entry.team_id),
-      groupName,
-      courtCount
+      groupName
     )
   );
+  const courts = Math.max(1, courtCount);
+  return schedule.map((match, index) => ({
+    ...match,
+    court_number: (index % courts) + 1
+  }));
 }
 
-function generateGroupRoundRobin(teamIds: string[], groupName: GroupName, courtCount: number) {
+function generateGroupRoundRobin(teamIds: string[], groupName: GroupName) {
   if (teamIds.length < 2) return [];
   const rotation: Array<string | null> = [...teamIds];
   if (rotation.length % 2) rotation.push(null);
-  const courts = Math.max(1, courtCount);
-  const schedule: GeneratedGroupMatch[] = [];
+  const schedule: Omit<GeneratedGroupMatch, "court_number">[] = [];
 
   for (let round = 0; round < rotation.length - 1; round += 1) {
     const pairings: Array<[string, string]> = [];
@@ -37,12 +40,11 @@ function generateGroupRoundRobin(teamIds: string[], groupName: GroupName, courtC
       if (first && second) pairings.push(round % 2 ? [second, first] : [first, second]);
     }
 
-    pairings.forEach(([team1, team2], index) => {
+    pairings.forEach(([team1, team2]) => {
       schedule.push({
         group_name: groupName,
         team_1_id: team1,
-        team_2_id: team2,
-        court_number: (index % courts) + 1
+        team_2_id: team2
       });
     });
 

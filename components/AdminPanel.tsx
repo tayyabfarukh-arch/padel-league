@@ -325,11 +325,18 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const groupCount = Number(form.get("group_count"));
+    const courtCount = Number(form.get("court_count"));
+    if (!Number.isInteger(courtCount) || courtCount < 1 || courtCount > 20) {
+      setMessageType("error");
+      setMessage("Enter a number of courts between 1 and 20.");
+      return;
+    }
     await run(async () => {
       const { error } = await supabase!
         .from("tournaments")
         .update({
           group_count: groupCount,
+          court_count: courtCount,
           points_scoring_mode: form.get("points_scoring_mode"),
           status: form.get("status")
         })
@@ -342,6 +349,26 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           .update({ group_name: "A" })
           .eq("tournament_id", teamTournamentId);
         if (assignmentError) throw assignmentError;
+      }
+
+      if (courtCount !== teamTournament?.court_count) {
+        const tournamentMatches = matches
+          .filter((match) => match.tournament_id === teamTournamentId)
+          .sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
+              a.id.localeCompare(b.id)
+          );
+        const updates = await Promise.all(
+          tournamentMatches.map((match, index) =>
+            supabase!
+              .from("matches")
+              .update({ court_number: (index % courtCount) + 1 })
+              .eq("id", match.id)
+          )
+        );
+        const courtError = updates.find((result) => result.error)?.error;
+        if (courtError) throw courtError;
       }
     });
   }
@@ -394,8 +421,22 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     }
 
     await run(async () => {
+      const courtLoads = Array.from({ length: matchTournament.court_count }, () => 0);
+      selectedTournamentMatches.forEach((match) => {
+        if (match.court_number && match.court_number <= courtLoads.length) {
+          courtLoads[match.court_number - 1] += 1;
+        }
+      });
+      const balancedMatches = missingGeneratedMatches.map((match) => {
+        const lightestCourtIndex = courtLoads.reduce(
+          (bestIndex, load, index) => load < courtLoads[bestIndex] ? index : bestIndex,
+          0
+        );
+        courtLoads[lightestCourtIndex] += 1;
+        return { ...match, court_number: lightestCourtIndex + 1 };
+      });
       const { error } = await supabase!.from("matches").insert(
-        missingGeneratedMatches.map((match) => ({
+        balancedMatches.map((match) => ({
           tournament_id: matchTournament.id,
           team_1_id: match.team_1_id,
           team_2_id: match.team_2_id,
@@ -920,7 +961,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               onChange={setTeamTournamentId}
               options={tournaments.map((tournament) => [tournament.id, tournament.name])}
             />
-            <form onSubmit={updateTournamentSetup} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+            <form onSubmit={updateTournamentSetup} className="grid gap-2 sm:grid-cols-2">
               <div>
                 <Select
                   key={`group-setup-${teamTournamentId}`}
@@ -928,6 +969,15 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                   label="Group setup"
                   defaultValue={String(teamTournament?.group_count ?? 1)}
                   options={[["1", "One group"], ["2", "Two groups (A and B)"]]}
+                />
+              </div>
+              <div>
+                <NumberField
+                  key={`courts-setup-${teamTournamentId}`}
+                  name="court_count"
+                  label="Number of courts"
+                  defaultValue={teamTournament?.court_count ?? 1}
+                  max={20}
                 />
               </div>
               <div>
@@ -948,10 +998,13 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                   options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]}
                 />
               </div>
-              <button className="btn-secondary shrink-0" disabled={busy}>
+              <button className="btn-secondary shrink-0 sm:col-span-2" disabled={busy}>
                 <Save className="h-4 w-4" /> Save setup
               </button>
             </form>
+            <p className="text-xs font-semibold text-slate-500">
+              Changing the number of courts redistributes existing matches evenly across the available courts.
+            </p>
           </div>
           <form onSubmit={addTeamToTournament} className="space-y-3">
             <input type="hidden" name="tournament_id" value={teamTournamentId} />
