@@ -36,20 +36,18 @@ This account is only for the Admin page. Players do not create accounts.
 
 ## Updating An Existing Website
 
-If your website is already live, use the small Americano update script. It preserves every existing player, team, tournament, match, score, photo, and historical record.
+If your website is already live, run the small schedule-rounds update first. It preserves every existing player, team, tournament, match, score, photo, and historical record.
 
 1. Open Supabase.
 2. Open your project.
 3. Click **SQL Editor**.
 4. Click **New query**.
-5. Open `SUPABASE_AMERICANO_UPDATE.sql` in this project.
+5. Open `SUPABASE_SCHEDULE_ROUNDS_UPDATE.sql` in this project.
 6. Copy everything inside it.
 7. Paste it into Supabase.
 8. Click **Run**.
 
-Wait for the green **Success** message before deploying the website folder. You only run this update script once.
-
-This update also adds two selectable points-scoring rules to every tournament. Existing tournaments remain on **Fixed combined total** until you change their setting.
+Wait for the green **Success** message before deploying the website folder. You only run this update script once. If you have never installed the earlier Americano database update, run `SUPABASE_AMERICANO_UPDATE.sql` first and then run `SUPABASE_SCHEDULE_ROUNDS_UPDATE.sql`.
 
 Your existing Supabase Authentication user is registered as the Admin when this script runs. Players and visitors do not need an account.
 
@@ -144,8 +142,8 @@ Upload the contents of the folder, not the parent folder.
 10. Use the Group dropdown beside a team under **Teams already added** if you need to move it between Group A and Group B.
 11. Choose the number of courts available.
 12. Open **Admin > Regular Tournament > Schedule** and find **Generate group schedule**.
-13. Select the tournament and click **Generate missing group matches**. Every team will play every other team in its own group once.
-14. Check the generated list. Change a match's Court dropdown, delete a mistaken match, or use **Add match** for a special replacement.
+13. Select the tournament and click **Generate missing group matches**. Every team will play every other team in its own group once. Existing matches receive round and court assignments without losing their scores.
+14. Check the generated list. Change a match's Round or Court dropdown, delete a mistaken match, or use **Add match** for a special replacement.
 15. In **Admin > Schedule > Court YouTube streams**, paste the YouTube link for each court and click **Save court links**.
 16. In the Tournament setup box, change **Tournament status** to **Active** and click **Save setup**.
 17. Open **Active** and choose Group A or Group B.
@@ -164,8 +162,12 @@ The generator creates a single round robin inside each group:
 - 8 teams in one group: each team plays 7 matches, creating 28 matches total.
 - 4 teams in Group A and 4 teams in Group B: each team plays 3 group matches, creating 6 matches per group and 12 total.
 - Teams in Group A are never paired against Group B during automatic group scheduling.
+- A round is one shared time slot across all groups. With 4 courts, Round 1 can contain 4 matches in total, such as 2 Group A matches and 2 Group B matches.
+- If one time slot needs more matches than the available courts can hold, the generator continues them in the next round.
 
-Running the generator again only adds missing pairings. It does not duplicate existing fixtures, delete manually created matches, or overwrite scores. Use the Court dropdown beside a match to move it, the trash button to delete it, and the manual **Add match** form to add an unusual fixture.
+Running the generator again only adds missing pairings and fills missing schedule details. It does not duplicate existing fixtures, delete manually created matches, or overwrite scores. Use the Round and Court dropdowns beside a match to move it, the trash button to delete it, and the manual **Add match** form to add an unusual fixture.
+
+On **Upcoming**, **Active**, and **History**, open **Group match schedule** to see matches arranged under clear Round headings. Use the Round, Group, Team, and Court filters to find exactly the matches you need.
 
 To change the available courts for an existing tournament:
 
@@ -174,7 +176,7 @@ To change the available courts for an existing tournament:
 3. Change **Number of courts** in the Tournament setup box.
 4. Click **Save setup**.
 
-The website immediately redistributes existing matches across the new number of courts. Newly generated matches are assigned to the least-used court, keeping court usage as even as possible. You can still change an individual match's court afterward.
+The website immediately recalculates round and court assignments using the new number of courts. Existing scores are preserved. You can still change an individual match's round or court afterward.
 
 ## Create A Singles Americano Tournament
 

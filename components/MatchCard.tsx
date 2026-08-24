@@ -40,9 +40,16 @@ export function MatchCard({
       }`}
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
-          {stageLabel(match.stage)}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
+            {match.stage === "group" && match.group_name ? `Group ${match.group_name}` : stageLabel(match.stage)}
+          </span>
+          {match.stage === "group" ? (
+            <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">
+              {match.round_number ? `Round ${match.round_number}` : "Round TBD"}
+            </span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
           {match.court_number ? (
             <span className="flex items-center gap-1.5 rounded-md bg-court px-3 py-1.5 text-sm font-black text-white shadow-sm">

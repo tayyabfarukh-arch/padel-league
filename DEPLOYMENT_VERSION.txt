@@ -1,10 +1,18 @@
-REGULAR TOURNAMENT COURT DISTRIBUTION UPDATE
+ROUND-BASED GROUP SCHEDULE UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Group schedules are organized into shared rounds across Group A and Group B.
+- Public schedules show a clear heading for every round, including match and court details.
+- Round, Group, Team, and Court filters make long schedules easier to read.
+- Every group match displays its round number and group beside the court.
+- The regular schedule generator respects the tournament's available court count.
+- Admin can amend both the round and court of any group match.
+- Existing fixtures can receive round and court assignments without deleting saved scores.
+- Run SUPABASE_SCHEDULE_ROUNDS_UPDATE.sql once before deployment.
 - Number of courts can be changed from the existing Tournament setup box.
 - Changing court count redistributes existing matches across all available courts.
-- Newly generated matches are assigned to the least-used court.
+- Newly generated matches are distributed by round across all available courts.
 - Individual match court assignments remain editable afterward.
 - Automatic round-robin group schedule generation for regular tournaments.
 - Separate fixture generation inside Group A and Group B.

@@ -130,6 +130,7 @@ create table if not exists matches (
   ended_due_to_time boolean not null default false,
   stage text not null check (stage in ('group', 'semifinal', 'final', 'third_place')),
   group_name text check (group_name in ('A', 'B')),
+  round_number integer check (round_number between 1 and 200),
   court_number integer check (court_number between 1 and 20),
   submitted_by uuid references auth.users(id),
   submitted_at timestamp with time zone,
@@ -185,6 +186,9 @@ add column if not exists deciding_point_winner_team_id uuid references teams(id)
 
 alter table matches
 add column if not exists ended_due_to_time boolean not null default false;
+
+alter table matches
+add column if not exists round_number integer check (round_number between 1 and 200);
 
 create table if not exists tournament_players (
   id uuid primary key default gen_random_uuid(),
@@ -509,6 +513,7 @@ end;
 $$;
 
 create index if not exists idx_matches_tournament on matches(tournament_id);
+create index if not exists idx_matches_schedule on matches(tournament_id, round_number, court_number);
 create index if not exists idx_matches_teams on matches(team_1_id, team_2_id);
 create index if not exists idx_tournament_teams_tournament on tournament_teams(tournament_id);
 create index if not exists idx_tournament_players_tournament on tournament_players(tournament_id);

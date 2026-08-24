@@ -23,6 +23,8 @@ export function TournamentGroups({
   const groupNames: GroupName[] = tournament.group_count === 2 ? ["A", "B"] : ["A"];
   const [selectedGroup, setSelectedGroup] = useState<GroupName>("A");
   const visibleGroups = tournament.group_count === 2 ? [selectedGroup] : groupNames;
+  const allGroupTeams = tournamentTeams.map((entry) => entry.team).filter((team): team is Team => Boolean(team));
+  const allGroupMatches = matches.filter((match) => match.stage === "group");
 
   return (
     <div className="space-y-6">
@@ -51,7 +53,7 @@ export function TournamentGroups({
         const groupEntries = tournamentTeams.filter((entry) => entry.group_name === groupName);
         const groupTeams = groupEntries.map((entry) => entry.team).filter((team): team is Team => Boolean(team));
         const groupTeamIds = new Set(groupTeams.map((team) => team.id));
-        const groupMatches = matches.filter(
+        const groupMatches = allGroupMatches.filter(
           (match) =>
             match.stage === "group" &&
             (
@@ -69,22 +71,24 @@ export function TournamentGroups({
               <TeamLeaderboard rows={standings} />
             </section>
 
-            {groupMatches.length ? (
-              <GroupMatchFilter
-                matches={groupMatches}
-                teams={groupTeams}
-                title={`${groupLabel} matches`}
-                allowScoreEntry={allowScoreEntry}
-                scoreTarget={tournament.group_target_points}
-                pointsScoringMode={tournament.points_scoring_mode}
-                youtubeUrls={Object.fromEntries(
-                  groupMatches.map((match) => [match.id, courtStreamUrl(match, courtStreams)])
-                )}
-              />
-            ) : null}
           </div>
         );
       })}
+
+      {allGroupMatches.length ? (
+        <GroupMatchFilter
+          matches={allGroupMatches}
+          teams={allGroupTeams}
+          title="Group match schedule"
+          allowScoreEntry={allowScoreEntry}
+          scoreTarget={tournament.group_target_points}
+          pointsScoringMode={tournament.points_scoring_mode}
+          showGroupFilter={tournament.group_count === 2}
+          youtubeUrls={Object.fromEntries(
+            allGroupMatches.map((match) => [match.id, courtStreamUrl(match, courtStreams)])
+          )}
+        />
+      ) : null}
     </div>
   );
 }

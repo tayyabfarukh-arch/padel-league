@@ -101,6 +101,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     .filter((item) => item.tournament_id === matchTournamentId)
     .sort(
       (a, b) =>
+        (a.stage === "group" ? 0 : 1) - (b.stage === "group" ? 0 : 1) ||
+        (a.round_number ?? Number.MAX_SAFE_INTEGER) - (b.round_number ?? Number.MAX_SAFE_INTEGER) ||
+        (a.court_number ?? Number.MAX_SAFE_INTEGER) - (b.court_number ?? Number.MAX_SAFE_INTEGER) ||
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   const selectedMatchAssignments = tournamentTeams.filter((item) => item.tournament_id === matchTournamentId);
@@ -115,6 +118,16 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const missingGeneratedMatches = generatedGroupSchedule.filter(
     (match) => !existingGroupPairKeys.has(matchPairKey(match.team_1_id, match.team_2_id))
   );
+  const generatedScheduleByPair = new Map(
+    generatedGroupSchedule.map((match) => [matchPairKey(match.team_1_id, match.team_2_id), match])
+  );
+  const groupMatchesMissingRounds = selectedTournamentMatches.filter(
+    (match) =>
+      match.stage === "group" &&
+      !match.round_number &&
+      generatedScheduleByPair.has(matchPairKey(match.team_1_id, match.team_2_id))
+  );
+  const scheduleRoundCount = Math.max(0, ...generatedGroupSchedule.map((match) => match.round_number));
   const selectedCourtStreams = courtStreams.filter((item) => item.tournament_id === matchTournamentId);
 
   useEffect(() => {
@@ -351,21 +364,49 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         if (assignmentError) throw assignmentError;
       }
 
-      if (courtCount !== teamTournament?.court_count) {
-        const tournamentMatches = matches
-          .filter((match) => match.tournament_id === teamTournamentId)
-          .sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
-              a.id.localeCompare(b.id)
-          );
+      if (courtCount !== teamTournament?.court_count || groupCount !== teamTournament?.group_count) {
+        const normalizedAssignments = tournamentTeams
+          .filter((entry) => entry.tournament_id === teamTournamentId)
+          .map((entry) => groupCount === 1 ? { ...entry, group_name: "A" as const } : entry);
+        const regeneratedSchedule = generateRegularGroupSchedule(
+          normalizedAssignments,
+          groupCount as 1 | 2,
+          courtCount
+        );
+        const regeneratedByPair = new Map(
+          regeneratedSchedule.map((match) => [matchPairKey(match.team_1_id, match.team_2_id), match])
+        );
+        const tournamentMatches = matches.filter((match) => match.tournament_id === teamTournamentId);
+        const extraGroupMatches = tournamentMatches.filter(
+          (match) => match.stage === "group" && !regeneratedByPair.has(matchPairKey(match.team_1_id, match.team_2_id))
+        );
+        const generatedRoundCount = Math.max(0, ...regeneratedSchedule.map((match) => match.round_number));
         const updates = await Promise.all(
-          tournamentMatches.map((match, index) =>
-            supabase!
+          tournamentMatches.map((match, index) => {
+            const generated = match.stage === "group"
+              ? regeneratedByPair.get(matchPairKey(match.team_1_id, match.team_2_id))
+              : undefined;
+            const extraIndex = extraGroupMatches.findIndex((item) => item.id === match.id);
+            const values = generated
+              ? {
+                  group_name: generated.group_name,
+                  round_number: generated.round_number,
+                  court_number: generated.court_number
+                }
+              : match.stage === "group" && extraIndex >= 0
+                ? {
+                    round_number: generatedRoundCount + Math.floor(extraIndex / courtCount) + 1,
+                    court_number: (extraIndex % courtCount) + 1
+                  }
+                : {
+                    round_number: null,
+                    court_number: (index % courtCount) + 1
+                  };
+            return supabase!
               .from("matches")
-              .update({ court_number: (index % courtCount) + 1 })
-              .eq("id", match.id)
-          )
+              .update(values)
+              .eq("id", match.id);
+          })
         );
         const courtError = updates.find((result) => result.error)?.error;
         if (courtError) throw courtError;
@@ -393,6 +434,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         team_2_id: form.get("team_2_id"),
         stage: form.get("stage"),
         group_name: form.get("stage") === "group" ? form.get("group_name") : null,
+        round_number: form.get("stage") === "group" ? Number(form.get("round_number")) : null,
         court_number: Number(form.get("court_number"))
       });
       if (error) throw error;
@@ -414,44 +456,57 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       setMessage(`Group ${incompleteGroup} needs at least two teams before its schedule can be generated.`);
       return;
     }
-    if (!missingGeneratedMatches.length) {
+    if (!missingGeneratedMatches.length && !groupMatchesMissingRounds.length) {
       setMessageType("success");
       setMessage("The complete group schedule already exists. You can amend courts, delete matches, or add matches manually below.");
       return;
     }
 
     await run(async () => {
-      const courtLoads = Array.from({ length: matchTournament.court_count }, () => 0);
-      selectedTournamentMatches.forEach((match) => {
-        if (match.court_number && match.court_number <= courtLoads.length) {
-          courtLoads[match.court_number - 1] += 1;
-        }
-      });
-      const balancedMatches = missingGeneratedMatches.map((match) => {
-        const lightestCourtIndex = courtLoads.reduce(
-          (bestIndex, load, index) => load < courtLoads[bestIndex] ? index : bestIndex,
-          0
+      if (groupMatchesMissingRounds.length) {
+        const updates = await Promise.all(
+          groupMatchesMissingRounds.map((match) => {
+            const generated = generatedScheduleByPair.get(matchPairKey(match.team_1_id, match.team_2_id))!;
+            return supabase!
+              .from("matches")
+              .update({
+                group_name: generated.group_name,
+                round_number: generated.round_number,
+                court_number: generated.court_number
+              })
+              .eq("id", match.id);
+          })
         );
-        courtLoads[lightestCourtIndex] += 1;
-        return { ...match, court_number: lightestCourtIndex + 1 };
-      });
-      const { error } = await supabase!.from("matches").insert(
-        balancedMatches.map((match) => ({
-          tournament_id: matchTournament.id,
-          team_1_id: match.team_1_id,
-          team_2_id: match.team_2_id,
-          stage: "group",
-          group_name: match.group_name,
-          court_number: match.court_number
-        }))
-      );
-      if (error) throw error;
+        const updateError = updates.find((result) => result.error)?.error;
+        if (updateError) throw updateError;
+      }
+      if (missingGeneratedMatches.length) {
+        const { error } = await supabase!.from("matches").insert(
+          missingGeneratedMatches.map((match) => ({
+            tournament_id: matchTournament.id,
+            team_1_id: match.team_1_id,
+            team_2_id: match.team_2_id,
+            stage: "group",
+            group_name: match.group_name,
+            round_number: match.round_number,
+            court_number: match.court_number
+          }))
+        );
+        if (error) throw error;
+      }
     });
   }
 
   async function changeMatchCourt(matchId: string, courtNumber: number) {
     await run(async () => {
       const { error } = await supabase!.from("matches").update({ court_number: courtNumber }).eq("id", matchId);
+      if (error) throw error;
+    });
+  }
+
+  async function changeMatchRound(matchId: string, roundNumber: number) {
+    await run(async () => {
+      const { error } = await supabase!.from("matches").update({ round_number: roundNumber }).eq("id", matchId);
       if (error) throw error;
     });
   }
@@ -1130,7 +1185,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             </div>
             <div className="rounded-md bg-limeball/25 p-3 text-sm font-bold text-ink">
               {missingGeneratedMatches.length
-                ? `${missingGeneratedMatches.length} missing matches will be added. Existing matches and scores will not be changed.`
+                ? `${missingGeneratedMatches.length} missing matches will be added across ${scheduleRoundCount} rounds. Existing scores will not be changed.`
+                : groupMatchesMissingRounds.length
+                  ? `${groupMatchesMissingRounds.length} existing matches will receive their round numbers.`
                 : generatedGroupSchedule.length
                   ? "The complete round-robin schedule already exists."
                   : "Add at least two teams to each group before generating matches."}
@@ -1169,13 +1226,16 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               options={(["group", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])}
             />
             {matchStage === "group" ? (
-              <Select
-                name="group_name"
-                label="Group"
-                value={matchGroup}
-                onChange={setMatchGroup}
-                options={matchTournament?.group_count === 2 ? [["A", "Group A"], ["B", "Group B"]] : [["A", "Group A"]]}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  name="group_name"
+                  label="Group"
+                  value={matchGroup}
+                  onChange={setMatchGroup}
+                  options={matchTournament?.group_count === 2 ? [["A", "Group A"], ["B", "Group B"]] : [["A", "Group A"]]}
+                />
+                <NumberField name="round_number" label="Round" defaultValue={Math.max(1, scheduleRoundCount + 1)} max={200} />
+              </div>
             ) : null}
             <Select
               name="court_number"
@@ -1198,7 +1258,24 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                     <span className="min-w-0 truncate font-bold text-slate-900">
                       {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}
                     </span>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      {match.stage === "group" ? (
+                        <label className="flex items-center gap-1 text-xs font-black text-slate-600">
+                          <span className="sr-only">Round for {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</span>
+                          Round
+                          <select
+                            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-800"
+                            value={match.round_number ?? 1}
+                            onChange={(event) => void changeMatchRound(match.id, Number(event.target.value))}
+                            disabled={busy}
+                            title="Change round"
+                          >
+                            {Array.from({ length: Math.max(scheduleRoundCount + 2, match.round_number ?? 1) }, (_, index) => (
+                              <option key={`${match.id}-round-${index + 1}`} value={index + 1}>{index + 1}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
                       <label className="flex items-center gap-1 text-xs font-black text-court">
                         <span className="sr-only">Court for {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</span>
                         Court
@@ -1227,7 +1304,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                     </div>
                   </div>
                   <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
-                    {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}
+                    {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}{match.round_number ? ` | Round ${match.round_number}` : ""}
                   </p>
                 </div>
               )) : (

@@ -95,6 +95,7 @@ export type Match = {
   ended_due_to_time: boolean;
   stage: Stage;
   group_name: GroupName | null;
+  round_number: number | null;
   court_number: number | null;
   submitted_by: string | null;
   submitted_at: string | null;
