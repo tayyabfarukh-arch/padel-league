@@ -1,7 +1,12 @@
-AMERICANO AUTOMATIC SCHEDULING UPDATE
-Created: August 1, 2026
+REGULAR TOURNAMENT SCHEDULE GENERATOR UPDATE
+Created: August 24, 2026
 
 This version includes:
+- Automatic round-robin group schedule generation for regular tournaments.
+- Separate fixture generation inside Group A and Group B.
+- Missing-pair detection so rerunning the generator does not create duplicates.
+- Editable court assignments in the Admin match list.
+- Existing manual match creation and deletion remain available for amendments.
 - Selectable Race to target or Fixed combined total scoring for every tournament.
 - Race-to examples such as 20-19 are accepted by the website and Supabase.
 - Regular group tournaments and both Americano formats use the selected points rule.

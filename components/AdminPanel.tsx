@@ -2,12 +2,13 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Check, LogIn, LogOut, Plus, RotateCcw, Save, Trash2, Upload, Youtube } from "lucide-react";
+import { Check, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
+import { generateRegularGroupSchedule, matchPairKey } from "@/lib/regular-schedule";
 import type { AmericanoMatch, CourtStream, Match, Player, Stage, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
 
 type Props = {
@@ -102,6 +103,18 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
+  const selectedMatchAssignments = tournamentTeams.filter((item) => item.tournament_id === matchTournamentId);
+  const generatedGroupSchedule = matchTournament
+    ? generateRegularGroupSchedule(selectedMatchAssignments, matchTournament.group_count, matchTournament.court_count)
+    : [];
+  const existingGroupPairKeys = new Set(
+    selectedTournamentMatches
+      .filter((match) => match.stage === "group")
+      .map((match) => matchPairKey(match.team_1_id, match.team_2_id))
+  );
+  const missingGeneratedMatches = generatedGroupSchedule.filter(
+    (match) => !existingGroupPairKeys.has(matchPairKey(match.team_1_id, match.team_2_id))
+  );
   const selectedCourtStreams = courtStreams.filter((item) => item.tournament_id === matchTournamentId);
 
   useEffect(() => {
@@ -355,6 +368,49 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         group_name: form.get("stage") === "group" ? form.get("group_name") : null,
         court_number: Number(form.get("court_number"))
       });
+      if (error) throw error;
+    });
+  }
+
+  async function generateGroupSchedule() {
+    if (!matchTournament) {
+      setMessageType("error");
+      setMessage("Select a tournament first.");
+      return;
+    }
+    const requiredGroups = matchTournament.group_count === 2 ? ["A", "B"] : ["A"];
+    const incompleteGroup = requiredGroups.find(
+      (groupName) => selectedMatchAssignments.filter((entry) => entry.group_name === groupName).length < 2
+    );
+    if (incompleteGroup) {
+      setMessageType("error");
+      setMessage(`Group ${incompleteGroup} needs at least two teams before its schedule can be generated.`);
+      return;
+    }
+    if (!missingGeneratedMatches.length) {
+      setMessageType("success");
+      setMessage("The complete group schedule already exists. You can amend courts, delete matches, or add matches manually below.");
+      return;
+    }
+
+    await run(async () => {
+      const { error } = await supabase!.from("matches").insert(
+        missingGeneratedMatches.map((match) => ({
+          tournament_id: matchTournament.id,
+          team_1_id: match.team_1_id,
+          team_2_id: match.team_2_id,
+          stage: "group",
+          group_name: match.group_name,
+          court_number: match.court_number
+        }))
+      );
+      if (error) throw error;
+    });
+  }
+
+  async function changeMatchCourt(matchId: string, courtNumber: number) {
+    await run(async () => {
+      const { error } = await supabase!.from("matches").update({ court_number: courtNumber }).eq("id", matchId);
       if (error) throw error;
     });
   }
@@ -995,6 +1051,51 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           </div>
         </Panel>
 
+        <Panel title="Generate group schedule">
+          <div className="space-y-4">
+            <Select
+              name="generator_tournament_id"
+              label="Tournament"
+              value={matchTournamentId}
+              onChange={(value) => {
+                setMatchTournamentId(value);
+                if (tournaments.find((item) => item.id === value)?.group_count !== 2) setMatchGroup("A");
+              }}
+              options={tournaments.map((tournament) => [tournament.id, tournament.name])}
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(matchTournament?.group_count === 2 ? ["A", "B"] : ["A"]).map((groupName) => {
+                const teamCount = selectedMatchAssignments.filter((entry) => entry.group_name === groupName).length;
+                const fixtureCount = teamCount < 2 ? 0 : teamCount * (teamCount - 1) / 2;
+                return (
+                  <div key={groupName} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-black uppercase text-slate-500">Group {groupName}</p>
+                    <p className="mt-1 text-sm font-black text-slate-950">{teamCount} teams | {fixtureCount} matches</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="rounded-md bg-limeball/25 p-3 text-sm font-bold text-ink">
+              {missingGeneratedMatches.length
+                ? `${missingGeneratedMatches.length} missing matches will be added. Existing matches and scores will not be changed.`
+                : generatedGroupSchedule.length
+                  ? "The complete round-robin schedule already exists."
+                  : "Add at least two teams to each group before generating matches."}
+            </div>
+            <button
+              type="button"
+              className="btn-primary w-full"
+              onClick={() => void generateGroupSchedule()}
+              disabled={busy || !matchTournament || !generatedGroupSchedule.length}
+            >
+              <Sparkles className="h-4 w-4" /> Generate missing group matches
+            </button>
+            <p className="text-xs font-semibold text-slate-500">
+              Every team plays every other team in its own group once. Courts are assigned automatically. You can change courts, delete matches, or add a special match below.
+            </p>
+          </div>
+        </Panel>
+
         <Panel title="Add match">
           <form onSubmit={addMatch} className="space-y-3">
             <Select
@@ -1045,7 +1146,21 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                       {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}
                     </span>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="font-black text-court">Court {match.court_number ?? "TBD"}</span>
+                      <label className="flex items-center gap-1 text-xs font-black text-court">
+                        <span className="sr-only">Court for {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</span>
+                        Court
+                        <select
+                          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-800"
+                          value={match.court_number ?? 1}
+                          onChange={(event) => void changeMatchCourt(match.id, Number(event.target.value))}
+                          disabled={busy}
+                          title="Change court"
+                        >
+                          {Array.from({ length: matchTournament?.court_count ?? 1 }, (_, index) => (
+                            <option key={`${match.id}-court-${index + 1}`} value={index + 1}>{index + 1}</option>
+                          ))}
+                        </select>
+                      </label>
                       <button
                         type="button"
                         className="grid h-8 w-8 place-items-center rounded-md text-red-600 transition hover:bg-red-50"
