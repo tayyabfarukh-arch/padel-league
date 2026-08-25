@@ -2,6 +2,9 @@ ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Added Swap complete rounds for moving a full round while keeping every court unchanged.
+- Full-round swapping preserves scores and prevents teams from being duplicated within a round.
+- Match-swap conflict messages now direct the Admin to the full-round option.
 - Fixed round/court Update controls not visibly applying a move into an occupied schedule slot.
 - Updating into an occupied round/court now safely swaps the two matches automatically.
 - Schedule success and error messages now appear directly above the created-match filters.

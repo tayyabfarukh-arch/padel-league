@@ -56,6 +56,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, { roundNumber: number; courtNumber: number }>>({});
   const [draggedMatchId, setDraggedMatchId] = useState<string | null>(null);
   const [swapMatchId, setSwapMatchId] = useState<string | null>(null);
+  const [roundSwapFrom, setRoundSwapFrom] = useState("");
+  const [roundSwapTo, setRoundSwapTo] = useState("");
   const teamTournament = tournaments.find((item) => item.id === teamTournamentId);
   const matchTournament = tournaments.find((item) => item.id === matchTournamentId);
   const tournamentTeamIds = useMemo(
@@ -215,6 +217,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     setScheduleDrafts({});
     setDraggedMatchId(null);
     setSwapMatchId(null);
+    setRoundSwapFrom("");
+    setRoundSwapTo("");
   }, [matchTournamentId]);
 
   useEffect(() => {
@@ -741,7 +745,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       );
     if (causesTeamConflict(firstMatch, secondMatch.round_number) || causesTeamConflict(secondMatch, firstMatch.round_number)) {
       setMessageType("error");
-      setMessage("These matches cannot be swapped because one team would be scheduled twice in the same round.");
+      setMessage("These two matches cannot be swapped because one team would play twice in the same round. Use Swap complete rounds below when you want to exchange two full rounds while keeping every court unchanged.");
       setDraggedMatchId(null);
       return;
     }
@@ -771,6 +775,48 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       return;
     }
     void swapMatchSlots(swapMatchId, matchId);
+  }
+
+  async function swapCompleteRounds() {
+    const firstRound = Number(roundSwapFrom);
+    const secondRound = Number(roundSwapTo);
+    if (!firstRound || !secondRound || firstRound === secondRound) {
+      setMessageType("error");
+      setMessage("Choose two different rounds to swap.");
+      return;
+    }
+    const firstRoundMatches = selectedTournamentMatches.filter(
+      (match) => match.stage === "group" && match.round_number === firstRound
+    );
+    const secondRoundMatches = selectedTournamentMatches.filter(
+      (match) => match.stage === "group" && match.round_number === secondRound
+    );
+    if (!firstRoundMatches.length || !secondRoundMatches.length) {
+      setMessageType("error");
+      setMessage("Both selected rounds must contain at least one group match.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Swap every match in Round ${firstRound} with Round ${secondRound}? Court numbers and scores will remain unchanged.`
+    );
+    if (!confirmed) return;
+    await run(async () => {
+      const updates = await Promise.all([
+        ...firstRoundMatches.map((match) =>
+          supabase!.from("matches").update({ round_number: secondRound }).eq("id", match.id).select("id")
+        ),
+        ...secondRoundMatches.map((match) =>
+          supabase!.from("matches").update({ round_number: firstRound }).eq("id", match.id).select("id")
+        )
+      ]);
+      const error = updates.find((result) => result.error)?.error;
+      if (error) throw error;
+      if (updates.some((result) => !result.data?.length)) {
+        throw new Error("Some matches were not updated. Please sign in again and retry.");
+      }
+      setRoundSwapFrom("");
+      setRoundSwapTo("");
+    });
   }
 
   async function deleteMatch(match: Match) {
@@ -1591,6 +1637,33 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 {message}
               </div>
             ) : null}
+
+            <div className="mt-3 rounded-md border border-court/20 bg-court/5 p-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-ink">Swap complete rounds</p>
+                  <p className="text-xs font-semibold text-slate-600">Moves every match between two rounds. Courts and saved scores stay unchanged.</p>
+                </div>
+                <label className="block lg:w-40">
+                  <span className="field-label">First round</span>
+                  <select className="field" value={roundSwapFrom} onChange={(event) => setRoundSwapFrom(event.target.value)}>
+                    <option value="">Choose round</option>
+                    {availableScheduleRounds.map((round) => <option key={`swap-from-${round}`} value={String(round)}>Round {round}</option>)}
+                  </select>
+                </label>
+                <ArrowLeftRight className="hidden h-5 w-5 shrink-0 text-court lg:block" />
+                <label className="block lg:w-40">
+                  <span className="field-label">Second round</span>
+                  <select className="field" value={roundSwapTo} onChange={(event) => setRoundSwapTo(event.target.value)}>
+                    <option value="">Choose round</option>
+                    {availableScheduleRounds.map((round) => <option key={`swap-to-${round}`} value={String(round)}>Round {round}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="btn-primary lg:mb-0.5" onClick={() => void swapCompleteRounds()} disabled={busy || !roundSwapFrom || !roundSwapTo || roundSwapFrom === roundSwapTo}>
+                  <ArrowLeftRight className="h-4 w-4" /> Swap rounds
+                </button>
+              </div>
+            </div>
 
             <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-slate-500">

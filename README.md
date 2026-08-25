@@ -188,6 +188,7 @@ The **Matches already created** section is arranged round by round. You can:
 - Change a match's Round or Court and click **Update**.
 - Drag one group match onto another to swap their round and court on a computer.
 - Click **Swap** on two matches to do the same thing on a phone or tablet.
+- Use **Swap complete rounds** when moving one match would otherwise make a team appear twice in the destination round. Select the two round numbers and click **Swap rounds**. Every match changes round while each match keeps its existing court and score.
 - Tick several matches and click **Delete selected** to remove them together.
 
 The website prevents a schedule update or swap if it would put one team in two matches during the same round, or put two matches on the same court during one round.
