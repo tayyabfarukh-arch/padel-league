@@ -2,14 +2,15 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Check, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
+import { ArrowLeftRight, Check, Filter, GripVertical, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
 import { generateRegularGroupSchedule, matchPairKey } from "@/lib/regular-schedule";
-import type { AmericanoMatch, CourtStream, Match, Player, Stage, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
+import type { CourtScheduleRule } from "@/lib/regular-schedule";
+import type { AmericanoMatch, CourtStream, GroupName, Match, Player, Stage, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
 
 type Props = {
   configured: boolean;
@@ -46,6 +47,15 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const [matchTournamentId, setMatchTournamentId] = useState(activeTournament?.id ?? "");
   const [matchStage, setMatchStage] = useState<Stage>("group");
   const [matchGroup, setMatchGroup] = useState("A");
+  const [courtScheduleRules, setCourtScheduleRules] = useState<Record<number, { maxMatches: number; groups: GroupName[] }>>({});
+  const [scheduleRoundFilter, setScheduleRoundFilter] = useState("all");
+  const [scheduleGroupFilter, setScheduleGroupFilter] = useState("all");
+  const [scheduleTeamFilter, setScheduleTeamFilter] = useState("all");
+  const [scheduleCourtFilter, setScheduleCourtFilter] = useState("all");
+  const [selectedScheduleMatchIds, setSelectedScheduleMatchIds] = useState<string[]>([]);
+  const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, { roundNumber: number; courtNumber: number }>>({});
+  const [draggedMatchId, setDraggedMatchId] = useState<string | null>(null);
+  const [swapMatchId, setSwapMatchId] = useState<string | null>(null);
   const teamTournament = tournaments.find((item) => item.id === teamTournamentId);
   const matchTournament = tournaments.find((item) => item.id === matchTournamentId);
   const tournamentTeamIds = useMemo(
@@ -107,9 +117,37 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   const selectedMatchAssignments = tournamentTeams.filter((item) => item.tournament_id === matchTournamentId);
-  const generatedGroupSchedule = matchTournament
-    ? generateRegularGroupSchedule(selectedMatchAssignments, matchTournament.group_count, matchTournament.court_count)
-    : [];
+  const groupFixtureCount = (matchTournament?.group_count === 2 ? ["A", "B"] : ["A"]).reduce((total, groupName) => {
+    const teamCount = selectedMatchAssignments.filter((entry) => entry.group_name === groupName).length;
+    return total + (teamCount < 2 ? 0 : teamCount * (teamCount - 1) / 2);
+  }, 0);
+  const recommendedMatchesPerCourt = Math.max(1, Math.ceil(groupFixtureCount / Math.max(1, matchTournament?.court_count ?? 1)));
+  const activeScheduleRules: CourtScheduleRule[] = Array.from(
+    { length: matchTournament?.court_count ?? 0 },
+    (_, index) => {
+      const courtNumber = index + 1;
+      const configured = courtScheduleRules[courtNumber];
+      return {
+        court_number: courtNumber,
+        max_matches: configured?.maxMatches ?? recommendedMatchesPerCourt,
+        groups: configured?.groups ?? (matchTournament?.group_count === 2 ? ["A", "B"] : ["A"])
+      } as CourtScheduleRule;
+    }
+  );
+  let generatedGroupSchedule: ReturnType<typeof generateRegularGroupSchedule> = [];
+  let scheduleGenerationError = "";
+  if (matchTournament) {
+    try {
+      generatedGroupSchedule = generateRegularGroupSchedule(
+        selectedMatchAssignments,
+        matchTournament.group_count,
+        matchTournament.court_count,
+        activeScheduleRules
+      );
+    } catch (error) {
+      scheduleGenerationError = error instanceof Error ? error.message : "The selected court rules cannot fit the complete schedule.";
+    }
+  }
   const existingGroupPairKeys = new Set(
     selectedTournamentMatches
       .filter((match) => match.stage === "group")
@@ -129,6 +167,55 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   );
   const scheduleRoundCount = Math.max(0, ...generatedGroupSchedule.map((match) => match.round_number));
   const selectedCourtStreams = courtStreams.filter((item) => item.tournament_id === matchTournamentId);
+  const scheduleFilterTeams = teams.filter((team) => selectedMatchAssignments.some((entry) => entry.team_id === team.id));
+  const filteredScheduleMatches = selectedTournamentMatches.filter((match) =>
+    (
+      scheduleRoundFilter === "all" ||
+      (scheduleRoundFilter === "unscheduled"
+        ? match.stage === "group" && !match.round_number
+        : match.stage === "group" && String(match.round_number) === scheduleRoundFilter)
+    ) &&
+    (scheduleGroupFilter === "all" || match.group_name === scheduleGroupFilter) &&
+    (scheduleTeamFilter === "all" || match.team_1_id === scheduleTeamFilter || match.team_2_id === scheduleTeamFilter) &&
+    (scheduleCourtFilter === "all" || String(match.court_number ?? "unassigned") === scheduleCourtFilter)
+  );
+  const filteredScheduleMatchIds = filteredScheduleMatches.map((match) => match.id);
+  const allFilteredScheduleMatchesSelected = Boolean(filteredScheduleMatchIds.length) &&
+    filteredScheduleMatchIds.every((id) => selectedScheduleMatchIds.includes(id));
+  const availableScheduleRounds = Array.from(
+    new Set(selectedTournamentMatches.filter((match) => match.stage === "group" && match.round_number).map((match) => match.round_number as number))
+  ).sort((a, b) => a - b);
+  const scheduleMatchesByRound = Array.from(
+    filteredScheduleMatches.reduce((groups, match) => {
+      const key = match.stage === "group" ? String(match.round_number ?? "Unscheduled") : "Knockout matches";
+      groups.set(key, [...(groups.get(key) ?? []), match]);
+      return groups;
+    }, new Map<string, Match[]>())
+  );
+
+  useEffect(() => {
+    if (!matchTournament) return;
+    const defaultGroups: GroupName[] = matchTournament.group_count === 2 ? ["A", "B"] : ["A"];
+    setCourtScheduleRules(
+      Object.fromEntries(
+        Array.from({ length: matchTournament.court_count }, (_, index) => [
+          index + 1,
+          { maxMatches: recommendedMatchesPerCourt, groups: defaultGroups }
+        ])
+      )
+    );
+  }, [groupFixtureCount, matchTournamentId, matchTournament?.court_count, matchTournament?.group_count, recommendedMatchesPerCourt]);
+
+  useEffect(() => {
+    setScheduleRoundFilter("all");
+    setScheduleGroupFilter("all");
+    setScheduleTeamFilter("all");
+    setScheduleCourtFilter("all");
+    setSelectedScheduleMatchIds([]);
+    setScheduleDrafts({});
+    setDraggedMatchId(null);
+    setSwapMatchId(null);
+  }, [matchTournamentId]);
 
   useEffect(() => {
     if (!supabase) {
@@ -447,6 +534,11 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       setMessage("Select a tournament first.");
       return;
     }
+    if (scheduleGenerationError) {
+      setMessageType("error");
+      setMessage(scheduleGenerationError);
+      return;
+    }
     const requiredGroups = matchTournament.group_count === 2 ? ["A", "B"] : ["A"];
     const incompleteGroup = requiredGroups.find(
       (groupName) => selectedMatchAssignments.filter((entry) => entry.group_name === groupName).length < 2
@@ -497,6 +589,36 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     });
   }
 
+  async function applyCourtPlanToExistingSchedule() {
+    if (!matchTournament || scheduleGenerationError || !generatedGroupSchedule.length) return;
+    const existingGeneratedMatches = selectedTournamentMatches.filter(
+      (match) => match.stage === "group" && generatedScheduleByPair.has(matchPairKey(match.team_1_id, match.team_2_id))
+    );
+    if (!existingGeneratedMatches.length) {
+      setMessageType("error");
+      setMessage("Generate the group matches first, then apply the court plan.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Reassign the round and court for ${existingGeneratedMatches.length} group matches? Existing scores will be preserved.`
+    );
+    if (!confirmed) return;
+    await run(async () => {
+      const updates = await Promise.all(
+        existingGeneratedMatches.map((match) => {
+          const generated = generatedScheduleByPair.get(matchPairKey(match.team_1_id, match.team_2_id))!;
+          return supabase!.from("matches").update({
+            group_name: generated.group_name,
+            round_number: generated.round_number,
+            court_number: generated.court_number
+          }).eq("id", match.id);
+        })
+      );
+      const error = updates.find((result) => result.error)?.error;
+      if (error) throw error;
+    });
+  }
+
   async function changeMatchCourt(matchId: string, courtNumber: number) {
     await run(async () => {
       const { error } = await supabase!.from("matches").update({ court_number: courtNumber }).eq("id", matchId);
@@ -509,6 +631,143 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       const { error } = await supabase!.from("matches").update({ round_number: roundNumber }).eq("id", matchId);
       if (error) throw error;
     });
+  }
+
+  function updateCourtScheduleRule(courtNumber: number, values: Partial<{ maxMatches: number; groups: GroupName[] }>) {
+    setCourtScheduleRules((current) => ({
+      ...current,
+      [courtNumber]: {
+        maxMatches: values.maxMatches ?? current[courtNumber]?.maxMatches ?? recommendedMatchesPerCourt,
+        groups: values.groups ?? current[courtNumber]?.groups ?? (matchTournament?.group_count === 2 ? ["A", "B"] : ["A"])
+      }
+    }));
+  }
+
+  function toggleCourtGroup(courtNumber: number, groupName: GroupName) {
+    const currentGroups = courtScheduleRules[courtNumber]?.groups ?? (matchTournament?.group_count === 2 ? ["A", "B"] : ["A"]);
+    const groups = currentGroups.includes(groupName)
+      ? currentGroups.filter((item) => item !== groupName)
+      : [...currentGroups, groupName];
+    updateCourtScheduleRule(courtNumber, { groups });
+  }
+
+  function updateScheduleDraft(match: Match, values: Partial<{ roundNumber: number; courtNumber: number }>) {
+    setScheduleDrafts((current) => ({
+      ...current,
+      [match.id]: {
+        roundNumber: values.roundNumber ?? current[match.id]?.roundNumber ?? match.round_number ?? 1,
+        courtNumber: values.courtNumber ?? current[match.id]?.courtNumber ?? match.court_number ?? 1
+      }
+    }));
+  }
+
+  async function saveMatchSchedule(match: Match) {
+    const draft = scheduleDrafts[match.id] ?? {
+      roundNumber: match.round_number ?? 1,
+      courtNumber: match.court_number ?? 1
+    };
+    if (match.stage === "group") {
+      const roundMatches = selectedTournamentMatches.filter(
+        (item) => item.id !== match.id && item.stage === "group" && item.round_number === draft.roundNumber
+      );
+      if (roundMatches.some((item) => item.court_number === draft.courtNumber)) {
+        setMessageType("error");
+        setMessage(`Court ${draft.courtNumber} already has a match in Round ${draft.roundNumber}. Use Swap to exchange two occupied slots.`);
+        return;
+      }
+      if (roundMatches.some((item) => [item.team_1_id, item.team_2_id].some((teamId) => teamId === match.team_1_id || teamId === match.team_2_id))) {
+        setMessageType("error");
+        setMessage(`One of these teams already has another match in Round ${draft.roundNumber}.`);
+        return;
+      }
+    }
+    await run(async () => {
+      const { error } = await supabase!
+        .from("matches")
+        .update({
+          round_number: match.stage === "group" ? draft.roundNumber : null,
+          court_number: draft.courtNumber
+        })
+        .eq("id", match.id);
+      if (error) throw error;
+      setScheduleDrafts((current) => {
+        const next = { ...current };
+        delete next[match.id];
+        return next;
+      });
+    });
+  }
+
+  function toggleScheduleMatchSelection(matchId: string) {
+    setSelectedScheduleMatchIds((current) =>
+      current.includes(matchId) ? current.filter((id) => id !== matchId) : [...current, matchId]
+    );
+  }
+
+  async function deleteSelectedMatches() {
+    if (!selectedScheduleMatchIds.length) return;
+    const confirmed = window.confirm(
+      `Delete ${selectedScheduleMatchIds.length} selected matches? Any scores entered for them will also be removed from the standings.`
+    );
+    if (!confirmed) return;
+    await run(async () => {
+      const { error } = await supabase!.from("matches").delete().in("id", selectedScheduleMatchIds);
+      if (error) throw error;
+      setSelectedScheduleMatchIds([]);
+    });
+  }
+
+  async function swapMatchSlots(firstMatchId: string, secondMatchId: string) {
+    if (firstMatchId === secondMatchId) return;
+    const firstMatch = selectedTournamentMatches.find((match) => match.id === firstMatchId);
+    const secondMatch = selectedTournamentMatches.find((match) => match.id === secondMatchId);
+    if (!firstMatch || !secondMatch) return;
+    if (firstMatch.stage !== "group" || secondMatch.stage !== "group") {
+      setMessageType("error");
+      setMessage("Only group matches can be swapped on the round schedule.");
+      return;
+    }
+    const excludedIds = new Set([firstMatch.id, secondMatch.id]);
+    const causesTeamConflict = (match: Match, targetRound: number | null) =>
+      selectedTournamentMatches.some(
+        (item) =>
+          !excludedIds.has(item.id) &&
+          item.stage === "group" &&
+          item.round_number === targetRound &&
+          [item.team_1_id, item.team_2_id].some((teamId) => teamId === match.team_1_id || teamId === match.team_2_id)
+      );
+    if (causesTeamConflict(firstMatch, secondMatch.round_number) || causesTeamConflict(secondMatch, firstMatch.round_number)) {
+      setMessageType("error");
+      setMessage("These matches cannot be swapped because one team would be scheduled twice in the same round.");
+      setDraggedMatchId(null);
+      return;
+    }
+    await run(async () => {
+      const updates = await Promise.all([
+        supabase!.from("matches").update({
+          round_number: secondMatch.round_number,
+          court_number: secondMatch.court_number
+        }).eq("id", firstMatch.id),
+        supabase!.from("matches").update({
+          round_number: firstMatch.round_number,
+          court_number: firstMatch.court_number
+        }).eq("id", secondMatch.id)
+      ]);
+      const error = updates.find((result) => result.error)?.error;
+      if (error) throw error;
+      setSwapMatchId(null);
+      setDraggedMatchId(null);
+    });
+  }
+
+  function chooseMatchToSwap(matchId: string) {
+    if (!swapMatchId) {
+      setSwapMatchId(matchId);
+      setMessageType("info");
+      setMessage("First match selected. Choose Swap on the second match to exchange their round and court.");
+      return;
+    }
+    void swapMatchSlots(swapMatchId, matchId);
   }
 
   async function deleteMatch(match: Match) {
@@ -1183,8 +1442,50 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 );
               })}
             </div>
-            <div className="rounded-md bg-limeball/25 p-3 text-sm font-bold text-ink">
-              {missingGeneratedMatches.length
+            <div>
+              <p className="field-label">Court schedule rules</p>
+              <div className="mt-2 overflow-hidden rounded-md border border-slate-200">
+                {activeScheduleRules.map((rule) => {
+                  const scheduledCount = generatedGroupSchedule.filter((match) => match.court_number === rule.court_number).length;
+                  return (
+                    <div key={rule.court_number} className="grid gap-3 border-b border-slate-100 p-3 last:border-b-0 sm:grid-cols-[90px_1fr_1.25fr] sm:items-center">
+                      <p className="font-black text-ink">Court {rule.court_number}</p>
+                      <label>
+                        <span className="mb-1 block text-xs font-black uppercase text-slate-500">Maximum matches</span>
+                        <input
+                          className="field"
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={rule.max_matches}
+                          onChange={(event) => updateCourtScheduleRule(rule.court_number, { maxMatches: Math.max(1, Number(event.target.value)) })}
+                        />
+                      </label>
+                      <div>
+                        <span className="mb-1 block text-xs font-black uppercase text-slate-500">Allowed groups</span>
+                        <div className="flex flex-wrap gap-3">
+                          {(matchTournament?.group_count === 2 ? ["A", "B"] as GroupName[] : ["A"] as GroupName[]).map((groupName) => (
+                            <label key={`${rule.court_number}-${groupName}`} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={rule.groups.includes(groupName)}
+                                onChange={() => toggleCourtGroup(rule.court_number, groupName)}
+                              />
+                              Group {groupName}
+                            </label>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">Planned: {scheduledCount} of {rule.max_matches}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className={scheduleGenerationError ? "rounded-md bg-red-50 p-3 text-sm font-bold text-red-700" : "rounded-md bg-limeball/25 p-3 text-sm font-bold text-ink"}>
+              {scheduleGenerationError
+                ? scheduleGenerationError
+                : missingGeneratedMatches.length
                 ? `${missingGeneratedMatches.length} missing matches will be added across ${scheduleRoundCount} rounds. Existing scores will not be changed.`
                 : groupMatchesMissingRounds.length
                   ? `${groupMatchesMissingRounds.length} existing matches will receive their round numbers.`
@@ -1192,16 +1493,26 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                   ? "The complete round-robin schedule already exists."
                   : "Add at least two teams to each group before generating matches."}
             </div>
-            <button
-              type="button"
-              className="btn-primary w-full"
-              onClick={() => void generateGroupSchedule()}
-              disabled={busy || !matchTournament || !generatedGroupSchedule.length}
-            >
-              <Sparkles className="h-4 w-4" /> Generate missing group matches
-            </button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                className="btn-primary w-full"
+                onClick={() => void generateGroupSchedule()}
+                disabled={busy || !matchTournament || !generatedGroupSchedule.length || Boolean(scheduleGenerationError)}
+              >
+                <Sparkles className="h-4 w-4" /> Generate missing matches
+              </button>
+              <button
+                type="button"
+                className="btn-secondary w-full"
+                onClick={() => void applyCourtPlanToExistingSchedule()}
+                disabled={busy || !matchTournament || !generatedGroupSchedule.length || Boolean(scheduleGenerationError)}
+              >
+                <RotateCcw className="h-4 w-4" /> Apply plan to existing schedule
+              </button>
+            </div>
             <p className="text-xs font-semibold text-slate-500">
-              Every team plays every other team in its own group once. Courts are assigned automatically. You can change courts, delete matches, or add a special match below.
+              Set how many matches each court can hold and which groups may use it. Every team still plays every other team in its own group once.
             </p>
           </div>
         </Panel>
@@ -1250,65 +1561,167 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add match</button>
           </form>
           <div className="mt-5 border-t border-slate-200 pt-4">
-            <h3 className="text-sm font-black text-slate-950">Matches already created</h3>
-            <div className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
-              {selectedTournamentMatches.length ? selectedTournamentMatches.map((match) => (
-                <div key={match.id} className="p-3 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate font-bold text-slate-900">
-                      {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}
-                    </span>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                      {match.stage === "group" ? (
-                        <label className="flex items-center gap-1 text-xs font-black text-slate-600">
-                          <span className="sr-only">Round for {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</span>
-                          Round
-                          <select
-                            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-800"
-                            value={match.round_number ?? 1}
-                            onChange={(event) => void changeMatchRound(match.id, Number(event.target.value))}
-                            disabled={busy}
-                            title="Change round"
-                          >
-                            {Array.from({ length: Math.max(scheduleRoundCount + 2, match.round_number ?? 1) }, (_, index) => (
-                              <option key={`${match.id}-round-${index + 1}`} value={index + 1}>{index + 1}</option>
-                            ))}
-                          </select>
-                        </label>
-                      ) : null}
-                      <label className="flex items-center gap-1 text-xs font-black text-court">
-                        <span className="sr-only">Court for {teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</span>
-                        Court
-                        <select
-                          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-800"
-                          value={match.court_number ?? 1}
-                          onChange={(event) => void changeMatchCourt(match.id, Number(event.target.value))}
-                          disabled={busy}
-                          title="Change court"
-                        >
-                          {Array.from({ length: matchTournament?.court_count ?? 1 }, (_, index) => (
-                            <option key={`${match.id}-court-${index + 1}`} value={index + 1}>{index + 1}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        className="grid h-8 w-8 place-items-center rounded-md text-red-600 transition hover:bg-red-50"
-                        onClick={() => void deleteMatch(match)}
-                        disabled={busy}
-                        title="Delete match"
-                        aria-label={`Delete ${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-950">Matches already created</h3>
+                <p className="text-xs font-semibold text-slate-500">Drag one group match onto another to swap their round and court.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {swapMatchId ? (
+                  <button type="button" className="btn-secondary" onClick={() => setSwapMatchId(null)}>
+                    Cancel swap
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn-secondary text-red-700"
+                  onClick={() => void deleteSelectedMatches()}
+                  disabled={busy || !selectedScheduleMatchIds.length}
+                >
+                  <Trash2 className="h-4 w-4" /> Delete selected ({selectedScheduleMatchIds.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-slate-500">
+                <Filter className="h-4 w-4" /> Filter created matches
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <select className="field" value={scheduleRoundFilter} onChange={(event) => setScheduleRoundFilter(event.target.value)}>
+                  <option value="all">All rounds</option>
+                  {availableScheduleRounds.map((round) => <option key={`filter-round-${round}`} value={String(round)}>Round {round}</option>)}
+                  <option value="unscheduled">Unscheduled</option>
+                </select>
+                <select className="field" value={scheduleGroupFilter} onChange={(event) => setScheduleGroupFilter(event.target.value)}>
+                  <option value="all">All groups and stages</option>
+                  <option value="A">Group A</option>
+                  {matchTournament?.group_count === 2 ? <option value="B">Group B</option> : null}
+                </select>
+                <select className="field" value={scheduleTeamFilter} onChange={(event) => setScheduleTeamFilter(event.target.value)}>
+                  <option value="all">All teams</option>
+                  {scheduleFilterTeams.map((team) => <option key={`filter-team-${team.id}`} value={team.id}>{teamLabel(team)}</option>)}
+                </select>
+                <select className="field" value={scheduleCourtFilter} onChange={(event) => setScheduleCourtFilter(event.target.value)}>
+                  <option value="all">All courts</option>
+                  {Array.from({ length: matchTournament?.court_count ?? 0 }, (_, index) => <option key={`filter-court-${index + 1}`} value={String(index + 1)}>Court {index + 1}</option>)}
+                  <option value="unassigned">Unassigned court</option>
+                </select>
+              </div>
+              <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={allFilteredScheduleMatchesSelected}
+                  onChange={() => setSelectedScheduleMatchIds((current) =>
+                    allFilteredScheduleMatchesSelected
+                      ? current.filter((id) => !filteredScheduleMatchIds.includes(id))
+                      : Array.from(new Set([...current, ...filteredScheduleMatchIds]))
+                  )}
+                />
+                Select all {filteredScheduleMatchIds.length} visible matches
+              </label>
+            </div>
+
+            <div className="mt-3 space-y-4">
+              {scheduleMatchesByRound.length ? scheduleMatchesByRound.map(([round, roundMatches]) => (
+                <section key={round} className="overflow-hidden rounded-md border border-slate-200">
+                  <div className="flex items-center justify-between bg-ink px-3 py-2 text-white">
+                    <h4 className="font-black">{round === "Knockout matches" ? round : round === "Unscheduled" ? "Round not assigned" : `Round ${round}`}</h4>
+                    <span className="text-xs font-bold text-slate-200">{roundMatches.length} {roundMatches.length === 1 ? "match" : "matches"}</span>
                   </div>
-                  <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
-                    {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}{match.round_number ? ` | Round ${match.round_number}` : ""}
-                  </p>
-                </div>
+                  <div className="divide-y divide-slate-100">
+                    {roundMatches.map((match) => {
+                      const draft = scheduleDrafts[match.id] ?? {
+                        roundNumber: match.round_number ?? 1,
+                        courtNumber: match.court_number ?? 1
+                      };
+                      const isSwapSelected = swapMatchId === match.id;
+                      return (
+                        <div
+                          key={match.id}
+                          className={isSwapSelected ? "bg-limeball/20 p-3 text-sm" : "bg-white p-3 text-sm"}
+                          draggable={match.stage === "group"}
+                          onDragStart={() => setDraggedMatchId(match.id)}
+                          onDragEnd={() => setDraggedMatchId(null)}
+                          onDragOver={(event) => {
+                            if (match.stage === "group") event.preventDefault();
+                          }}
+                          onDrop={() => {
+                            if (draggedMatchId && match.stage === "group") void swapMatchSlots(draggedMatchId, match.id);
+                          }}
+                        >
+                          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedScheduleMatchIds.includes(match.id)}
+                                onChange={() => toggleScheduleMatchSelection(match.id)}
+                                aria-label={`Select ${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}`}
+                              />
+                              {match.stage === "group" ? <GripVertical className="h-5 w-5 shrink-0 cursor-grab text-slate-400" /> : null}
+                              <div className="min-w-0">
+                                <p className="truncate font-black text-slate-950">{teamLabel(match.team_1)} vs {teamLabel(match.team_2)}</p>
+                                <p className="text-xs font-bold uppercase text-slate-500">
+                                  {match.stage.replace("_", " ")}{match.group_name ? ` | Group ${match.group_name}` : ""}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {match.stage === "group" ? (
+                                <label className="flex items-center gap-1 text-xs font-black text-slate-600">
+                                  Round
+                                  <select
+                                    className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-black text-slate-800"
+                                    value={draft.roundNumber}
+                                    onChange={(event) => updateScheduleDraft(match, { roundNumber: Number(event.target.value) })}
+                                    disabled={busy}
+                                  >
+                                    {Array.from({ length: Math.max(scheduleRoundCount + 5, match.round_number ?? 1) }, (_, index) => (
+                                      <option key={`${match.id}-round-${index + 1}`} value={index + 1}>{index + 1}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                              ) : null}
+                              <label className="flex items-center gap-1 text-xs font-black text-court">
+                                Court
+                                <select
+                                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-black text-slate-800"
+                                  value={draft.courtNumber}
+                                  onChange={(event) => updateScheduleDraft(match, { courtNumber: Number(event.target.value) })}
+                                  disabled={busy}
+                                >
+                                  {Array.from({ length: matchTournament?.court_count ?? 1 }, (_, index) => (
+                                    <option key={`${match.id}-court-${index + 1}`} value={index + 1}>{index + 1}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <button type="button" className="btn-primary px-3 py-2" onClick={() => void saveMatchSchedule(match)} disabled={busy || !scheduleDrafts[match.id]}>
+                                <Save className="h-4 w-4" /> Update
+                              </button>
+                              {match.stage === "group" ? (
+                                <button type="button" className="btn-secondary px-3 py-2" onClick={() => chooseMatchToSwap(match.id)} disabled={busy}>
+                                  <ArrowLeftRight className="h-4 w-4" /> {isSwapSelected ? "Selected" : "Swap"}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="grid h-9 w-9 place-items-center rounded-md text-red-600 transition hover:bg-red-50"
+                                onClick={() => void deleteMatch(match)}
+                                disabled={busy}
+                                title="Delete match"
+                                aria-label={`Delete ${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
               )) : (
-                <p className="p-3 text-sm font-semibold text-slate-500">No matches created for this tournament yet.</p>
+                <p className="rounded-md border border-slate-200 p-3 text-sm font-semibold text-slate-500">No matches found for the selected filters.</p>
               )}
             </div>
           </div>

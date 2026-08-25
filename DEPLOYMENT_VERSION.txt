@@ -1,7 +1,19 @@
-ROUND-BASED GROUP SCHEDULE UPDATE
+ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Per-court maximum match settings in the regular tournament generator.
+- Group A and Group B can be assigned to specific courts.
+- Invalid court plans are blocked before any partial schedule is created.
+- Existing schedules can be reorganized with Apply plan without changing scores.
+- Created matches are grouped round by round in Admin.
+- Created-match filters for round, group, team, and court.
+- Explicit Update controls for changing a match's round or court.
+- Desktop drag-and-drop swapping of match slots.
+- Swap buttons provide the same function on phones and tablets.
+- Checkbox selection and bulk deletion for multiple matches.
+- Collision protection stops duplicate court bookings and team double-booking.
+- No additional Supabase update is required after the previous round-schedule release.
 - Group schedules are organized into shared rounds across Group A and Group B.
 - Public schedules show a clear heading for every round, including match and court details.
 - Round, Group, Team, and Court filters make long schedules easier to read.
