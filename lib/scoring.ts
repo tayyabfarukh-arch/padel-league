@@ -197,8 +197,8 @@ export function calculateGroupStandings(
 
 export function compareTeamStats(a: TeamStats, b: TeamStats) {
   return (
-    b.points - a.points ||
     b.wins - a.wins ||
+    b.points - a.points ||
     b.draws - a.draws ||
     b.gameDiff - a.gameDiff ||
     b.gamesWon - a.gamesWon ||
@@ -275,8 +275,8 @@ export function calculatePlayerStats(
 
   return [...stats.values()].sort(
     (a, b) =>
-      b.points - a.points ||
       b.wins - a.wins ||
+      b.points - a.points ||
       b.draws - a.draws ||
       b.gameDiff - a.gameDiff ||
       b.gamesWon - a.gamesWon ||

@@ -273,6 +273,16 @@ Voting closes automatically when the tournament status changes from **Upcoming**
 
 This is intentionally a simple voting system. A person using another browser or clearing their browser data can vote again.
 
+## Overall Leaderboard Ranking
+
+The overall **Teams** and **Players** leaderboards rank competitors by:
+
+1. Most wins.
+2. Highest net points when wins are equal.
+3. Most draws, then score difference and score for when another tie-breaker is needed.
+
+This means a new team or player with zero wins and zero net points cannot rank above someone who already has a win but currently has negative net points.
+
 ## Match Rules
 
 When creating a tournament, choose:
