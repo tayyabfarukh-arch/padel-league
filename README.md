@@ -193,7 +193,9 @@ The **Matches already created** section is arranged round by round. You can:
 
 The website prevents a schedule update or swap if it would put one team in two matches during the same round, or put two matches on the same court during one round.
 
-If the round and court selected with **Update** are already occupied, the website automatically swaps the two matches. This makes changing a match's round work even when every court in that round is full. A confirmation or clear error message appears directly above the schedule filters.
+If only the court is changed and that court is occupied in the same round, the website swaps the two court slots. A confirmation or clear error message appears directly above the schedule filters.
+
+When a selected match cannot move by itself because its teams already play in the destination round, **Update** automatically finds the connected matches in the same group that must be rearranged. It asks for confirmation, moves only that conflict-repair chain, and leaves the other group and all scores unchanged. This is narrower than **Swap complete rounds** while still preventing a team from being booked on two courts at once.
 
 To change the available courts for an existing tournament:
 

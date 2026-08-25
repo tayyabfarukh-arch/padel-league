@@ -2,6 +2,10 @@ ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Individual Round Update now performs automatic conflict repair instead of requiring a complete tournament-round swap.
+- Only the selected match's connected matches in the same group are rearranged.
+- The other group, unrelated matches, scores, and results remain unchanged.
+- A confirmation states how many connected matches must be adjusted before saving.
 - Added Swap complete rounds for moving a full round while keeping every court unchanged.
 - Full-round swapping preserves scores and prevents teams from being duplicated within a round.
 - Match-swap conflict messages now direct the Admin to the full-round option.

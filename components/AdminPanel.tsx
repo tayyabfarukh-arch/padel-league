@@ -275,14 +275,14 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     );
   }
 
-  async function run(action: () => Promise<void>) {
+  async function run(action: () => Promise<void>, successMessage = "Saved. Refreshing data...") {
     setBusy(true);
     setMessage("");
     setMessageType("info");
     try {
       await action();
       setMessageType("success");
-      setMessage("Saved. Refreshing data...");
+      setMessage(successMessage);
       setTimeout(() => {
         window.location.reload();
       }, 700);
@@ -671,6 +671,10 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       courtNumber: match.court_number ?? 1
     };
     if (match.stage === "group") {
+      if (draft.roundNumber !== match.round_number) {
+        await moveMatchToRound(match, draft.roundNumber, draft.courtNumber);
+        return;
+      }
       const roundMatches = selectedTournamentMatches.filter(
         (item) => item.id !== match.id && item.stage === "group" && item.round_number === draft.roundNumber
       );
@@ -703,6 +707,127 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         return next;
       });
     });
+  }
+
+  async function moveMatchToRound(match: Match, targetRound: number, preferredCourt: number) {
+    const sourceRound = match.round_number;
+    if (!sourceRound || sourceRound === targetRound || !matchTournament) return;
+    const sourceGroupMatches = selectedTournamentMatches.filter(
+      (item) => item.stage === "group" && item.group_name === match.group_name && item.round_number === sourceRound
+    );
+    const targetGroupMatches = selectedTournamentMatches.filter(
+      (item) => item.stage === "group" && item.group_name === match.group_name && item.round_number === targetRound
+    );
+    const componentMatchIds = new Set<string>([match.id]);
+    const componentTeamIds = new Set<string>([match.team_1_id, match.team_2_id]);
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      [...sourceGroupMatches, ...targetGroupMatches].forEach((item) => {
+        if (
+          !componentMatchIds.has(item.id) &&
+          (componentTeamIds.has(item.team_1_id) || componentTeamIds.has(item.team_2_id))
+        ) {
+          componentMatchIds.add(item.id);
+          componentTeamIds.add(item.team_1_id);
+          componentTeamIds.add(item.team_2_id);
+          expanded = true;
+        }
+      });
+    }
+
+    const movingFromSource = sourceGroupMatches.filter((item) => componentMatchIds.has(item.id));
+    const movingFromTarget = targetGroupMatches.filter((item) => componentMatchIds.has(item.id));
+    const sourceRoundMatches = selectedTournamentMatches.filter(
+      (item) => item.stage === "group" && item.round_number === sourceRound
+    );
+    const targetRoundMatches = selectedTournamentMatches.filter(
+      (item) => item.stage === "group" && item.round_number === targetRound
+    );
+    const sourceFinal = [
+      ...sourceRoundMatches.filter((item) => !movingFromSource.some((moving) => moving.id === item.id)),
+      ...movingFromTarget
+    ];
+    const targetFinal = [
+      ...targetRoundMatches.filter((item) => !movingFromTarget.some((moving) => moving.id === item.id)),
+      ...movingFromSource
+    ];
+    const hasDuplicateTeam = (roundMatches: Match[]) => {
+      const teamIds = roundMatches.flatMap((item) => [item.team_1_id, item.team_2_id]);
+      return teamIds.length !== new Set(teamIds).size;
+    };
+    if (hasDuplicateTeam(sourceFinal) || hasDuplicateTeam(targetFinal)) {
+      setMessageType("error");
+      setMessage("The website could not repair this move without scheduling a team twice. Choose another destination round.");
+      return;
+    }
+    if (sourceFinal.length > matchTournament.court_count || targetFinal.length > matchTournament.court_count) {
+      setMessageType("error");
+      setMessage("This move needs more simultaneous courts than the tournament has. Choose another round or court.");
+      return;
+    }
+
+    function assignCourts(roundMatches: Match[], preferredMatchId?: string, preferredCourtNumber?: number) {
+      const assignments = new Map<string, number>();
+      const usedCourts = new Set<number>();
+      const orderedMatches = preferredMatchId
+        ? [...roundMatches].sort((a, b) => Number(b.id === preferredMatchId) - Number(a.id === preferredMatchId))
+        : roundMatches;
+      orderedMatches.forEach((item) => {
+        const requestedCourt = item.id === preferredMatchId ? preferredCourtNumber : item.court_number;
+        const requestedIsAvailable = Boolean(
+          requestedCourt &&
+          requestedCourt >= 1 &&
+          requestedCourt <= matchTournament.court_count &&
+          !usedCourts.has(requestedCourt)
+        );
+        const courtNumber = requestedIsAvailable
+          ? requestedCourt!
+          : Array.from({ length: matchTournament.court_count }, (_, index) => index + 1).find((court) => !usedCourts.has(court));
+        if (!courtNumber) throw new Error("No free court is available for the repaired schedule.");
+        assignments.set(item.id, courtNumber);
+        usedCourts.add(courtNumber);
+      });
+      return assignments;
+    }
+
+    const sourceCourts = assignCourts(sourceFinal);
+    const targetCourts = assignCourts(targetFinal, match.id, preferredCourt);
+    const desiredSchedule = new Map<string, { roundNumber: number; courtNumber: number }>();
+    sourceFinal.forEach((item) => desiredSchedule.set(item.id, { roundNumber: sourceRound, courtNumber: sourceCourts.get(item.id)! }));
+    targetFinal.forEach((item) => desiredSchedule.set(item.id, { roundNumber: targetRound, courtNumber: targetCourts.get(item.id)! }));
+    const changedMatches = [...sourceRoundMatches, ...targetRoundMatches].filter((item) => {
+      const desired = desiredSchedule.get(item.id);
+      return desired && (desired.roundNumber !== item.round_number || desired.courtNumber !== item.court_number);
+    });
+    if (changedMatches.length > 1) {
+      const confirmed = window.confirm(
+        `Move this match to Round ${targetRound}? The website must adjust ${changedMatches.length - 1} connected matches to prevent duplicate teams. Scores will not change.`
+      );
+      if (!confirmed) return;
+    }
+
+    await run(async () => {
+      const updates = await Promise.all(
+        changedMatches.map((item) => {
+          const desired = desiredSchedule.get(item.id)!;
+          return supabase!.from("matches").update({
+            round_number: desired.roundNumber,
+            court_number: desired.courtNumber
+          }).eq("id", item.id).select("id");
+        })
+      );
+      const error = updates.find((result) => result.error)?.error;
+      if (error) throw error;
+      if (updates.some((result) => !result.data?.length)) {
+        throw new Error("Some matches were not updated. Please sign in again and retry.");
+      }
+      setScheduleDrafts((current) => {
+        const next = { ...current };
+        delete next[match.id];
+        return next;
+      });
+    }, `Match moved to Round ${targetRound}. ${Math.max(0, changedMatches.length - 1)} connected matches were adjusted to keep every team conflict-free. Refreshing data...`);
   }
 
   function toggleScheduleMatchSelection(matchId: string) {
@@ -745,7 +870,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       );
     if (causesTeamConflict(firstMatch, secondMatch.round_number) || causesTeamConflict(secondMatch, firstMatch.round_number)) {
       setMessageType("error");
-      setMessage("These two matches cannot be swapped because one team would play twice in the same round. Use Swap complete rounds below when you want to exchange two full rounds while keeping every court unchanged.");
+      setMessage("These two match slots cannot be swapped directly because one team would play twice. Change the selected match's Round dropdown and click Update to let the website repair the connected conflicts automatically.");
       setDraggedMatchId(null);
       return;
     }
