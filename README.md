@@ -169,6 +169,31 @@ Running the generator again only adds missing pairings and fills missing schedul
 
 On **Upcoming**, **Active**, and **History**, open **Group match schedule** to see matches arranged under clear Round headings. Use the Round, Group, Team, and Court filters to find exactly the matches you need.
 
+### Control Court Capacity And Group Courts
+
+Before generating the schedule, every court has two settings:
+
+- **Maximum matches** controls how many matches that court may receive during the group stage.
+- **Allowed groups** controls whether Group A, Group B, or both may use that court.
+
+For example, with four courts you can tick only Group A for Courts 1 and 2, and only Group B for Courts 3 and 4. The generator will keep the groups on their assigned courts. If the selected courts do not have enough capacity for every required match, the website displays an error and does not create a partial schedule.
+
+After changing these settings for a schedule that already exists, click **Apply plan to existing schedule**. This changes only rounds and courts; existing scores remain saved.
+
+### Edit The Created Schedule
+
+The **Matches already created** section is arranged round by round. You can:
+
+- Filter by round, group, team, and court.
+- Change a match's Round or Court and click **Update**.
+- Drag one group match onto another to swap their round and court on a computer.
+- Click **Swap** on two matches to do the same thing on a phone or tablet.
+- Tick several matches and click **Delete selected** to remove them together.
+
+The website prevents a schedule update or swap if it would put one team in two matches during the same round, or put two matches on the same court during one round.
+
+If the round and court selected with **Update** are already occupied, the website automatically swaps the two matches. This makes changing a match's round work even when every court in that round is full. A confirmation or clear error message appears directly above the schedule filters.
+
 To change the available courts for an existing tournament:
 
 1. Open **Admin > Regular Tournament > Tournament**.

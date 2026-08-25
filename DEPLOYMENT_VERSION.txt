@@ -2,6 +2,10 @@ ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Fixed round/court Update controls not visibly applying a move into an occupied schedule slot.
+- Updating into an occupied round/court now safely swaps the two matches automatically.
+- Schedule success and error messages now appear directly above the created-match filters.
+- Supabase confirms that the selected match row was actually updated before the page refreshes.
 - Per-court maximum match settings in the regular tournament generator.
 - Group A and Group B can be assigned to specific courts.
 - Invalid court plans are blocked before any partial schedule is created.

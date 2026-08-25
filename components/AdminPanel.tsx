@@ -670,9 +670,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       const roundMatches = selectedTournamentMatches.filter(
         (item) => item.id !== match.id && item.stage === "group" && item.round_number === draft.roundNumber
       );
-      if (roundMatches.some((item) => item.court_number === draft.courtNumber)) {
-        setMessageType("error");
-        setMessage(`Court ${draft.courtNumber} already has a match in Round ${draft.roundNumber}. Use Swap to exchange two occupied slots.`);
+      const occupiedSlot = roundMatches.find((item) => item.court_number === draft.courtNumber);
+      if (occupiedSlot) {
+        await swapMatchSlots(match.id, occupiedSlot.id);
         return;
       }
       if (roundMatches.some((item) => [item.team_1_id, item.team_2_id].some((teamId) => teamId === match.team_1_id || teamId === match.team_2_id))) {
@@ -682,14 +682,17 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       }
     }
     await run(async () => {
-      const { error } = await supabase!
+      const { data, error } = await supabase!
         .from("matches")
         .update({
           round_number: match.stage === "group" ? draft.roundNumber : null,
           court_number: draft.courtNumber
         })
-        .eq("id", match.id);
+        .eq("id", match.id)
+        .select("id")
+        .single();
       if (error) throw error;
+      if (!data) throw new Error("The match was not updated. Please sign in again and retry.");
       setScheduleDrafts((current) => {
         const next = { ...current };
         delete next[match.id];
@@ -1582,6 +1585,12 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 </button>
               </div>
             </div>
+
+            {message ? (
+              <div className={messageType === "error" ? "mt-3 rounded-md bg-red-50 p-3 text-sm font-bold text-red-700" : messageType === "success" ? "mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-700" : "mt-3 rounded-md bg-slate-100 p-3 text-sm font-bold text-slate-700"}>
+                {message}
+              </div>
+            ) : null}
 
             <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase text-slate-500">
