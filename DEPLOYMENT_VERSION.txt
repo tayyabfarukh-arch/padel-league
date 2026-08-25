@@ -2,6 +2,7 @@ ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Fixed the Netlify TypeScript build error at AdminPanel.tsx court assignment.
 - Individual Round Update now performs automatic conflict repair instead of requiring a complete tournament-round swap.
 - Only the selected match's connected matches in the same group are rearranged.
 - The other group, unrelated matches, scores, and results remain unchanged.

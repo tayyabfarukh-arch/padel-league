@@ -712,6 +712,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   async function moveMatchToRound(match: Match, targetRound: number, preferredCourt: number) {
     const sourceRound = match.round_number;
     if (!sourceRound || sourceRound === targetRound || !matchTournament) return;
+    const courtCount = matchTournament.court_count;
     const sourceGroupMatches = selectedTournamentMatches.filter(
       (item) => item.stage === "group" && item.group_name === match.group_name && item.round_number === sourceRound
     );
@@ -761,7 +762,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       setMessage("The website could not repair this move without scheduling a team twice. Choose another destination round.");
       return;
     }
-    if (sourceFinal.length > matchTournament.court_count || targetFinal.length > matchTournament.court_count) {
+    if (sourceFinal.length > courtCount || targetFinal.length > courtCount) {
       setMessageType("error");
       setMessage("This move needs more simultaneous courts than the tournament has. Choose another round or court.");
       return;
@@ -778,12 +779,12 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         const requestedIsAvailable = Boolean(
           requestedCourt &&
           requestedCourt >= 1 &&
-          requestedCourt <= matchTournament.court_count &&
+          requestedCourt <= courtCount &&
           !usedCourts.has(requestedCourt)
         );
         const courtNumber = requestedIsAvailable
           ? requestedCourt!
-          : Array.from({ length: matchTournament.court_count }, (_, index) => index + 1).find((court) => !usedCourts.has(court));
+          : Array.from({ length: courtCount }, (_, index) => index + 1).find((court) => !usedCourts.has(court));
         if (!courtNumber) throw new Error("No free court is available for the repaired schedule.");
         assignments.set(item.id, courtNumber);
         usedCourts.add(courtNumber);
