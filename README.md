@@ -225,7 +225,13 @@ The website immediately recalculates round and court assignments using the new n
 11. Tick every player taking part.
 12. Click **Generate complete schedule**.
 
-The website automatically rotates partners, reduces repeat partnerships, distributes player appearances, and assigns every match to a round and court.
+For 4, 8, or 12 selected players, the website uses an exact Americano rotation. Every player partners every other player exactly once and faces every other player exactly twice when the complete number of rounds is used.
+
+- 4 players: 3 rounds, 1 court, 3 matches.
+- 8 players: 7 rounds, 2 courts, 14 matches.
+- 12 players: 11 rounds, 3 courts, 33 matches.
+
+The required courts must be available so every player can play once per round. The generator blocks extra rounds because they would necessarily repeat partnerships. Other player counts continue to use balanced rotation with repeat partnerships minimized.
 
 ## Create A Team Americano Tournament
 

@@ -44,6 +44,9 @@ export function AmericanoAdminPanel({
   const selectedPlayerAssignments = tournamentPlayers.filter((item) => item.tournament_id === tournamentId);
   const selectedTeamAssignments = tournamentTeams.filter((item) => item.tournament_id === tournamentId);
   const isSingles = selectedTournament?.tournament_format === "singles_americano";
+  const hasExactSinglesRotation = isSingles && [4, 8, 12].includes(selectedIds.length);
+  const completeSinglesRounds = hasExactSinglesRotation ? selectedIds.length - 1 : 0;
+  const requiredSinglesCourts = hasExactSinglesRotation ? selectedIds.length / 4 : 0;
 
   async function run(action: () => Promise<void>, success: string) {
     if (!supabase) return;
@@ -315,10 +318,15 @@ export function AmericanoAdminPanel({
           </section>
           <section className="sport-card p-4">
             <h2 className="text-lg font-black">Generate the schedule</h2>
-            <p className="mt-2 text-sm font-semibold text-slate-600">{isSingles ? "Partners rotate automatically while repeat partnerships are minimized." : "Every team plays every other team once."} Courts and rounds are assigned automatically.</p>
+            <p className="mt-2 text-sm font-semibold text-slate-600">{isSingles ? (hasExactSinglesRotation ? "The exact rotation gives every player a new partner in every round and balances opponents." : "Partners rotate automatically while repeat partnerships are minimized.") : "Every team plays every other team once."} Courts and rounds are assigned automatically.</p>
             <form onSubmit={generateSchedule} className="mt-4 space-y-3">
               {isSingles ? <NumberInput name="round_count" label="Number of rounds" value={selectedTournament.americano_round_count} max={50} /> : null}
               <div className="rounded-md bg-limeball/25 p-3 text-sm font-black text-ink">Selected: {selectedIds.length} | Courts: {selectedTournament.court_count}</div>
+              {hasExactSinglesRotation ? (
+                <div className={selectedTournament.court_count < requiredSinglesCourts ? "rounded-md bg-red-50 p-3 text-sm font-bold text-red-700" : "rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800"}>
+                  Complete rotation: {completeSinglesRounds} rounds | {completeSinglesRounds * requiredSinglesCourts} matches | {requiredSinglesCourts} courts required
+                </div>
+              ) : null}
               <button className="btn-primary w-full" disabled={busy}><Sparkles className="h-4 w-4" /> {selectedMatches.length ? "Regenerate complete schedule" : "Generate complete schedule"}</button>
             </form>
             {selectedMatches.length ? <div className="mt-4 border-t border-slate-200 pt-3"><p className="text-sm font-black">Schedule preview</p><div className="mt-2 max-h-64 space-y-1 overflow-y-auto text-xs font-semibold text-slate-600">{selectedMatches.map((match) => <p key={match.id} className="rounded bg-slate-50 px-2 py-1.5">Round {match.round_number} | Court {match.court_number ?? "TBD"}</p>)}</div></div> : null}

@@ -54,6 +54,8 @@ export function generateSinglesAmericanoSchedule(
   roundCount: number
 ) {
   if (playerIds.length < 4) throw new Error("Select at least four players.");
+  const exactSchedule = generateExactWhistSchedule(playerIds, courtCount, roundCount);
+  if (exactSchedule) return exactSchedule;
   const courts = Math.min(Math.max(1, courtCount), Math.floor(playerIds.length / 4));
   const rounds = Math.max(1, roundCount);
   const appearances = new Map(playerIds.map((id) => [id, 0]));
@@ -86,6 +88,67 @@ export function generateSinglesAmericanoSchedule(
       for (const left of [a, b]) {
         for (const right of [c, d]) increment(opponents, pairKey(left, right));
       }
+    });
+  }
+
+  return schedule;
+}
+
+type StarterPlayer = number | null;
+type WhistStarterMatch = [[StarterPlayer, StarterPlayer], [StarterPlayer, StarterPlayer]];
+
+const exactWhistStarters: Partial<Record<number, WhistStarterMatch[]>> = {
+  4: [
+    [[null, 0], [1, 2]]
+  ],
+  8: [
+    [[null, 0], [1, 3]],
+    [[2, 6], [4, 5]]
+  ],
+  12: [
+    [[null, 0], [1, 3]],
+    [[2, 9], [6, 7]],
+    [[4, 10], [5, 8]]
+  ]
+};
+
+function generateExactWhistSchedule(
+  playerIds: string[],
+  courtCount: number,
+  roundCount: number
+) {
+  const starter = exactWhistStarters[playerIds.length];
+  if (!starter) return null;
+  const requiredCourts = playerIds.length / 4;
+  const completeRoundCount = playerIds.length - 1;
+  if (courtCount < requiredCourts) {
+    throw new Error(
+      `${playerIds.length} players require at least ${requiredCourts} courts so everyone can play in each round.`
+    );
+  }
+  if (roundCount > completeRoundCount) {
+    throw new Error(
+      `Use no more than ${completeRoundCount} rounds for ${playerIds.length} players. Additional rounds would repeat partnerships.`
+    );
+  }
+
+  const finitePlayerCount = playerIds.length - 1;
+  const playerId = (starterPlayer: StarterPlayer, roundOffset: number) =>
+    starterPlayer === null
+      ? playerIds[playerIds.length - 1]
+      : playerIds[(starterPlayer + roundOffset) % finitePlayerCount];
+  const schedule: SinglesScheduleMatch[] = [];
+
+  for (let roundOffset = 0; roundOffset < roundCount; roundOffset += 1) {
+    starter.forEach(([side1, side2], courtIndex) => {
+      schedule.push({
+        round_number: roundOffset + 1,
+        court_number: courtIndex + 1,
+        side_1_player_1_id: playerId(side1[0], roundOffset),
+        side_1_player_2_id: playerId(side1[1], roundOffset),
+        side_2_player_1_id: playerId(side2[0], roundOffset),
+        side_2_player_2_id: playerId(side2[1], roundOffset)
+      });
     });
   }
 

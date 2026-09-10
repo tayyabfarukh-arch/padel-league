@@ -2,6 +2,13 @@ ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
 This version includes:
+- Corrected Singles Americano generation for 12 players.
+- 12 players now generate exactly 33 matches across 11 rounds and 3 courts.
+- Every player partners every other player exactly once in a complete rotation.
+- Every pair of players faces each other exactly twice in a complete rotation.
+- Exact verified rotations are also used for 4-player and 8-player Americano events.
+- Admin displays the required rounds, matches, and courts before generation.
+- The generator blocks too few courts and extra rounds that would force repeated partnerships.
 - Overall team and player leaderboards now rank by total wins first.
 - Net points are used only when two teams or players have the same number of wins.
 - New competitors with zero wins cannot rank above someone with a win merely because their net points are zero.
