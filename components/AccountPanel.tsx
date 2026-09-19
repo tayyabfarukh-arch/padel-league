@@ -4,13 +4,16 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Camera, CheckCircle2, LogIn, LogOut, ShieldCheck, UserPlus } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
+import { StatsGrid } from "@/components/StatsGrid";
+import { calculatePlayerStats } from "@/lib/scoring";
 import { supabase } from "@/lib/supabase";
-import type { AppUser, Player, PlayerClaim } from "@/lib/types";
+import type { AppUser, Match, Player, PlayerClaim, PlayerStats, Team, Tournament } from "@/lib/types";
 
 export function AccountPanel() {
   const [session, setSession] = useState<Session | null>(null);
   const [account, setAccount] = useState<AppUser | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
+  const [stats, setStats] = useState<PlayerStats | null>(null);
   const [claim, setClaim] = useState<PlayerClaim | null>(null);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -23,6 +26,7 @@ export function AccountPanel() {
     setSession(nextSession);
     setAccount(null);
     setPlayer(null);
+    setStats(null);
     setClaim(null);
     if (!supabase || !nextSession) {
       setLoading(false);
@@ -41,6 +45,22 @@ export function AccountPanel() {
     setPlayer((playerData as Player | null) ?? null);
     setClaim((claimData as PlayerClaim | null) ?? null);
     setAvailablePlayers((playersData as Player[] | null) ?? []);
+    if (playerData) {
+      const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
+      const [{ data: allPlayers }, { data: allTeams }, { data: allMatches }, { data: allTournaments }] = await Promise.all([
+        supabase.from("players").select("*").order("name"),
+        supabase.from("teams").select(teamSelect),
+        supabase.from("matches").select("*"),
+        supabase.from("tournaments").select("*")
+      ]);
+      const calculated = calculatePlayerStats(
+        (allPlayers as Player[] | null) ?? [],
+        (allTeams as Team[] | null) ?? [],
+        (allMatches as Match[] | null) ?? [],
+        (allTournaments as Tournament[] | null) ?? []
+      ).find((item) => item.player.id === playerData.id) ?? null;
+      setStats(calculated);
+    }
     setLoading(false);
   }, []);
 
@@ -208,15 +228,34 @@ export function AccountPanel() {
       <Status message={message} error={error} />
 
       {player ? (
-        <form onSubmit={updateProfile} className="sport-card space-y-4 p-5">
-          <div className="flex items-center gap-4">
-            <PlayerAvatar player={player} size={72} />
-            <div><p className="text-xs font-black uppercase text-court">Linked player profile</p><h2 className="text-xl font-black text-slate-950">{player.name}</h2></div>
-          </div>
-          <label className="block"><span className="field-label">Player name</span><input className="field" name="name" defaultValue={player.name} required /></label>
-          <label className="block"><span className="field-label">New profile picture</span><input className="field" name="photo" type="file" accept="image/*" /></label>
-          <button className="btn-primary" disabled={busy}><Camera className="h-4 w-4" /> Save profile</button>
-        </form>
+        <div className="space-y-5">
+          <form onSubmit={updateProfile} className="sport-card space-y-4 p-5">
+            <div className="flex items-center gap-4">
+              <PlayerAvatar player={player} size={72} />
+              <div><p className="text-xs font-black uppercase text-court">Linked player profile</p><h2 className="text-xl font-black text-slate-950">{player.name}</h2></div>
+            </div>
+            <label className="block"><span className="field-label">Player name</span><input className="field" name="name" defaultValue={player.name} required /></label>
+            <label className="block"><span className="field-label">New profile picture</span><input className="field" name="photo" type="file" accept="image/*" /></label>
+            <button className="btn-primary" disabled={busy}><Camera className="h-4 w-4" /> Save profile</button>
+          </form>
+
+          {stats ? (
+            <section className="space-y-4">
+              <div>
+                <h2 className="section-title mb-1">Career statistics</h2>
+                <p className="text-sm font-semibold text-slate-500">These are linked to your existing player history and update after match results are submitted.</p>
+              </div>
+              <StatsGrid stats={stats} />
+              <div className="grid gap-3 md:grid-cols-3">
+                <PartnerSummary label="Best partner" value={stats.bestPartner?.name} />
+                <PartnerSummary label="Most played partner" value={stats.mostPlayedPartner?.name} />
+                <PartnerSummary label="Most successful partner" value={stats.mostSuccessfulPartner?.name} />
+              </div>
+            </section>
+          ) : (
+            <p className="sport-card p-4 text-sm font-semibold text-slate-500">No completed match statistics are available for this player yet.</p>
+          )}
+        </div>
       ) : claim?.status === "pending" ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
           <p className="flex items-center gap-2 font-black text-amber-950"><ShieldCheck className="h-5 w-5" /> Waiting for Admin approval</p>
@@ -236,4 +275,13 @@ export function AccountPanel() {
 function Status({ message, error }: { message: string; error: string }) {
   if (!message && !error) return null;
   return <p className={`rounded-md border p-3 text-sm font-bold ${error ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{error || message}</p>;
+}
+
+function PartnerSummary({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="sport-card p-4">
+      <p className="text-xs font-black uppercase text-slate-500">{label}</p>
+      <p className="mt-2 font-black text-slate-950">{value ?? "TBD"}</p>
+    </div>
+  );
 }
