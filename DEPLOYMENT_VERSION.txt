@@ -2,6 +2,8 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Selecting a partner automatically fills the saved team name when that player pairing already exists.
+- A team name is mandatory when the selected player pairing does not yet have a team.
 - Registration fees, payments, expenses, and financial totals are displayed in Kuwaiti Dinars (KWD).
 - New users can create their own player profile, including an optional photo, without waiting for Admin approval.
 - Returning players can still claim their existing profile so all historical statistics remain linked.

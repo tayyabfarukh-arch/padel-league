@@ -65,11 +65,22 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
     const query = partnerSearch.trim().toLowerCase();
     return players.filter((item) => item.id !== player?.id && (!query || item.name.toLowerCase().includes(query)));
   }, [partnerSearch, player?.id, players]);
+  const existingTeam = useMemo(() => {
+    if (!player || !selectedPartnerId) return null;
+    return teams.find((team) =>
+      (team.player_1_id === player.id && team.player_2_id === selectedPartnerId)
+      || (team.player_2_id === player.id && team.player_1_id === selectedPartnerId)
+    ) ?? null;
+  }, [player, selectedPartnerId, teams]);
   const visibleRegistrations = registrations.filter((item) => teams.some((team) => team.id === item.team_id));
   const registrationOpen = tournament.status === "upcoming" && tournament.registration_open !== false;
 
   async function register() {
     if (!supabase || !selectedPartnerId) return;
+    if (!existingTeam && !teamName.trim()) {
+      setError("Enter a team name for this new player pairing.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     setError("");
@@ -150,7 +161,15 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
                   <button
                     type="button"
                     key={partner.id}
-                    onClick={() => setSelectedPartnerId(partner.id)}
+                    onClick={() => {
+                      const savedTeam = teams.find((team) =>
+                        player && ((team.player_1_id === player.id && team.player_2_id === partner.id)
+                          || (team.player_2_id === player.id && team.player_1_id === partner.id))
+                      );
+                      setSelectedPartnerId(partner.id);
+                      setTeamName(savedTeam ? teamLabel(savedTeam) : "");
+                      setError("");
+                    }}
                     className={`flex w-full items-center gap-3 rounded-md border p-2 text-left transition ${selectedPartnerId === partner.id ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 bg-white hover:border-slate-300"}`}
                   >
                     <PlayerAvatar player={partner} size={38} />
@@ -159,9 +178,23 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
                   </button>
                 )) : <p className="p-3 text-center text-sm font-semibold text-slate-500">No matching players found.</p>}
               </div>
-              <label className="block"><span className="field-label">Team name (optional)</span><input className="field" value={teamName} maxLength={80} onChange={(event) => setTeamName(event.target.value)} placeholder="Leave blank to use both player names" /></label>
+              {selectedPartnerId ? (
+                <label className="block">
+                  <span className="field-label">{existingTeam ? "Existing team found" : "New team name (required)"}</span>
+                  <input
+                    className={`field ${existingTeam ? "bg-slate-100 text-slate-600" : ""}`}
+                    value={teamName}
+                    maxLength={100}
+                    required={!existingTeam}
+                    readOnly={Boolean(existingTeam)}
+                    onChange={(event) => setTeamName(event.target.value)}
+                    placeholder="Enter the new team name"
+                  />
+                  <span className="mt-1 block text-xs font-semibold text-slate-500">{existingTeam ? "The saved team name has been filled automatically." : "This player pairing has no existing team, so please give it a name."}</span>
+                </label>
+              ) : null}
               <p className="rounded-md bg-slate-50 p-3 text-xs font-semibold text-slate-600">Admin approval confirms your registration only. The Admin will add the team to the tournament and choose its group later.</p>
-              <button className="btn-primary w-full" disabled={!registrationOpen || !selectedPartnerId || busy} onClick={() => void register()}><CheckCircle2 className="h-4 w-4" /> {busy ? "Submitting..." : "Register team"}</button>
+              <button className="btn-primary w-full" disabled={!registrationOpen || !selectedPartnerId || (!existingTeam && !teamName.trim()) || busy} onClick={() => void register()}><CheckCircle2 className="h-4 w-4" /> {busy ? "Submitting..." : "Register team"}</button>
             </div>
           )}
           {message ? <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{message}</p> : null}

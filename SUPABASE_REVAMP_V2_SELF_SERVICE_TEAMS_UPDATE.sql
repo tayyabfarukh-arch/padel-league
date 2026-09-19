@@ -103,7 +103,7 @@ begin
 
   if not found then
     if clean_team_name = '' then
-      clean_team_name := current_player.name || ' / ' || partner_player.name;
+      raise exception 'Enter a team name for this new player pairing.';
     end if;
     if char_length(clean_team_name) > 100 then
       raise exception 'Team name must contain no more than 100 characters.';

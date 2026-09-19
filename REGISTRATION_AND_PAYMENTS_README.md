@@ -45,11 +45,11 @@ No new Netlify environment variables are required.
 3. If they are new, they click **Create a new player**, enter their name, and optionally add a photo. This does not require Admin approval.
 4. The player opens **Upcoming**.
 5. Under **Team registration**, the player searches for and selects any existing player as their partner.
-6. They may enter a team name or leave it blank.
+6. If this pair already has a team, its saved name appears automatically. If it is a new pairing, entering a team name is mandatory.
 7. The player clicks **Register team**.
 8. The request appears in the Admin Registrations section.
 
-If the same pair already has a team, the website reuses it. Otherwise, it creates the team automatically. No partner invitation or partner approval is required. The website blocks the request if either player is already registered in another team for that tournament.
+If the same pair already has a team, the website reuses it and does not rename it. Otherwise, it creates the team using the required name. No partner invitation or partner approval is required. The website blocks the request if either player is already registered in another team for that tournament.
 
 ## Step 5: Confirm And Record Payment
 
