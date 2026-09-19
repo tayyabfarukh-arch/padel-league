@@ -269,15 +269,17 @@ To test the standings before tournament day, enter temporary scores normally. Wh
 
 ## Predictions
 
+Before using account-based predictions on an existing website, run `SUPABASE_REVAMP_V2_UPDATE.sql` once. The exact instructions are in `REVAMP_V2_README.md`.
+
 1. Create the tournament with status **Upcoming**.
 2. Add the participating teams.
-3. Participants open **Predict**.
-4. Tap **Vote** beside one team. No sign-in is required.
-5. The website allows one vote per tournament in each browser.
+3. Each participant creates an account and requests their existing player profile.
+4. Admin opens **Admin > Regular Tournament > Accounts** and approves the correct profile request.
+5. The participant signs in and opens **Predict**.
+6. Tap **Vote** beside one team.
+7. Each approved player account receives one vote per tournament. The player can change that vote while the tournament is still Upcoming.
 
 Voting closes automatically when the tournament status changes from **Upcoming** to **Active**.
-
-This is intentionally a simple voting system. A person using another browser or clearing their browser data can vote again.
 
 ## Overall Leaderboard Ranking
 

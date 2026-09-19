@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Vote } from "lucide-react";
+import Link from "next/link";
+import { Check, LogIn, Vote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { teamLabel } from "@/lib/format";
 import type { Prediction, Team, Tournament, TournamentTeam } from "@/lib/types";
 import { TeamAvatar } from "./Avatar";
-
-const voterTokenKey = "padel_prediction_voter_token";
 
 export function PredictionPanel({
   tournaments,
@@ -23,34 +22,44 @@ export function PredictionPanel({
   const [tournamentId, setTournamentId] = useState(tournaments[0]?.id ?? "");
   const [message, setMessage] = useState("");
   const [busyTeamId, setBusyTeamId] = useState("");
-  const [voterToken, setVoterToken] = useState("");
+  const [userId, setUserId] = useState("");
+  const [playerLinked, setPlayerLinked] = useState(false);
+  const [checkingAccount, setCheckingAccount] = useState(true);
   const tournament = tournaments.find((item) => item.id === tournamentId) ?? tournaments[0];
   const assignments = tournamentTeams.filter((item) => item.tournament_id === tournament?.id);
   const teams = assignments.map((item) => item.team).filter((team): team is Team => Boolean(team));
   const tournamentPredictions = predictions.filter((item) => item.tournament_id === tournament?.id);
-  const userVote = tournamentPredictions.find((item) => item.voter_token === voterToken);
+  const userVote = tournamentPredictions.find((item) => item.voter_user_id === userId);
   const votingOpen = tournament?.status === "upcoming";
 
   useEffect(() => {
-    let token = window.localStorage.getItem(voterTokenKey);
-    if (!token) {
-      token = window.crypto.randomUUID();
-      window.localStorage.setItem(voterTokenKey, token);
+    if (!supabase) return;
+    async function applyAccount(nextUserId: string) {
+      setUserId(nextUserId);
+      if (!nextUserId) {
+        setPlayerLinked(false);
+        setCheckingAccount(false);
+        return;
+      }
+      const { data } = await supabase!.from("players").select("id").eq("user_id", nextUserId).maybeSingle();
+      setPlayerLinked(Boolean(data));
+      setCheckingAccount(false);
     }
-    setVoterToken(token);
+    supabase.auth.getSession().then(({ data }) => void applyAccount(data.session?.user.id ?? ""));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => void applyAccount(session?.user.id ?? ""));
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   async function voteForTeam(teamId: string) {
-    if (!supabase || !tournament || !voterToken) return;
+    if (!supabase || !tournament || !userId || !playerLinked) return;
     setBusyTeamId(teamId);
     setMessage("");
-    const { error } = await supabase.from("predictions").insert({
-      tournament_id: tournament.id,
-      voter_token: voterToken,
-      predicted_team_id: teamId
-    });
+    const operation = userVote
+      ? supabase.from("predictions").update({ predicted_team_id: teamId }).eq("id", userVote.id).eq("voter_user_id", userId)
+      : supabase.from("predictions").insert({ tournament_id: tournament.id, voter_user_id: userId, voter_token: null, predicted_team_id: teamId });
+    const { error } = await operation;
     setBusyTeamId("");
-    setMessage(error ? error.message : "Your prediction has been recorded.");
+    setMessage(error ? error.message : userVote ? "Your prediction has been changed." : "Your prediction has been recorded.");
     if (!error) router.refresh();
   }
 
@@ -69,9 +78,20 @@ export function PredictionPanel({
         <div className="mb-3">
           <h2 className="section-title mb-1">{tournament?.name}</h2>
           <p className="text-sm font-semibold text-slate-500">
-            {votingOpen ? "Choose the team you expect to win. One vote is allowed in this browser." : "Voting is closed. Final prediction results are shown below."}
+            {votingOpen ? "Choose the team you expect to win. Each approved player account receives one vote." : "Voting is closed. Final prediction results are shown below."}
           </p>
         </div>
+        {!checkingAccount && !userId ? (
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-bold text-amber-900">Sign in to your player account before voting.</p>
+            <Link href="/account" className="btn-primary"><LogIn className="h-4 w-4" /> Sign in</Link>
+          </div>
+        ) : null}
+        {!checkingAccount && userId && !playerLinked ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            Claim your player profile from the Account page and wait for Admin approval before voting.
+          </div>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           {teams.map((team) => {
             const votes = tournamentPredictions.filter((item) => item.predicted_team_id === team.id).length;
@@ -92,7 +112,7 @@ export function PredictionPanel({
                   <button
                     type="button"
                     className="btn-primary shrink-0"
-                    disabled={!votingOpen || Boolean(userVote) || Boolean(busyTeamId) || !voterToken}
+                    disabled={!votingOpen || Boolean(busyTeamId) || !userId || !playerLinked}
                     onClick={() => voteForTeam(team.id)}
                   >
                     <Vote className="h-4 w-4" /> {busyTeamId === team.id ? "Voting..." : "Vote"}

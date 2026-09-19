@@ -6,9 +6,28 @@ export type PointsScoringMode = "fixed_total" | "race_to";
 
 export type Player = {
   id: string;
+  user_id?: string | null;
   name: string;
   photo_url: string | null;
   created_at: string;
+};
+
+export type AppUser = {
+  id: string;
+  username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PlayerClaim = {
+  id: string;
+  user_id: string;
+  player_id: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  reviewed_at: string | null;
+  player?: Player;
+  account?: AppUser;
 };
 
 export type Team = {
@@ -77,7 +96,8 @@ export type CourtStream = {
 export type Prediction = {
   id: string;
   tournament_id: string;
-  voter_token: string;
+  voter_token: string | null;
+  voter_user_id: string | null;
   predicted_team_id: string;
   created_at: string;
   predicted_team?: Team;

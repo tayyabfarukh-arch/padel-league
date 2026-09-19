@@ -1,3 +1,19 @@
+REVAMP V2 - PLAYER ACCOUNT FOUNDATION
+Created: September 19, 2026
+
+This release adds:
+- Player account creation with username, private email, and password.
+- Safe claims that link accounts to existing player profiles after Admin approval.
+- Self-service player name and profile-picture updates.
+- Account-based predictions with one editable vote per approved player.
+- Admin account request approvals under Regular Tournament > Accounts.
+- Registration, payment, expense, and rating database foundations for the next stage.
+- SUPABASE_REVAMP_V2_UPDATE.sql preserves all existing tournament data.
+
+Previous schedule, court, scoring, Americano, leaderboard, and visual updates remain included.
+
+--- Previous release notes ---
+
 ADMIN SCHEDULE BOARD AND COURT RULES UPDATE
 Created: August 25, 2026
 
