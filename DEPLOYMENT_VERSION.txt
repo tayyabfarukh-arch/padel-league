@@ -2,6 +2,14 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Registration fees, payments, expenses, and financial totals are displayed in Kuwaiti Dinars (KWD).
+- New users can create their own player profile, including an optional photo, without waiting for Admin approval.
+- Returning players can still claim their existing profile so all historical statistics remain linked.
+- Tournament registration now lets a player select any existing player as their partner.
+- Existing player pairs reuse their team; new pairings automatically create a team.
+- No partner invitation or partner confirmation is required.
+- Confirming a registration does not assign Group A or B; Admin keeps full manual control of tournament and group assignment.
+- SUPABASE_REVAMP_V2_SELF_SERVICE_TEAMS_UPDATE.sql adds the self-service profile and registration functions without deleting existing data.
 - Tournament registration on the Upcoming page for approved player accounts.
 - Duplicate-player protection across team registrations in the same tournament.
 - Public registered-team list with registration and payment-progress badges.

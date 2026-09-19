@@ -283,9 +283,9 @@ Voting closes automatically when the tournament status changes from **Upcoming**
 
 ## Tournament Registration And Payments
 
-Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql` once after the player-account update. Follow the exact non-technical instructions in `REGISTRATION_AND_PAYMENTS_README.md`.
+Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql` after the player-account update, then run `SUPABASE_REVAMP_V2_SELF_SERVICE_TEAMS_UPDATE.sql`. Follow the exact non-technical instructions in `REGISTRATION_AND_PAYMENTS_README.md`.
 
-Approved players register their existing team from the **Upcoming** page. Admin manages requests under **Admin > Regular Tournament > Registrations**, including confirmation, waitlist status, payment progress, amounts received, private notes, tournament costs, and the live financial summary.
+Players may claim an existing profile or create a new one. From **Upcoming**, a signed-in player selects any existing player as their partner; the website reuses an existing pair or creates a new team. Admin manages confirmation and payments under **Admin > Regular Tournament > Registrations**, then manually adds approved teams to the tournament and chooses Group A or B from the Tournament tab.
 
 ## Overall Leaderboard Ranking
 

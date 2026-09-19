@@ -133,7 +133,7 @@ export function AccountPanel() {
       setMessage("Account created. Open the confirmation email from Supabase, then return here and sign in.");
       setMode("signin");
     } else {
-      setMessage("Account created. Now claim your existing player profile below.");
+      setMessage("Account created. Now claim your existing profile or create a new player profile below.");
     }
   }
 
@@ -154,6 +154,41 @@ export function AccountPanel() {
     if (claimError) setError(claimError.message);
     else {
       setMessage("Claim requested. The Admin will approve it from the Admin panel.");
+      await loadAccount(session);
+    }
+  }
+
+  async function createNewProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || !session) return;
+    const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") ?? "").trim();
+    const photo = form.get("photo") as File | null;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    let photoUrl: string | null = null;
+
+    if (photo?.size) {
+      const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const path = `${session.user.id}/${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("player-photos").upload(path, photo);
+      if (uploadError) {
+        setError(uploadError.message);
+        setBusy(false);
+        return;
+      }
+      photoUrl = supabase.storage.from("player-photos").getPublicUrl(path).data.publicUrl;
+    }
+
+    const { error: createError } = await supabase.rpc("create_new_player_profile", {
+      p_name: name,
+      p_photo_url: photoUrl
+    });
+    setBusy(false);
+    if (createError) setError(createError.message);
+    else {
+      setMessage("Your new player profile is ready. You can now register a tournament team.");
       await loadAccount(session);
     }
   }
@@ -273,8 +308,9 @@ export function AccountPanel() {
           <p className="mt-1 text-sm text-amber-800">You requested the profile <strong>{claim.player?.name}</strong>. Once approved, your history and statistics will appear here.</p>
         </section>
       ) : (
+        <div className="grid gap-5 lg:grid-cols-2">
         <form onSubmit={requestClaim} className="sport-card space-y-4 p-5">
-          <div><h2 className="text-xl font-black text-slate-950">Claim your existing player</h2><p className="mt-1 text-sm text-slate-600">Choose your name. Admin approval protects profiles from being claimed by someone else.</p></div>
+          <div><p className="text-xs font-black uppercase text-court">Already played here</p><h2 className="mt-1 text-xl font-black text-slate-950">Claim your existing player</h2><p className="mt-1 text-sm text-slate-600">Choose your existing profile to keep its matches and statistics. Admin approval protects that history.</p></div>
           <div className="block">
             <span className="field-label">Your player profile</span>
             <button
@@ -330,6 +366,13 @@ export function AccountPanel() {
           </div>
           <button className="btn-primary" disabled={busy || !availablePlayers.length || !selectedClaimPlayerId}><CheckCircle2 className="h-4 w-4" /> Request profile</button>
         </form>
+        <form onSubmit={createNewProfile} className="sport-card space-y-4 p-5">
+          <div><p className="text-xs font-black uppercase text-court">First time here</p><h2 className="mt-1 text-xl font-black text-slate-950">Create a new player</h2><p className="mt-1 text-sm text-slate-600">Use this only if you have no existing profile or match history on the website. No Admin approval is required.</p></div>
+          <label className="block"><span className="field-label">Player name</span><input className="field" name="name" minLength={2} maxLength={80} placeholder="Your full player name" required /></label>
+          <label className="block"><span className="field-label">Profile picture (optional)</span><input className="field" name="photo" type="file" accept="image/*" /></label>
+          <button className="btn-primary" disabled={busy}><UserPlus className="h-4 w-4" /> {busy ? "Creating..." : "Create my player profile"}</button>
+        </form>
+        </div>
       )}
     </div>
   );

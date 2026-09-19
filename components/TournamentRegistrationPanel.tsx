@@ -4,17 +4,19 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { CheckCircle2, Clock3, LogIn, ReceiptText, UserPlus, X } from "lucide-react";
-import { TeamAvatar } from "@/components/Avatar";
+import { PlayerAvatar, TeamAvatar } from "@/components/Avatar";
 import { teamLabel } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import type { Player, Team, Tournament, TournamentRegistration } from "@/lib/types";
 
-export function TournamentRegistrationPanel({ tournament, teams }: { tournament: Tournament; teams: Team[] }) {
+export function TournamentRegistrationPanel({ tournament, teams, players }: { tournament: Tournament; teams: Team[]; players: Player[] }) {
   const [session, setSession] = useState<Session | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [registrations, setRegistrations] = useState<TournamentRegistration[]>([]);
   const [ownRegistration, setOwnRegistration] = useState<TournamentRegistration | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedPartnerId, setSelectedPartnerId] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [partnerSearch, setPartnerSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -59,28 +61,30 @@ export function TournamentRegistrationPanel({ tournament, teams }: { tournament:
     return () => listener.subscription.unsubscribe();
   }, [load]);
 
-  const eligibleTeams = useMemo(
-    () => player ? teams.filter((team) => team.player_1_id === player.id || team.player_2_id === player.id) : [],
-    [player, teams]
-  );
+  const availablePartners = useMemo(() => {
+    const query = partnerSearch.trim().toLowerCase();
+    return players.filter((item) => item.id !== player?.id && (!query || item.name.toLowerCase().includes(query)));
+  }, [partnerSearch, player?.id, players]);
   const visibleRegistrations = registrations.filter((item) => teams.some((team) => team.id === item.team_id));
   const registrationOpen = tournament.status === "upcoming" && tournament.registration_open !== false;
 
   async function register() {
-    if (!supabase || !selectedTeamId) return;
+    if (!supabase || !selectedPartnerId) return;
     setBusy(true);
     setMessage("");
     setError("");
-    const { error: registrationError } = await supabase.rpc("register_tournament_team", {
+    const { error: registrationError } = await supabase.rpc("register_tournament_pair", {
       p_tournament_id: tournament.id,
-      p_team_id: selectedTeamId
+      p_partner_player_id: selectedPartnerId,
+      p_team_name: teamName.trim() || null
     });
     setBusy(false);
     if (registrationError) setError(registrationError.message);
     else {
       setMessage("Your team registration was sent to the Admin for confirmation.");
-      setSelectedTeamId("");
-      await load(session);
+      setSelectedPartnerId("");
+      setTeamName("");
+      window.location.reload();
     }
   }
 
@@ -110,7 +114,7 @@ export function TournamentRegistrationPanel({ tournament, teams }: { tournament:
         <div className="sport-card p-4">
           <h2 className="font-black text-slate-950">Register your team</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {registrationOpen ? "Choose one of your existing teams. Admin will confirm the entry and record payments." : "Registration is currently closed."}
+            {registrationOpen ? "Choose any player as your partner. The site will reuse your existing team or create a new one." : "Registration is currently closed."}
           </p>
           {(tournament.team_fee ?? 0) > 0 ? (
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -138,13 +142,27 @@ export function TournamentRegistrationPanel({ tournament, teams }: { tournament:
             </div>
           ) : !player ? (
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">Claim your player profile and wait for Admin approval before registering.</div>
-          ) : eligibleTeams.length ? (
-            <div className="mt-4 space-y-3">
-              <label className="block"><span className="field-label">Your team</span><select className="field" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)}><option value="">Select team</option>{eligibleTeams.map((team) => <option key={team.id} value={team.id}>{teamLabel(team)}</option>)}</select></label>
-              <button className="btn-primary w-full" disabled={!registrationOpen || !selectedTeamId || busy} onClick={() => void register()}><CheckCircle2 className="h-4 w-4" /> {busy ? "Submitting..." : "Register team"}</button>
-            </div>
           ) : (
-            <p className="mt-4 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-600">No existing team contains your player profile. Ask the Admin to create your team first.</p>
+            <div className="mt-4 space-y-3">
+              <label className="block"><span className="field-label">Find your partner</span><input className="field" value={partnerSearch} onChange={(event) => setPartnerSearch(event.target.value)} placeholder="Search player name" /></label>
+              <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                {availablePartners.length ? availablePartners.map((partner) => (
+                  <button
+                    type="button"
+                    key={partner.id}
+                    onClick={() => setSelectedPartnerId(partner.id)}
+                    className={`flex w-full items-center gap-3 rounded-md border p-2 text-left transition ${selectedPartnerId === partner.id ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                  >
+                    <PlayerAvatar player={partner} size={38} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-950">{partner.name}</span>
+                    {selectedPartnerId === partner.id ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" /> : null}
+                  </button>
+                )) : <p className="p-3 text-center text-sm font-semibold text-slate-500">No matching players found.</p>}
+              </div>
+              <label className="block"><span className="field-label">Team name (optional)</span><input className="field" value={teamName} maxLength={80} onChange={(event) => setTeamName(event.target.value)} placeholder="Leave blank to use both player names" /></label>
+              <p className="rounded-md bg-slate-50 p-3 text-xs font-semibold text-slate-600">Admin approval confirms your registration only. The Admin will add the team to the tournament and choose its group later.</p>
+              <button className="btn-primary w-full" disabled={!registrationOpen || !selectedPartnerId || busy} onClick={() => void register()}><CheckCircle2 className="h-4 w-4" /> {busy ? "Submitting..." : "Register team"}</button>
+            </div>
           )}
           {message ? <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{message}</p> : null}
           {error ? <p className="mt-3 rounded-md bg-red-50 p-3 text-sm font-bold text-red-800">{error}</p> : null}
@@ -175,5 +193,5 @@ function PaymentBadge({ status }: { status: TournamentRegistration["payment_stat
 }
 
 function MoneySummary({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-md bg-slate-50 p-3"><p className="text-[10px] font-black uppercase text-slate-500">{label}</p><p className="mt-1 font-black text-slate-950">SAR {Number(value).toFixed(2)}</p></div>;
+  return <div className="rounded-md bg-slate-50 p-3"><p className="text-[10px] font-black uppercase text-slate-500">{label}</p><p className="mt-1 font-black text-slate-950">KWD {Number(value).toFixed(3)}</p></div>;
 }

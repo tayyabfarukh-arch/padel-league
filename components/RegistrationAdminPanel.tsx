@@ -108,24 +108,10 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
       updated_at: new Date().toISOString()
     }).eq("id", row.id);
 
-    if (!updateError && draft.status === "confirmed") {
-      const { error: assignmentError } = await supabase.from("tournament_teams").upsert({
-        tournament_id: row.tournament_id,
-        team_id: row.team_id,
-        group_name: "A"
-      }, { onConflict: "tournament_id,team_id", ignoreDuplicates: true });
-      if (assignmentError) {
-        setBusy(false);
-        setError(`Registration saved, but the team could not be added to the tournament: ${assignmentError.message}`);
-        await load();
-        return;
-      }
-    }
-
     setBusy(false);
     if (updateError) setError(updateError.message);
     else {
-      setMessage(draft.status === "confirmed" ? "Registration saved and the team was added to the tournament." : "Registration saved.");
+      setMessage(draft.status === "confirmed" ? "Registration confirmed. Add this team and choose its group manually from the Tournament tab." : "Registration saved.");
       await load();
     }
   }
@@ -183,8 +169,8 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
           <form key={tournamentId} onSubmit={saveTournamentSettings} className="space-y-3">
             <label className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3"><input name="registration_open" type="checkbox" defaultChecked={tournament?.registration_open !== false} className="h-5 w-5 accent-emerald-600" /><span><b className="block text-sm text-slate-950">Registration open</b><span className="text-xs text-slate-500">Players can submit teams while this is enabled.</span></span></label>
             <div className="grid grid-cols-2 gap-3">
-              <label><span className="field-label">Team fee (SAR)</span><input className="field" name="team_fee" type="number" min="0" step="0.01" defaultValue={Number(tournament?.team_fee ?? 0)} /></label>
-              <label><span className="field-label">Advance (SAR)</span><input className="field" name="advance_amount" type="number" min="0" step="0.01" defaultValue={Number(tournament?.advance_amount ?? 0)} /></label>
+              <label><span className="field-label">Team fee (KWD)</span><input className="field" name="team_fee" type="number" min="0" step="0.001" defaultValue={Number(tournament?.team_fee ?? 0)} /></label>
+              <label><span className="field-label">Advance (KWD)</span><input className="field" name="advance_amount" type="number" min="0" step="0.001" defaultValue={Number(tournament?.advance_amount ?? 0)} /></label>
             </div>
             <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save settings</button>
           </form>
@@ -194,7 +180,7 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
           <h2 className="mb-4 text-lg font-black text-slate-950">Tournament expenses</h2>
           <form onSubmit={addExpense} className="grid gap-2 sm:grid-cols-[1fr_130px_auto]">
             <input className="field" name="description" placeholder="Court booking, balls, trophies..." required />
-            <input className="field" name="amount" type="number" min="0" step="0.01" placeholder="SAR" required />
+            <input className="field" name="amount" type="number" min="0" step="0.001" placeholder="KWD" required />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add</button>
           </form>
           <div className="mt-3 divide-y divide-slate-100 rounded-md border border-slate-200">
@@ -205,7 +191,7 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
       </div>
 
       <section className="sport-card overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><WalletCards className="h-5 w-5 text-court" /><div><h2 className="font-black text-slate-950">Team registrations</h2><p className="text-sm text-slate-500">Confirming a team also adds it to the tournament in Group A. You can move it to Group B from the Tournament tab.</p></div></div>
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><WalletCards className="h-5 w-5 text-court" /><div><h2 className="font-black text-slate-950">Team registrations</h2><p className="text-sm text-slate-500">After confirming a team, use the Tournament tab to add it and choose Group A or Group B manually.</p></div></div>
         {loading ? <p className="p-5 text-sm font-bold text-slate-500">Loading registrations...</p> : registrations.length ? <div className="divide-y divide-slate-200">{registrations.map((row) => {
           const team = teams.find((item) => item.id === row.team_id);
           const draft = drafts[row.id];
@@ -216,8 +202,8 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <label><span className="field-label">Registration</span><select className="field" value={draft.status} onChange={(event) => updateDraft(row.id, { status: event.target.value as RegistrationStatus })}><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="waitlisted">Waitlisted</option><option value="withdrawn">Withdrawn</option><option value="rejected">Rejected</option></select></label>
                 <label><span className="field-label">Payment</span><select className="field" value={draft.payment_status} onChange={(event) => updateDraft(row.id, { payment_status: event.target.value as PaymentStatus })}><option value="unpaid">Unpaid</option><option value="advance_paid">Advance paid</option><option value="fully_paid">Paid in full</option><option value="refunded">Refunded</option></select></label>
-                <label><span className="field-label">Fee (SAR)</span><input className="field" type="number" min="0" step="0.01" value={draft.fee_amount} onChange={(event) => updateDraft(row.id, { fee_amount: Number(event.target.value) })} /></label>
-                <label><span className="field-label">Received (SAR)</span><input className="field" type="number" min="0" step="0.01" value={draft.amount_paid} onChange={(event) => updateDraft(row.id, { amount_paid: Number(event.target.value) })} /></label>
+                <label><span className="field-label">Fee (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.fee_amount} onChange={(event) => updateDraft(row.id, { fee_amount: Number(event.target.value) })} /></label>
+                <label><span className="field-label">Received (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.amount_paid} onChange={(event) => updateDraft(row.id, { amount_paid: Number(event.target.value) })} /></label>
                 <label><span className="field-label">Admin note</span><input className="field" value={draft.admin_notes} onChange={(event) => updateDraft(row.id, { admin_notes: event.target.value })} placeholder="Private note" /></label>
               </div>
               <button className="btn-primary mt-3" disabled={busy} onClick={() => void saveRegistration(row)}><Save className="h-4 w-4" /> Save registration</button>
@@ -230,5 +216,5 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
 }
 
 function money(value: number) {
-  return `SAR ${Number(value).toFixed(2)}`;
+  return `KWD ${Number(value).toFixed(3)}`;
 }

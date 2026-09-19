@@ -67,16 +67,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 4. Enter a username, email, and password.
 5. If Supabase sends a confirmation email, open it and click the confirmation link.
 6. Return to the website and sign in.
-7. Select the player's existing name under **Claim your existing player**.
-8. Click **Request profile**.
-9. Open **Admin** and sign in as the Admin.
-10. Open **Regular Tournament > Accounts**.
-11. Confirm that the username belongs to the selected player.
-12. Click **Approve**.
-13. The player can now update their name and photo and can submit predictions.
+7. Returning players select their existing name under **Claim your existing player**, then click **Request profile**.
+8. Admin opens **Regular Tournament > Accounts**, confirms the identity, and approves that claim.
+9. A completely new player instead uses **Create a new player** and does not need claim approval.
+10. The linked player can update their name and photo and submit predictions.
 
 ## Registration And Payments
 
-The registration and payment-management stage is now included. After completing this account setup, follow `REGISTRATION_AND_PAYMENTS_README.md` and run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql`.
+The registration and payment-management stage is included. Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql`, then `SUPABASE_REVAMP_V2_SELF_SERVICE_TEAMS_UPDATE.sql`, and follow `REGISTRATION_AND_PAYMENTS_README.md`.
 
 The next major stage is the rating calculation in private test mode before ratings are shown publicly.
