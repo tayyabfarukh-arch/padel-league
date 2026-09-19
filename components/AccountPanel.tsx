@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Camera, CheckCircle2, LogIn, LogOut, ShieldCheck, UserPlus } from "lucide-react";
+import { Camera, Check, CheckCircle2, ChevronDown, LogIn, LogOut, Search, ShieldCheck, UserPlus } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { StatsGrid } from "@/components/StatsGrid";
 import { calculatePlayerStats } from "@/lib/scoring";
@@ -17,6 +17,9 @@ export function AccountPanel() {
   const [claim, setClaim] = useState<PlayerClaim | null>(null);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [claimPickerOpen, setClaimPickerOpen] = useState(false);
+  const [claimSearch, setClaimSearch] = useState("");
+  const [selectedClaimPlayerId, setSelectedClaimPlayerId] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -137,12 +140,15 @@ export function AccountPanel() {
   async function requestClaim(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !session) return;
-    const form = new FormData(event.currentTarget);
+    if (!selectedClaimPlayerId) {
+      setError("Please select your player profile first.");
+      return;
+    }
     setBusy(true);
     setError("");
     const { error: claimError } = await supabase.from("player_claims").insert({
       user_id: session.user.id,
-      player_id: String(form.get("player_id") ?? "")
+      player_id: selectedClaimPlayerId
     });
     setBusy(false);
     if (claimError) setError(claimError.message);
@@ -195,6 +201,11 @@ export function AccountPanel() {
   }
 
   if (loading) return <p className="sport-card p-5 text-sm font-bold text-slate-600">Loading your account...</p>;
+
+  const selectedClaimPlayer = availablePlayers.find((item) => item.id === selectedClaimPlayerId);
+  const filteredClaimPlayers = availablePlayers.filter((item) =>
+    item.name.toLowerCase().includes(claimSearch.trim().toLowerCase())
+  );
 
   if (!session) {
     return (
@@ -264,8 +275,60 @@ export function AccountPanel() {
       ) : (
         <form onSubmit={requestClaim} className="sport-card space-y-4 p-5">
           <div><h2 className="text-xl font-black text-slate-950">Claim your existing player</h2><p className="mt-1 text-sm text-slate-600">Choose your name. Admin approval protects profiles from being claimed by someone else.</p></div>
-          <label className="block"><span className="field-label">Your player profile</span><select className="field" name="player_id" required><option value="">Select your name</option>{availablePlayers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <button className="btn-primary" disabled={busy || !availablePlayers.length}><CheckCircle2 className="h-4 w-4" /> Request profile</button>
+          <div className="block">
+            <span className="field-label">Your player profile</span>
+            <button
+              type="button"
+              className="field flex items-center gap-3 text-left"
+              aria-expanded={claimPickerOpen}
+              onClick={() => setClaimPickerOpen((open) => !open)}
+            >
+              {selectedClaimPlayer ? <PlayerAvatar player={selectedClaimPlayer} size={38} /> : <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-black text-slate-500">?</span>}
+              <span className={`min-w-0 flex-1 truncate font-bold ${selectedClaimPlayer ? "text-slate-950" : "text-slate-500"}`}>
+                {selectedClaimPlayer?.name ?? "Select your name"}
+              </span>
+              <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${claimPickerOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {claimPickerOpen ? (
+              <div className="mt-2 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
+                <label className="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
+                  <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                  <input
+                    className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
+                    value={claimSearch}
+                    onChange={(event) => setClaimSearch(event.target.value)}
+                    placeholder="Search player name"
+                    autoFocus
+                  />
+                </label>
+                <div className="max-h-72 overflow-y-auto p-1">
+                  {filteredClaimPlayers.map((item) => {
+                    const selected = item.id === selectedClaimPlayerId;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition ${selected ? "bg-emerald-50 text-emerald-950" : "hover:bg-slate-50"}`}
+                        onClick={() => {
+                          setSelectedClaimPlayerId(item.id);
+                          setClaimPickerOpen(false);
+                          setClaimSearch("");
+                          setError("");
+                        }}
+                      >
+                        <PlayerAvatar player={item} size={40} />
+                        <span className="min-w-0 flex-1 truncate font-bold">{item.name}</span>
+                        {selected ? <Check className="h-5 w-5 shrink-0 text-court" /> : null}
+                      </button>
+                    );
+                  })}
+                  {!filteredClaimPlayers.length ? <p className="p-4 text-center text-sm font-semibold text-slate-500">No matching player found.</p> : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <button className="btn-primary" disabled={busy || !availablePlayers.length || !selectedClaimPlayerId}><CheckCircle2 className="h-4 w-4" /> Request profile</button>
         </form>
       )}
     </div>

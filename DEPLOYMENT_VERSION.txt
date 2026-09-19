@@ -2,6 +2,7 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Profile claims now use a searchable visual player picker with profile pictures and names.
 - Approved player accounts now display their complete linked career statistics and partner history.
 - Player account creation with username, private email, and password.
 - Safe claims that link accounts to existing player profiles after Admin approval.
