@@ -20,5 +20,5 @@ export default async function UpcomingTournamentPage() {
     );
   }
 
-  return <TournamentExperience tournament={tournament} allowScoreEntry={false} />;
+  return <TournamentExperience tournament={tournament} allowScoreEntry={false} showRegistration />;
 }

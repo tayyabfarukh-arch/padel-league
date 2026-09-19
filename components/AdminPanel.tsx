@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
+import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
 import { generateRegularGroupSchedule, matchPairKey } from "@/lib/regular-schedule";
@@ -25,7 +26,7 @@ type Props = {
   courtStreams: CourtStream[];
 };
 
-type AdminSection = "accounts" | "people" | "tournament" | "schedule" | "results";
+type AdminSection = "accounts" | "people" | "registrations" | "tournament" | "schedule" | "results";
 
 export function AdminPanel({ configured, players, teams, tournaments: allTournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams }: Props) {
   const tournaments = allTournaments.filter((item) => item.tournament_format === "regular");
@@ -1369,6 +1370,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             {([
               ["accounts", "Accounts"],
               ["people", "People"],
+              ["registrations", "Registrations"],
               ["tournament", "Tournament"],
               ["schedule", "Schedule"],
               ["results", "Results"]
@@ -1389,6 +1391,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
           <div className={adminWorkspace === "regular" ? "grid gap-5 lg:grid-cols-2" : "hidden"}>
         {adminSection === "accounts" ? <PlayerAccountAdmin /> : null}
+        {adminSection === "registrations" ? <RegistrationAdminPanel tournaments={allTournaments.filter((item) => item.tournament_format !== "singles_americano")} teams={teams} /> : null}
         {adminSection === "people" ? (
           <>
         <Panel title="Add player">
@@ -2120,7 +2123,7 @@ function messageClass(type: "info" | "success" | "error") {
 }
 
 function isAdminSection(value: string | null): value is AdminSection {
-  return value === "accounts" || value === "people" || value === "tournament" || value === "schedule" || value === "results";
+  return value === "accounts" || value === "people" || value === "registrations" || value === "tournament" || value === "schedule" || value === "results";
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

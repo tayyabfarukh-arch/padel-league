@@ -2,6 +2,13 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Tournament registration on the Upcoming page for approved player accounts.
+- Duplicate-player protection across team registrations in the same tournament.
+- Public registered-team list with registration and payment-progress badges.
+- Admin registration settings, approvals, waitlist controls, payment records, and private notes.
+- Confirmed registrations are added to the tournament participant list automatically.
+- Tournament expense tracking and live expected, received, outstanding, expense, and balance totals.
+- SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql preserves all existing records.
 - Profile claims now use a searchable visual player picker with profile pictures and names.
 - Approved player accounts now display their complete linked career statistics and partner history.
 - Player account creation with username, private email, and password.

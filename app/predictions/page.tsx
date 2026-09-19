@@ -21,7 +21,7 @@ export default async function PredictionsPage() {
       <section className="court-panel rounded-lg p-5 text-white">
         <p className="text-sm font-bold uppercase text-limeball">Simple tournament vote</p>
         <h1 className="mt-1 text-3xl font-black">Tournament predictions</h1>
-        <p className="mt-2 text-sm text-slate-300">No sign-in required. Vote before the tournament becomes active.</p>
+        <p className="mt-2 text-sm text-slate-300">Sign in with an approved player account and vote before the tournament becomes active.</p>
       </section>
       <PredictionPanel tournaments={tournaments} tournamentTeams={tournamentTeams} predictions={predictions} />
     </div>

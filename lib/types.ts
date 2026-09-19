@@ -62,10 +62,41 @@ export type Tournament = {
   runner_up_team_id: string | null;
   third_place_team_id: string | null;
   cover_image_url: string | null;
+  registration_open?: boolean;
+  team_fee?: number;
+  advance_amount?: number;
   created_at: string;
   champion?: Team | null;
   runner_up?: Team | null;
   third_place?: Team | null;
+};
+
+export type RegistrationStatus = "pending" | "confirmed" | "waitlisted" | "withdrawn" | "rejected";
+export type PaymentStatus = "unpaid" | "advance_paid" | "fully_paid" | "refunded";
+
+export type TournamentRegistration = {
+  id: string;
+  tournament_id: string;
+  team_id: string;
+  captain_user_id?: string;
+  status: RegistrationStatus;
+  payment_status: PaymentStatus;
+  fee_amount?: number;
+  amount_paid?: number;
+  admin_notes?: string | null;
+  advance_paid_at?: string | null;
+  fully_paid_at?: string | null;
+  created_at: string;
+  updated_at?: string;
+  team?: Team;
+};
+
+export type TournamentExpense = {
+  id: string;
+  tournament_id: string;
+  description: string;
+  amount: number;
+  created_at: string;
 };
 
 export type TournamentPlayer = {

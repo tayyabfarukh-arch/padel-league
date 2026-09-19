@@ -281,6 +281,12 @@ Before using account-based predictions on an existing website, run `SUPABASE_REV
 
 Voting closes automatically when the tournament status changes from **Upcoming** to **Active**.
 
+## Tournament Registration And Payments
+
+Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql` once after the player-account update. Follow the exact non-technical instructions in `REGISTRATION_AND_PAYMENTS_README.md`.
+
+Approved players register their existing team from the **Upcoming** page. Admin manages requests under **Admin > Regular Tournament > Registrations**, including confirmation, waitlist status, payment progress, amounts received, private notes, tournament costs, and the live financial summary.
+
 ## Overall Leaderboard Ranking
 
 The overall **Teams** and **Players** leaderboards rank competitors by:

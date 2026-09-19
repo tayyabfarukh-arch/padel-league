@@ -75,6 +75,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 12. Click **Approve**.
 13. The player can now update their name and photo and can submit predictions.
 
-## What Comes Next
+## Registration And Payments
 
-The next stage will add the visible tournament registration and payment-management screens. After that, the rating calculation can run privately in test mode before ratings are shown publicly.
+The registration and payment-management stage is now included. After completing this account setup, follow `REGISTRATION_AND_PAYMENTS_README.md` and run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql`.
+
+The next major stage is the rating calculation in private test mode before ratings are shown publicly.

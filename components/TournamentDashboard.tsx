@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { courtStreamUrl, stageLabel } from "@/lib/format";
 import { getTargetGamesForStage } from "@/lib/scoring";
@@ -10,13 +11,15 @@ export function TournamentDashboard({
   tournamentTeams,
   matches,
   courtStreams,
-  allowScoreEntry
+  allowScoreEntry,
+  registrationContent
 }: {
   tournament: Tournament;
   tournamentTeams: TournamentTeam[];
   matches: Match[];
   courtStreams: CourtStream[];
   allowScoreEntry: boolean;
+  registrationContent?: ReactNode;
 }) {
   return (
     <div className="space-y-6">
@@ -27,6 +30,8 @@ export function TournamentDashboard({
           Group: {tournament.points_scoring_mode === "race_to" ? "race to" : "combined total"} {tournament.group_target_points} | Final: race to {tournament.final_target_games}
         </p>
       </section>
+
+      {registrationContent}
 
       <TournamentGroups
         tournament={tournament}
