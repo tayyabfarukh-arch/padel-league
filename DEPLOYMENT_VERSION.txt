@@ -2,6 +2,9 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Players can request a secure password-recovery email from the Account sign-in page.
+- Recovery links open a dedicated form for choosing and confirming a new password.
+- The Players leaderboard displays a verified check beside profiles linked to an account.
 - Selecting a partner automatically fills the saved team name when that player pairing already exists.
 - A team name is mandatory when the selected player pairing does not yet have a team.
 - Registration fees, payments, expenses, and financial totals are displayed in Kuwaiti Dinars (KWD).

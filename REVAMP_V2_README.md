@@ -77,3 +77,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 The registration and payment-management stage is included. Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql`, then `SUPABASE_REVAMP_V2_SELF_SERVICE_TEAMS_UPDATE.sql`, and follow `REGISTRATION_AND_PAYMENTS_README.md`.
 
 The next major stage is the rating calculation in private test mode before ratings are shown publicly.
+
+## Password Recovery
+
+Players can click **Forgot password?** on the Account sign-in form, enter their registered email, and use the secure Supabase email link to choose a new password. In Supabase, add `https://padelnight.netlify.app/account?recovery=1` under **Authentication > URL Configuration > Redirect URLs**.
+
+Players whose profile is linked to an account display a verified check beside their name on the Players leaderboard.

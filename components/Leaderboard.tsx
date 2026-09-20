@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { BadgeCheck, ChevronDown } from "lucide-react";
 import { formatPercent, teamLabel } from "@/lib/format";
 import type { PlayerStats, TeamStats } from "@/lib/types";
 import { PlayerAvatar, TeamAvatar } from "./Avatar";
@@ -69,7 +69,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
               <div className="flex min-w-0 items-center gap-3 p-3">
                 <PlayerAvatar player={row.player} size={42} />
                 <div className="min-w-0">
-                  <p className="truncate font-black text-slate-950">{row.player.name}</p>
+                  <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /></p>
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
         <div className="flex min-w-0 items-center gap-3">
           <PlayerAvatar player={row.player} size={42} />
           <div className="min-w-0">
-            <p className="truncate font-black text-slate-950">{row.player.name}</p>
+            <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /></p>
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
@@ -245,4 +245,9 @@ function playerDetails(row: PlayerStats): DetailItem[] {
 
 function signed(value: number) {
   return value > 0 ? `+${value}` : value;
+}
+
+function VerifiedPlayer({ player }: { player: PlayerStats["player"] }) {
+  if (!player.user_id) return null;
+  return <BadgeCheck className="h-4 w-4 shrink-0 fill-emerald-100 text-emerald-600" aria-label="Verified player account" />;
 }

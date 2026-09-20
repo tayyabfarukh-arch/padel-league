@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { Camera, Check, CheckCircle2, ChevronDown, LogIn, LogOut, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { Camera, Check, CheckCircle2, ChevronDown, KeyRound, LogIn, LogOut, Mail, Search, ShieldCheck, UserPlus } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { StatsGrid } from "@/components/StatsGrid";
 import { calculatePlayerStats } from "@/lib/scoring";
@@ -16,7 +16,8 @@ export function AccountPanel() {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [claim, setClaim] = useState<PlayerClaim | null>(null);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "recover">("signin");
+  const [passwordRecoveryActive, setPasswordRecoveryActive] = useState(false);
   const [claimPickerOpen, setClaimPickerOpen] = useState(false);
   const [claimSearch, setClaimSearch] = useState("");
   const [selectedClaimPlayerId, setSelectedClaimPlayerId] = useState("");
@@ -72,8 +73,12 @@ export function AccountPanel() {
       setLoading(false);
       return;
     }
+    if (new URLSearchParams(window.location.search).get("recovery") === "1") {
+      setPasswordRecoveryActive(true);
+    }
     supabase.auth.getSession().then(({ data }) => void loadAccount(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") setPasswordRecoveryActive(true);
       void loadAccount(nextSession);
     });
     return () => listener.subscription.unsubscribe();
@@ -134,6 +139,45 @@ export function AccountPanel() {
       setMode("signin");
     } else {
       setMessage("Account created. Now claim your existing profile or create a new player profile below.");
+    }
+  }
+
+  async function requestPasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
+    setBusy(true);
+    setError("");
+    setMessage("");
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/account?recovery=1`
+    });
+    setBusy(false);
+    if (resetError) setError(resetError.message);
+    else setMessage("If an account exists for that email, Supabase has sent a password-reset link. Please check the inbox and spam folder.");
+  }
+
+  async function updatePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    const form = new FormData(event.currentTarget);
+    const password = String(form.get("password") ?? "");
+    const confirmation = String(form.get("confirmation") ?? "");
+    setError("");
+    setMessage("");
+    if (password !== confirmation) {
+      setError("The two passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (updateError) setError(updateError.message);
+    else {
+      setPasswordRecoveryActive(false);
+      window.history.replaceState({}, "", window.location.pathname);
+      setMessage("Your password has been changed successfully.");
     }
   }
 
@@ -242,6 +286,23 @@ export function AccountPanel() {
     item.name.toLowerCase().includes(claimSearch.trim().toLowerCase())
   );
 
+  if (passwordRecoveryActive && session) {
+    return (
+      <div className="mx-auto max-w-xl space-y-4">
+        <form onSubmit={updatePassword} className="sport-card space-y-4 p-5">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-md bg-emerald-50 text-court"><KeyRound className="h-5 w-5" /></span>
+            <div><p className="text-xs font-black uppercase text-court">Password recovery</p><h2 className="text-xl font-black text-slate-950">Choose a new password</h2></div>
+          </div>
+          <label className="block"><span className="field-label">New password</span><input className="field" name="password" type="password" minLength={8} autoComplete="new-password" required /></label>
+          <label className="block"><span className="field-label">Confirm new password</span><input className="field" name="confirmation" type="password" minLength={8} autoComplete="new-password" required /></label>
+          <button className="btn-primary w-full" disabled={busy}><KeyRound className="h-4 w-4" /> {busy ? "Updating..." : "Set new password"}</button>
+        </form>
+        <Status message={message} error={error} />
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div className="mx-auto max-w-xl space-y-4">
@@ -249,12 +310,15 @@ export function AccountPanel() {
           <button className={mode === "signin" ? "btn-primary" : "btn-secondary border-transparent bg-white/10 text-white"} onClick={() => setMode("signin")}>Sign in</button>
           <button className={mode === "signup" ? "btn-primary" : "btn-secondary border-transparent bg-white/10 text-white"} onClick={() => setMode("signup")}>Create account</button>
         </div>
-        <form onSubmit={mode === "signin" ? signIn : signUp} className="sport-card space-y-4 p-5">
-          <h2 className="text-xl font-black text-slate-950">{mode === "signin" ? "Welcome back" : "Create your player account"}</h2>
+        <form onSubmit={mode === "signin" ? signIn : mode === "signup" ? signUp : requestPasswordReset} className="sport-card space-y-4 p-5">
+          <h2 className="text-xl font-black text-slate-950">{mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your player account" : "Recover your password"}</h2>
+          {mode === "recover" ? <p className="text-sm font-semibold text-slate-600">Enter the email used for your account. Supabase will send you a secure link for choosing a new password.</p> : null}
           {mode === "signup" ? <label className="block"><span className="field-label">Username</span><input className="field" name="username" autoCapitalize="none" placeholder="example: tayyab_farukh" required /></label> : null}
           <label className="block"><span className="field-label">Email</span><input className="field" name="email" type="email" autoComplete="email" required /></label>
-          <label className="block"><span className="field-label">Password</span><input className="field" name="password" type="password" minLength={8} autoComplete={mode === "signin" ? "current-password" : "new-password"} required /></label>
-          <button className="btn-primary w-full" disabled={busy}>{mode === "signin" ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}{busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}</button>
+          {mode !== "recover" ? <label className="block"><span className="field-label">Password</span><input className="field" name="password" type="password" minLength={8} autoComplete={mode === "signin" ? "current-password" : "new-password"} required /></label> : null}
+          <button className="btn-primary w-full" disabled={busy}>{mode === "signin" ? <LogIn className="h-4 w-4" /> : mode === "signup" ? <UserPlus className="h-4 w-4" /> : <Mail className="h-4 w-4" />}{busy ? "Please wait..." : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}</button>
+          {mode === "signin" ? <button type="button" className="w-full text-center text-sm font-black text-court hover:underline" onClick={() => { setMode("recover"); setError(""); setMessage(""); }}>Forgot password?</button> : null}
+          {mode === "recover" ? <button type="button" className="btn-secondary w-full" onClick={() => { setMode("signin"); setError(""); setMessage(""); }}><LogIn className="h-4 w-4" /> Back to sign in</button> : null}
         </form>
         <Status message={message} error={error} />
       </div>
