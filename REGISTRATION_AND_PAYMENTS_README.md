@@ -38,6 +38,8 @@ No new Netlify environment variables are required.
 6. Enter the requested advance amount.
 7. Click **Save settings**.
 
+While **Registration open** is enabled, the Upcoming page shows registration and hides standings and matches. After assigning all teams to their groups, return here, turn **Registration open** off, and click **Save settings**. Registration then disappears and Upcoming shows the group standings and match schedule.
+
 ## Step 4: Player Registration
 
 1. The player creates an account and signs in.

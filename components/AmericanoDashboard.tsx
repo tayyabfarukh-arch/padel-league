@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { ChevronDown, Filter, MapPin } from "lucide-react";
 import { calculateSinglesAmericanoStandings, calculateTeamAmericanoStandings } from "@/lib/americano-scoring";
@@ -14,7 +15,9 @@ export function AmericanoDashboard({
   tournamentTeams,
   matches,
   courtStreams,
-  allowScoreEntry
+  allowScoreEntry,
+  registrationContent,
+  registrationOnly = false
 }: {
   tournament: Tournament;
   tournamentPlayers: TournamentPlayer[];
@@ -22,6 +25,8 @@ export function AmericanoDashboard({
   matches: AmericanoMatch[];
   courtStreams: CourtStream[];
   allowScoreEntry: boolean;
+  registrationContent?: ReactNode;
+  registrationOnly?: boolean;
 }) {
   const [participantFilter, setParticipantFilter] = useState("all");
   const [courtFilter, setCourtFilter] = useState("all");
@@ -52,6 +57,9 @@ export function AmericanoDashboard({
         <p className="mt-1.5 text-xs font-bold text-slate-300">{tournament.points_scoring_mode === "race_to" ? "Race to" : "Combined total"} {tournament.americano_target_points} points | {tournament.americano_round_count} rounds | {tournament.court_count} courts</p>
       </section>
 
+      {registrationContent}
+
+      {!registrationOnly ? <>
       <section>
         <h2 className="section-bar">Americano standings</h2>
         <AmericanoLeaderboard rows={standings} />
@@ -89,6 +97,7 @@ export function AmericanoDashboard({
         );
       })}
       {!matches.length ? <div className="sport-card p-5 text-center text-sm font-bold text-slate-500">The Admin has not generated the Americano schedule yet.</div> : null}
+      </> : null}
     </div>
   );
 }

@@ -2,6 +2,8 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Upcoming shows registration only while the tournament's Registration open switch is enabled.
+- After Admin assigns groups and closes registration, Upcoming hides registration and shows standings and matches.
 - Players can request a secure password-recovery email from the Account sign-in page.
 - Recovery links open a dedicated form for choosing and confirming a new password.
 - The Players leaderboard displays a verified check beside profiles linked to an account.

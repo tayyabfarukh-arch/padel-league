@@ -20,29 +20,37 @@ type Props = {
 
 export async function TournamentExperience({ tournament, allowScoreEntry, showRegistration = false }: Props) {
   if (tournament.tournament_format !== "regular") {
+    const registrationPhase = showRegistration && tournament.tournament_format === "team_americano" && tournament.registration_open !== false;
     const [tournamentPlayers, tournamentTeams, matches, courtStreams, teams, players] = await Promise.all([
       getTournamentPlayers(tournament.id),
       getTournamentTeams(tournament.id),
       getAmericanoMatches(tournament.id),
       getCourtStreams(tournament.id),
-      showRegistration && tournament.tournament_format === "team_americano" ? getTeams() : Promise.resolve([]),
-      showRegistration && tournament.tournament_format === "team_americano" ? getPlayers() : Promise.resolve([])
+      registrationPhase ? getTeams() : Promise.resolve([]),
+      registrationPhase ? getPlayers() : Promise.resolve([])
     ]);
 
     return (
-      <div className="space-y-6">
-        {showRegistration && tournament.tournament_format === "team_americano" ? <TournamentRegistrationPanel tournament={tournament} teams={teams} players={players} /> : null}
-        <AmericanoDashboard tournament={tournament} tournamentPlayers={tournamentPlayers} tournamentTeams={tournamentTeams} matches={matches} courtStreams={courtStreams} allowScoreEntry={allowScoreEntry} />
-      </div>
+      <AmericanoDashboard
+        tournament={tournament}
+        tournamentPlayers={tournamentPlayers}
+        tournamentTeams={tournamentTeams}
+        matches={matches}
+        courtStreams={courtStreams}
+        allowScoreEntry={allowScoreEntry}
+        registrationOnly={registrationPhase}
+        registrationContent={registrationPhase ? <TournamentRegistrationPanel tournament={tournament} teams={teams} players={players} /> : undefined}
+      />
     );
   }
 
+  const registrationPhase = showRegistration && tournament.registration_open !== false;
   const [tournamentTeams, matches, courtStreams, teams, players] = await Promise.all([
     getTournamentTeams(tournament.id),
     getMatches(tournament.id),
     getCourtStreams(tournament.id),
-    showRegistration ? getTeams() : Promise.resolve([]),
-    showRegistration ? getPlayers() : Promise.resolve([])
+    registrationPhase ? getTeams() : Promise.resolve([]),
+    registrationPhase ? getPlayers() : Promise.resolve([])
   ]);
 
   return (
@@ -52,7 +60,8 @@ export async function TournamentExperience({ tournament, allowScoreEntry, showRe
       matches={matches}
       courtStreams={courtStreams}
       allowScoreEntry={allowScoreEntry}
-      registrationContent={showRegistration ? <TournamentRegistrationPanel tournament={tournament} teams={teams} players={players} /> : undefined}
+      registrationOnly={registrationPhase}
+      registrationContent={registrationPhase ? <TournamentRegistrationPanel tournament={tournament} teams={teams} players={players} /> : undefined}
     />
   );
 }

@@ -12,7 +12,8 @@ export function TournamentDashboard({
   matches,
   courtStreams,
   allowScoreEntry,
-  registrationContent
+  registrationContent,
+  registrationOnly = false
 }: {
   tournament: Tournament;
   tournamentTeams: TournamentTeam[];
@@ -20,6 +21,7 @@ export function TournamentDashboard({
   courtStreams: CourtStream[];
   allowScoreEntry: boolean;
   registrationContent?: ReactNode;
+  registrationOnly?: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -33,40 +35,44 @@ export function TournamentDashboard({
 
       {registrationContent}
 
-      <TournamentGroups
-        tournament={tournament}
-        tournamentTeams={tournamentTeams}
-        matches={matches}
-        courtStreams={courtStreams}
-        allowScoreEntry={allowScoreEntry}
-      />
+      {!registrationOnly ? (
+        <>
+          <TournamentGroups
+            tournament={tournament}
+            tournamentTeams={tournamentTeams}
+            matches={matches}
+            courtStreams={courtStreams}
+            allowScoreEntry={allowScoreEntry}
+          />
 
-      {(["semifinal", "final", "third_place"] as const).map((stage) => {
-        const stageMatches = matches.filter((match) => match.stage === stage);
-        if (!stageMatches.length) return null;
-        return (
-          <details key={stage} className="group">
-            <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-              <span>{stageLabel(stage)}</span>
-              <span className="flex items-center gap-2 text-xs font-black">
-                {stageMatches.length} {stageMatches.length === 1 ? "match" : "matches"}
-                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-              </span>
-            </summary>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {stageMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  allowScoreEntry={allowScoreEntry}
-                  scoreTarget={getTargetGamesForStage(tournament, stage)}
-                  youtubeUrl={courtStreamUrl(match, courtStreams)}
-                />
-              ))}
-            </div>
-          </details>
-        );
-      })}
+          {(["semifinal", "final", "third_place"] as const).map((stage) => {
+            const stageMatches = matches.filter((match) => match.stage === stage);
+            if (!stageMatches.length) return null;
+            return (
+              <details key={stage} className="group">
+                <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <span>{stageLabel(stage)}</span>
+                  <span className="flex items-center gap-2 text-xs font-black">
+                    {stageMatches.length} {stageMatches.length === 1 ? "match" : "matches"}
+                    <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+                  </span>
+                </summary>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {stageMatches.map((match) => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      allowScoreEntry={allowScoreEntry}
+                      scoreTarget={getTargetGamesForStage(tournament, stage)}
+                      youtubeUrl={courtStreamUrl(match, courtStreams)}
+                    />
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </>
+      ) : null}
     </div>
   );
 }
