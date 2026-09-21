@@ -203,10 +203,20 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
 
         <div className="sport-card overflow-hidden">
           <div className="border-b border-slate-200 px-4 py-3"><h2 className="font-black text-slate-950">Registered teams</h2><p className="text-sm text-slate-500">Payment amounts remain private; only progress is shown.</p></div>
-          {visibleRegistrations.length ? <div className="divide-y divide-slate-100">{visibleRegistrations.map((item) => {
+          {visibleRegistrations.length ? <div className="divide-y divide-slate-100">{visibleRegistrations.map((item, index) => {
             const team = teams.find((entry) => entry.id === item.team_id);
             if (!team) return null;
-            return <div key={item.id} className="flex items-center gap-3 p-3"><TeamAvatar team={team} size={42} /><div className="min-w-0 flex-1"><p className="truncate font-black text-slate-950">{teamLabel(team)}</p><div className="mt-1 flex flex-wrap gap-1.5"><StatusBadge status={item.status} /><PaymentBadge status={item.payment_status} /></div></div></div>;
+            return (
+              <div key={item.id} className="flex items-center gap-3 p-3">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-black text-slate-600">{index + 1}</span>
+                <TeamAvatar team={team} size={42} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-black text-slate-950">{teamLabel(team)}</p>
+                  <p className="truncate text-xs font-semibold text-slate-500">{team.player_1?.name ?? "Player 1"} / {team.player_2?.name ?? "Player 2"}</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5"><StatusBadge status={item.status} /><PaymentBadge status={item.payment_status} /></div>
+                </div>
+              </div>
+            );
           })}</div> : <p className="p-6 text-center text-sm font-semibold text-slate-500">No teams have registered yet.</p>}
         </div>
       </div>

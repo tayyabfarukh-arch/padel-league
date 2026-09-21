@@ -2,6 +2,7 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Registered teams are numbered in registration order and show both players' names above the status badges.
 - Upcoming shows registration only while the tournament's Registration open switch is enabled.
 - After Admin assigns groups and closes registration, Upcoming hides registration and shows standings and matches.
 - Players can request a secure password-recovery email from the Account sign-in page.
