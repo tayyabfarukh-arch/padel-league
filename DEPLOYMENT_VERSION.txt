@@ -2,6 +2,12 @@ REVAMP V2 - PLAYER ACCOUNT FOUNDATION
 Created: September 19, 2026
 
 This release adds:
+- Optional quarter-final format for regular two-group tournaments.
+- Automatic Q1 A1-B4, Q2 A2-B3, Q3 A3-B2, and Q4 A4-B1 generation from completed group standings.
+- Automatic SF1 Q1-Q3 and SF2 Q2-Q4 winner progression.
+- Separate quarter-final games target and editable scoring targets for existing tournaments.
+- Existing tournaments default to direct semifinals and keep all schedules, scores, and history.
+- SUPABASE_QUARTERFINALS_UPDATE.sql adds the new fields and match stage without deleting data.
 - Registered teams are numbered in registration order and show both players' names above the status badges.
 - Upcoming shows registration only while the tournament's Registration open switch is enabled.
 - After Admin assigns groups and closes registration, Upcoming hides registration and shows standings and matches.

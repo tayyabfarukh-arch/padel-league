@@ -287,6 +287,14 @@ Run `SUPABASE_REVAMP_V2_REGISTRATION_UPDATE.sql` after the player-account update
 
 Players may claim an existing profile or create a new one. From **Upcoming**, a signed-in player selects any existing player as their partner; the website reuses an existing pair or creates a new team. Admin manages confirmation and payments under **Admin > Regular Tournament > Registrations**, then manually adds approved teams to the tournament and chooses Group A or B from the Tournament tab.
 
+## Quarter-finals
+
+Run `SUPABASE_QUARTERFINALS_UPDATE.sql` once before deploying this version. Existing tournaments remain on **Direct semifinals** and all existing group schedules and scores are preserved.
+
+In **Admin > Regular Tournament > Tournament**, select an existing tournament and choose **Quarter-finals then semifinals**. You can also edit the group points target and the games target for quarter-finals, semi-finals, the final, and third place. Quarter-finals require two groups with at least four teams in each group.
+
+After all group results are complete, use **Admin > Regular Tournament > Schedule > Knockout setup**. The generator creates Q1 A1 vs B4, Q2 A2 vs B3, Q3 A3 vs B2, and Q4 A4 vs B1. After all four scores are entered, it creates SF1 Q1 winner vs Q3 winner and SF2 Q2 winner vs Q4 winner.
+
 ## Overall Leaderboard Ranking
 
 The overall **Teams** and **Players** leaderboards rank competitors by:

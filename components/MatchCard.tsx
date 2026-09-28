@@ -42,7 +42,13 @@ export function MatchCard({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
-            {match.stage === "group" && match.group_name ? `Group ${match.group_name}` : stageLabel(match.stage)}
+            {match.stage === "group" && match.group_name
+              ? `Group ${match.group_name}`
+              : match.stage === "quarterfinal" && match.round_number
+                ? `Quarter-final Q${match.round_number}`
+                : match.stage === "semifinal" && match.round_number
+                  ? `Semifinal SF${match.round_number}`
+                  : stageLabel(match.stage)}
           </span>
           {match.stage === "group" ? (
             <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">

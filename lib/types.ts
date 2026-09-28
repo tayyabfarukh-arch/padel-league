@@ -1,8 +1,9 @@
-export type Stage = "group" | "semifinal" | "final" | "third_place";
+export type Stage = "group" | "quarterfinal" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
 export type GroupName = "A" | "B";
 export type TournamentFormat = "regular" | "singles_americano" | "team_americano";
 export type PointsScoringMode = "fixed_total" | "race_to";
+export type KnockoutFormat = "direct_semifinal" | "quarterfinal";
 
 export type Player = {
   id: string;
@@ -50,6 +51,8 @@ export type Tournament = {
   group_count: 1 | 2;
   court_count: number;
   group_target_points: number;
+  knockout_format: KnockoutFormat;
+  quarterfinal_target_games: number;
   semifinal_target_games: number;
   final_target_games: number;
   third_place_target_games: number;

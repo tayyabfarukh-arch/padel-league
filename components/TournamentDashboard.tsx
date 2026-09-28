@@ -29,7 +29,7 @@ export function TournamentDashboard({
         <p className="text-[10px] font-black uppercase text-limeball">{tournament.status}</p>
         <h1 className="mt-0.5 text-xl font-black md:text-2xl">{tournament.name}</h1>
         <p className="mt-1.5 text-xs font-bold text-slate-300">
-          Group: {tournament.points_scoring_mode === "race_to" ? "race to" : "combined total"} {tournament.group_target_points} | Final: race to {tournament.final_target_games}
+          Group: {tournament.points_scoring_mode === "race_to" ? "race to" : "combined total"} {tournament.group_target_points} | {tournament.knockout_format === "quarterfinal" ? `Quarter-final: race to ${tournament.quarterfinal_target_games} | ` : ""}Final: race to {tournament.final_target_games}
         </p>
       </section>
 
@@ -45,8 +45,10 @@ export function TournamentDashboard({
             allowScoreEntry={allowScoreEntry}
           />
 
-          {(["semifinal", "final", "third_place"] as const).map((stage) => {
-            const stageMatches = matches.filter((match) => match.stage === stage);
+          {(["quarterfinal", "semifinal", "final", "third_place"] as const).map((stage) => {
+            const stageMatches = matches
+              .filter((match) => match.stage === stage)
+              .sort((a, b) => (a.round_number ?? 99) - (b.round_number ?? 99) || new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             if (!stageMatches.length) return null;
             return (
               <details key={stage} className="group">

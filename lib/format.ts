@@ -23,6 +23,7 @@ export function defaultAvatar(name = "Player") {
 export function stageLabel(stage: string) {
   const labels: Record<string, string> = {
     group: "Group",
+    quarterfinal: "Quarter-final",
     semifinal: "Semifinal",
     final: "Final",
     third_place: "Third place"

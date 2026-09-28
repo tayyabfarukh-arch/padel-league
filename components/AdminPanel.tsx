@@ -61,6 +61,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const [roundSwapFrom, setRoundSwapFrom] = useState("");
   const [roundSwapTo, setRoundSwapTo] = useState("");
   const teamTournament = tournaments.find((item) => item.id === teamTournamentId);
+  const knockoutTournament = tournaments.find((item) => item.id === knockoutTournamentId);
   const matchTournament = tournaments.find((item) => item.id === matchTournamentId);
   const tournamentTeamIds = useMemo(
     () => new Set(
@@ -114,8 +115,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const selectedTournamentMatches = matches
     .filter((item) => item.tournament_id === matchTournamentId)
     .sort(
-      (a, b) =>
-        (a.stage === "group" ? 0 : 1) - (b.stage === "group" ? 0 : 1) ||
+        (a, b) =>
+        (["group", "quarterfinal", "semifinal", "final", "third_place"] as Stage[]).indexOf(a.stage) -
+          (["group", "quarterfinal", "semifinal", "final", "third_place"] as Stage[]).indexOf(b.stage) ||
         (a.round_number ?? Number.MAX_SAFE_INTEGER) - (b.round_number ?? Number.MAX_SAFE_INTEGER) ||
         (a.court_number ?? Number.MAX_SAFE_INTEGER) - (b.court_number ?? Number.MAX_SAFE_INTEGER) ||
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -386,6 +388,11 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   async function createTournament(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    if (form.get("knockout_format") === "quarterfinal" && Number(form.get("group_count")) !== 2) {
+      setMessageType("error");
+      setMessage("Quarter-finals require two groups with at least 4 teams in each group.");
+      return;
+    }
     await run(async () => {
       const cover_image_url = await uploadPhoto("tournament-photos", form.get("cover") as File);
       const { error } = await supabase!.from("tournaments").insert({
@@ -395,6 +402,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         group_count: Number(form.get("group_count")),
         court_count: Number(form.get("court_count")),
         group_target_points: Number(form.get("group_target_points")),
+        knockout_format: form.get("knockout_format"),
+        quarterfinal_target_games: Number(form.get("quarterfinal_target_games")),
         semifinal_target_games: Number(form.get("semifinal_target_games")),
         final_target_games: Number(form.get("final_target_games")),
         third_place_target_games: Number(form.get("third_place_target_games")),
@@ -432,9 +441,30 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     const form = new FormData(event.currentTarget);
     const groupCount = Number(form.get("group_count"));
     const courtCount = Number(form.get("court_count"));
+    const groupTargetPoints = Number(form.get("group_target_points"));
+    const quarterfinalTargetGames = Number(form.get("quarterfinal_target_games"));
+    const semifinalTargetGames = Number(form.get("semifinal_target_games"));
+    const finalTargetGames = Number(form.get("final_target_games"));
+    const thirdPlaceTargetGames = Number(form.get("third_place_target_games"));
+    const knockoutFormat = String(form.get("knockout_format"));
     if (!Number.isInteger(courtCount) || courtCount < 1 || courtCount > 20) {
       setMessageType("error");
       setMessage("Enter a number of courts between 1 and 20.");
+      return;
+    }
+    if (knockoutFormat === "quarterfinal" && groupCount !== 2) {
+      setMessageType("error");
+      setMessage("Quarter-finals require two groups with at least 4 teams in each group.");
+      return;
+    }
+    if (!Number.isInteger(groupTargetPoints) || groupTargetPoints < 1 || groupTargetPoints > 100) {
+      setMessageType("error");
+      setMessage("Enter a group points target between 1 and 100.");
+      return;
+    }
+    if ([quarterfinalTargetGames, semifinalTargetGames, finalTargetGames, thirdPlaceTargetGames].some((value) => !Number.isInteger(value) || value < 1 || value > 10)) {
+      setMessageType("error");
+      setMessage("Each knockout games target must be between 1 and 10.");
       return;
     }
     await run(async () => {
@@ -444,6 +474,12 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           group_count: groupCount,
           court_count: courtCount,
           points_scoring_mode: form.get("points_scoring_mode"),
+          group_target_points: groupTargetPoints,
+          knockout_format: knockoutFormat,
+          quarterfinal_target_games: quarterfinalTargetGames,
+          semifinal_target_games: semifinalTargetGames,
+          final_target_games: finalTargetGames,
+          third_place_target_games: thirdPlaceTargetGames,
           status: form.get("status")
         })
         .eq("id", teamTournamentId);
@@ -492,7 +528,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                     court_number: (extraIndex % courtCount) + 1
                   }
                 : {
-                    round_number: null,
+                    round_number: match.round_number,
                     court_number: (index % courtCount) + 1
                   };
             return supabase!
@@ -527,7 +563,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         team_2_id: form.get("team_2_id"),
         stage: form.get("stage"),
         group_name: form.get("stage") === "group" ? form.get("group_name") : null,
-        round_number: form.get("stage") === "group" ? Number(form.get("round_number")) : null,
+        round_number: form.get("stage") === "group" || form.get("stage") === "quarterfinal" || form.get("stage") === "semifinal"
+          ? Number(form.get("round_number"))
+          : null,
         court_number: Number(form.get("court_number"))
       });
       if (error) throw error;
@@ -1079,7 +1117,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     });
   }
 
-  async function createSemifinalsFromStandings() {
+  async function createOpeningKnockoutFromStandings() {
     await run(async () => {
       const tournamentTeamsForSelection = tournamentTeams.filter(
         (item) => item.tournament_id === knockoutTournamentId
@@ -1089,24 +1127,23 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       const groupMatches = matches.filter(
         (match) => match.tournament_id === knockoutTournamentId && match.stage === "group"
       );
-      const existingSemifinals = matches.filter(
-        (match) => match.tournament_id === knockoutTournamentId && match.stage === "semifinal"
+      const existingOpeningRound = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && (match.stage === "quarterfinal" || match.stage === "semifinal")
       );
 
       if (!knockoutTournamentId) throw new Error("Select a tournament first.");
-      if (existingSemifinals.length) throw new Error("Semifinals already exist for this tournament.");
-      if (tournamentTeamsList.length < 4) throw new Error("You need at least 4 teams to create semifinals.");
+      if (!knockoutTournament) throw new Error("Tournament not found.");
+      if (existingOpeningRound.length) throw new Error("Knockout matches already exist for this tournament.");
       if (
         !groupMatches.length ||
         groupMatches.some((match) => match.team_1_games === null || match.team_2_games === null)
       ) {
-        throw new Error("Finish all group match scores before creating semifinals.");
+        throw new Error("Finish all group match scores before creating the knockout round.");
       }
 
-      const selectedTournament = tournaments.find((item) => item.id === knockoutTournamentId);
-      let semifinalTeams: [Team, Team, Team, Team];
+      const selectedTournament = knockoutTournament;
 
-      if (selectedTournament?.group_count === 2) {
+      if (selectedTournament.group_count === 2) {
         const groupATeamIds = new Set(
           tournamentTeamsForSelection.filter((item) => item.group_name === "A").map((item) => item.team_id)
         );
@@ -1122,47 +1159,102 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           (match) => groupBTeamIds.has(match.team_1_id) && groupBTeamIds.has(match.team_2_id)
         );
 
-        if (groupATeams.length < 2 || groupBTeams.length < 2) {
-          throw new Error("Two-group tournaments need at least 2 teams in both Group A and Group B.");
-        }
         if (!groupAMatches.length || !groupBMatches.length) {
-          throw new Error("Both Group A and Group B need completed group matches before creating semifinals.");
+          throw new Error("Both Group A and Group B need completed group matches before creating the knockout round.");
         }
 
-        const groupATopTwo = calculateGroupStandings(groupATeams, groupAMatches).slice(0, 2);
-        const groupBTopTwo = calculateGroupStandings(groupBTeams, groupBMatches).slice(0, 2);
-        if (groupATopTwo.length < 2 || groupBTopTwo.length < 2) {
-          throw new Error("Could not find the top 2 teams from both groups.");
+        const qualifierCount = selectedTournament.knockout_format === "quarterfinal" ? 4 : 2;
+        if (groupATeams.length < qualifierCount || groupBTeams.length < qualifierCount) {
+          throw new Error(`${selectedTournament.knockout_format === "quarterfinal" ? "Quarter-finals" : "Direct semifinals"} need at least ${qualifierCount} teams in both groups.`);
+        }
+        const groupAStandings = calculateGroupStandings(groupATeams, groupAMatches).slice(0, qualifierCount);
+        const groupBStandings = calculateGroupStandings(groupBTeams, groupBMatches).slice(0, qualifierCount);
+
+        if (selectedTournament.knockout_format === "quarterfinal") {
+          const quarterfinalPairs = [
+            [groupAStandings[0].team, groupBStandings[3].team],
+            [groupAStandings[1].team, groupBStandings[2].team],
+            [groupAStandings[2].team, groupBStandings[1].team],
+            [groupAStandings[3].team, groupBStandings[0].team]
+          ];
+          const { error } = await supabase!.from("matches").insert(
+            quarterfinalPairs.map(([team1, team2], index) => ({
+              tournament_id: knockoutTournamentId,
+              team_1_id: team1.id,
+              team_2_id: team2.id,
+              stage: "quarterfinal",
+              round_number: index + 1,
+              court_number: index % selectedTournament.court_count + 1
+            }))
+          );
+          if (error) throw error;
+          return;
         }
 
-        semifinalTeams = [
-          groupATopTwo[0].team,
-          groupBTopTwo[1].team,
-          groupATopTwo[1].team,
-          groupBTopTwo[0].team
+        const semifinalPairs = [
+          [groupAStandings[0].team, groupBStandings[1].team],
+          [groupAStandings[1].team, groupBStandings[0].team]
         ];
+        const { error } = await supabase!.from("matches").insert(
+          semifinalPairs.map(([team1, team2], index) => ({
+            tournament_id: knockoutTournamentId,
+            team_1_id: team1.id,
+            team_2_id: team2.id,
+            stage: "semifinal",
+            round_number: index + 1,
+            court_number: index % selectedTournament.court_count + 1
+          }))
+        );
+        if (error) throw error;
+        return;
       } else {
+        if (selectedTournament.knockout_format === "quarterfinal") {
+          throw new Error("Quarter-finals require two groups. Change Group setup to Two groups first.");
+        }
         const topFour = calculateGroupStandings(tournamentTeamsList, groupMatches).slice(0, 4);
         if (topFour.length < 4) throw new Error("Could not find 4 ranked teams from the group standings.");
-        semifinalTeams = [topFour[0].team, topFour[3].team, topFour[1].team, topFour[2].team];
+        const semifinalPairs = [[topFour[0].team, topFour[3].team], [topFour[1].team, topFour[2].team]];
+        const { error } = await supabase!.from("matches").insert(
+          semifinalPairs.map(([team1, team2], index) => ({
+            tournament_id: knockoutTournamentId,
+            team_1_id: team1.id,
+            team_2_id: team2.id,
+            stage: "semifinal",
+            round_number: index + 1,
+            court_number: index % selectedTournament.court_count + 1
+          }))
+        );
+        if (error) throw error;
       }
+    });
+  }
 
-      const { error } = await supabase!.from("matches").insert([
-        {
+  async function createSemifinalsFromQuarterfinals() {
+    await run(async () => {
+      if (!knockoutTournamentId) throw new Error("Select a tournament first.");
+      const quarterfinals = matches
+        .filter((match) => match.tournament_id === knockoutTournamentId && match.stage === "quarterfinal")
+        .sort((a, b) => (a.round_number ?? 99) - (b.round_number ?? 99) || new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const existingSemifinals = matches.filter(
+        (match) => match.tournament_id === knockoutTournamentId && match.stage === "semifinal"
+      );
+      if (existingSemifinals.length) throw new Error("Semifinals already exist for this tournament.");
+      if (quarterfinals.length !== 4 || quarterfinals.some((match) => !match.winner_team_id)) {
+        throw new Error("Enter all four quarter-final scores before creating the semifinals.");
+      }
+      const [q1, q2, q3, q4] = quarterfinals;
+      const semifinalPairs = [[q1.winner_team_id!, q3.winner_team_id!], [q2.winner_team_id!, q4.winner_team_id!]];
+      const courtCount = knockoutTournament?.court_count ?? 1;
+      const { error } = await supabase!.from("matches").insert(
+        semifinalPairs.map(([team1Id, team2Id], index) => ({
           tournament_id: knockoutTournamentId,
-          team_1_id: semifinalTeams[0].id,
-          team_2_id: semifinalTeams[1].id,
+          team_1_id: team1Id,
+          team_2_id: team2Id,
           stage: "semifinal",
-          court_number: 1
-        },
-        {
-          tournament_id: knockoutTournamentId,
-          team_1_id: semifinalTeams[2].id,
-          team_2_id: semifinalTeams[3].id,
-          stage: "semifinal",
-          court_number: selectedTournament?.court_count && selectedTournament.court_count > 1 ? 2 : 1
-        }
-      ]);
+          round_number: index + 1,
+          court_number: index % courtCount + 1
+        }))
+      );
       if (error) throw error;
     });
   }
@@ -1275,7 +1367,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     }
 
     const confirmed = window.confirm(
-      `Reset ${tournament.name}? Group matches will be kept with blank scores. Semifinal, final, and third-place matches will be deleted so they can be created again from fresh standings.`
+      `Reset ${tournament.name}? Group matches will be kept with blank scores. Quarter-final, semifinal, final, and third-place matches will be deleted so they can be created again from fresh standings.`
     );
     if (!confirmed) return;
 
@@ -1430,10 +1522,12 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <Select name="friend_circle" label="Friend circle" options={FRIEND_CIRCLES.filter((circle) => circle.value !== "overall").map((circle) => [circle.value, circle.label])} />
             <Select name="group_count" label="Group setup" options={[["1", "One group"], ["2", "Two groups (A and B)"]]} />
             <Select name="points_scoring_mode" label="Group points scoring rule" options={[["race_to", "Race to target (example: 20-19)"], ["fixed_total", "Fixed combined total (example: 12-8 = 20)"]]} />
+            <Select name="knockout_format" label="Knockout format" options={[["direct_semifinal", "Direct semifinals"], ["quarterfinal", "Quarter-finals then semifinals"]]} />
             <NumberField name="court_count" label="Number of courts" defaultValue={4} max={20} />
             <input className="field" name="start_date" type="date" required />
             <div className="grid grid-cols-2 gap-3">
               <NumberField name="group_target_points" label="Group points target" defaultValue={15} max={100} />
+              <NumberField name="quarterfinal_target_games" label="Quarter-final games target" defaultValue={6} max={10} />
               <NumberField name="semifinal_target_games" label="Semifinal games target" defaultValue={6} max={10} />
               <NumberField name="final_target_games" label="Final games target" defaultValue={6} max={10} />
               <NumberField name="third_place_target_games" label="Third-place games target" defaultValue={6} max={10} />
@@ -1477,6 +1571,30 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               </div>
               <div>
                 <Select
+                  key={`knockout-setup-${teamTournamentId}`}
+                  name="knockout_format"
+                  label="Knockout format"
+                  defaultValue={teamTournament?.knockout_format ?? "direct_semifinal"}
+                  options={[["direct_semifinal", "Direct semifinals"], ["quarterfinal", "Quarter-finals then semifinals"]]}
+                />
+              </div>
+              <div>
+                <NumberField key={`group-target-${teamTournamentId}`} name="group_target_points" label="Group points target" defaultValue={teamTournament?.group_target_points ?? 15} max={100} />
+              </div>
+              <div>
+                <NumberField key={`quarterfinal-target-${teamTournamentId}`} name="quarterfinal_target_games" label="Quarter-final games target" defaultValue={teamTournament?.quarterfinal_target_games ?? 6} max={10} />
+              </div>
+              <div>
+                <NumberField key={`semifinal-target-${teamTournamentId}`} name="semifinal_target_games" label="Semifinal games target" defaultValue={teamTournament?.semifinal_target_games ?? 6} max={10} />
+              </div>
+              <div>
+                <NumberField key={`final-target-${teamTournamentId}`} name="final_target_games" label="Final games target" defaultValue={teamTournament?.final_target_games ?? 6} max={10} />
+              </div>
+              <div>
+                <NumberField key={`third-place-target-${teamTournamentId}`} name="third_place_target_games" label="Third-place games target" defaultValue={teamTournament?.third_place_target_games ?? 6} max={10} />
+              </div>
+              <div>
+                <Select
                   key={`scoring-setup-${teamTournamentId}`}
                   name="points_scoring_mode"
                   label="Group scoring"
@@ -1498,7 +1616,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               </button>
             </form>
             <p className="text-xs font-semibold text-slate-500">
-              Changing the number of courts redistributes existing matches evenly across the available courts.
+              Changing the number of courts redistributes existing matches evenly. Changing scoring targets affects this tournament only and does not alter saved scores.
             </p>
           </div>
           <form onSubmit={addTeamToTournament} className="space-y-3">
@@ -1715,7 +1833,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               label="Stage"
               value={matchStage}
               onChange={(value) => setMatchStage(value as Stage)}
-              options={(["group", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])}
+              options={(["group", "quarterfinal", "semifinal", "final", "third_place"] as Stage[]).map((stage) => [stage, stage.replace("_", " ")])}
             />
             {matchStage === "group" ? (
               <div className="grid grid-cols-2 gap-3">
@@ -1728,6 +1846,14 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 />
                 <NumberField name="round_number" label="Round" defaultValue={Math.max(1, scheduleRoundCount + 1)} max={200} />
               </div>
+            ) : null}
+            {matchStage === "quarterfinal" || matchStage === "semifinal" ? (
+              <NumberField
+                name="round_number"
+                label={matchStage === "quarterfinal" ? "Quarter-final number (Q1-Q4)" : "Semifinal number (SF1-SF2)"}
+                defaultValue={1}
+                max={matchStage === "quarterfinal" ? 4 : 2}
+              />
             ) : null}
             <Select
               name="court_number"
@@ -1958,9 +2084,14 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               </select>
             </label>
             <div className="grid gap-2 md:grid-cols-2">
-              <button type="button" className="btn-secondary" onClick={createSemifinalsFromStandings} disabled={busy}>
-                Create semifinals from standings
+              <button type="button" className="btn-secondary" onClick={createOpeningKnockoutFromStandings} disabled={busy}>
+                {knockoutTournament?.knockout_format === "quarterfinal" ? "Create quarter-finals from standings" : "Create semifinals from standings"}
               </button>
+              {knockoutTournament?.knockout_format === "quarterfinal" ? (
+                <button type="button" className="btn-secondary" onClick={createSemifinalsFromQuarterfinals} disabled={busy}>
+                  Create semifinals from quarter-final winners
+                </button>
+              ) : null}
               <button type="button" className="btn-secondary" onClick={createFinalFromSemifinals} disabled={busy}>
                 Create final from semifinal winners
               </button>
@@ -1972,7 +2103,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               </button>
             </div>
             <p className="text-xs font-semibold text-slate-500">
-              Recommended flow: finish group scores, create semifinals, enter semifinal scores, create final, enter final score, then close from final result.
+              {knockoutTournament?.knockout_format === "quarterfinal"
+                ? "Flow: finish group scores, create quarter-finals, enter all four results, create semifinals (Q1 vs Q3 and Q2 vs Q4), then create the final."
+                : "Flow: finish group scores, create semifinals, enter semifinal scores, create final, enter final score, then close from final result."}
             </p>
           </div>
         </Panel>
