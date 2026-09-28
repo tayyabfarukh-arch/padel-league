@@ -31,6 +31,29 @@ export type PlayerClaim = {
   account?: AppUser;
 };
 
+export type RatingCalibrationStatus = "draft" | "open" | "closed";
+
+export type RatingCalibration = {
+  id: string;
+  name: string;
+  status: RatingCalibrationStatus;
+  min_votes: number;
+  created_at: string;
+  opened_at: string | null;
+  closed_at: string | null;
+};
+
+export type PlayerRatingVote = {
+  id: string;
+  calibration_id: string;
+  voter_user_id: string;
+  voter_player_id: string;
+  rated_player_id: string;
+  rating: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Team = {
   id: string;
   player_1_id: string;

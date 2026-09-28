@@ -1,7 +1,19 @@
-REVAMP V2 - PLAYER ACCOUNT FOUNDATION
-Created: September 19, 2026
+PLAYER RATING CALIBRATION VOTE
+Created: September 28, 2026
 
 This release adds:
+- A private 1-10 player rating calibration page for linked player accounts.
+- One editable choice per voter and player, with self-voting blocked by Supabase.
+- An explicit I-don't-know choice that is excluded from rating averages.
+- Player search, reviewed/remaining filters, autosave, and completion progress.
+- Admin-only vote totals and baseline averages under Regular Tournament > Ratings.
+- A minimum of three numeric votes before a baseline is displayed.
+- Automatic removal of one highest and one lowest value from five ratings onward.
+- Admin controls to close and reopen voting without deleting saved choices.
+- No effect on current leaderboards, standings, scores, or match history.
+- SUPABASE_PLAYER_RATING_VOTE_UPDATE.sql preserves all existing data.
+
+Previous release features remain included:
 - Optional quarter-final format for regular two-group tournaments.
 - Automatic Q1 A1-B4, Q2 A2-B3, Q3 A3-B2, and Q4 A4-B1 generation from completed group standings.
 - Automatic SF1 Q1-Q3 and SF2 Q2-Q4 winner progression.

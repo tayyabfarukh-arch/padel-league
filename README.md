@@ -1,5 +1,9 @@
 # Padel League Website
 
+## Player rating calibration vote
+
+The website now includes a private player-rating vote for preparing the future 1–10 rating baseline. Run `SUPABASE_PLAYER_RATING_VOTE_UPDATE.sql` once, then follow `PLAYER_RATING_VOTE_README.md`. Players open **Players > Rate players** and Admin reviews private averages under **Admin > Regular Tournament > Ratings**. This does not change current standings or leaderboards.
+
 This is a mobile-first tournament website for regular team tournaments, Singles Americano, and Team Americano.
 
 It uses Next.js, Supabase, Supabase Storage, and Netlify. Only the Admin page requires a login.
