@@ -1,7 +1,11 @@
-PLAYER RATING CALIBRATION VOTE
-Created: September 28, 2026
+PLAYER RATING DASHBOARD COMPLETE-DATA FIX
+Created: September 29, 2026
 
 This release adds:
+- Admin rating totals now load every saved vote in ordered batches instead of stopping at Supabase's first 1,000 rows.
+- Vote counts, skipped counts, participating voters, and baseline averages now use the complete calibration dataset.
+- Refresh totals fetches all batches again without changing or resetting any vote.
+- No Supabase SQL update is required for this dashboard-only correction.
 - A private 1-10 player rating calibration page for linked player accounts.
 - One editable choice per voter and player, with self-voting blocked by Supabase.
 - An explicit I-don't-know choice that is excluded from rating averages.

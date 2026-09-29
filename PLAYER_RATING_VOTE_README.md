@@ -1,5 +1,7 @@
 # Player Rating Vote Setup
 
+> September 29 dashboard correction: Admin totals now load all voting records in batches, including datasets larger than 1,000 rows. This correction requires only a website deployment and does not require another SQL update.
+
 This update collects a private 1–10 baseline rating from verified player accounts. It does **not** change the current Players leaderboard, tournament standings, or match scoring.
 
 ## Step 1: Update Supabase

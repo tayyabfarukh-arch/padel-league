@@ -15,10 +15,11 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    if (!supabase) return;
+    const client = supabase;
+    if (!client) return;
     setLoading(true);
     setError("");
-    const { data: calibrationData, error: calibrationError } = await supabase
+    const { data: calibrationData, error: calibrationError } = await client
       .from("rating_calibrations").select("*").order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (calibrationError) {
       setError("Run SUPABASE_PLAYER_RATING_VOTE_UPDATE.sql first, then refresh this page.");
@@ -28,9 +29,28 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
     const nextCalibration = (calibrationData as RatingCalibration | null) ?? null;
     setCalibration(nextCalibration);
     if (nextCalibration) {
-      const { data: voteData, error: voteError } = await supabase.from("player_rating_votes").select("*").eq("calibration_id", nextCalibration.id);
-      if (voteError) setError(voteError.message);
-      setVotes((voteData as PlayerRatingVote[] | null) ?? []);
+      const pageSize = 500;
+      const allVotes: PlayerRatingVote[] = [];
+      for (let from = 0; ; from += pageSize) {
+        const { data: voteData, error: voteError } = await client
+          .from("player_rating_votes")
+          .select("*")
+          .eq("calibration_id", nextCalibration.id)
+          .order("id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (voteError) {
+          setError(voteError.message);
+          setVotes([]);
+          setLoading(false);
+          return;
+        }
+        const page = (voteData as PlayerRatingVote[] | null) ?? [];
+        allVotes.push(...page);
+        if (page.length < pageSize) break;
+      }
+      setVotes(allVotes);
+    } else {
+      setVotes([]);
     }
     setLoading(false);
   }, []);
