@@ -2,10 +2,14 @@ create extension if not exists "pgcrypto";
 
 create table if not exists players (
   id uuid primary key default gen_random_uuid(),
+  is_active boolean not null default true,
   name text not null,
   photo_url text,
   created_at timestamp with time zone default now()
 );
+
+alter table players
+add column if not exists is_active boolean not null default true;
 
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),

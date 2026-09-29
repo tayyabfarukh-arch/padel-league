@@ -43,7 +43,7 @@ export function AccountPanel() {
       supabase.from("app_users").select("*").eq("id", userId).maybeSingle(),
       supabase.from("players").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("player_claims").select("*, player:players(*)").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("players").select("*").is("user_id", null).order("name")
+      supabase.from("players").select("*").is("user_id", null).eq("is_active", true).order("name")
     ]);
     setAccount((accountData as AppUser | null) ?? null);
     setPlayer((playerData as Player | null) ?? null);
@@ -52,7 +52,7 @@ export function AccountPanel() {
     if (playerData) {
       const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
       const [{ data: allPlayers }, { data: allTeams }, { data: allMatches }, { data: allTournaments }] = await Promise.all([
-        supabase.from("players").select("*").order("name"),
+        supabase.from("players").select("*").eq("is_active", true).order("name"),
         supabase.from("teams").select(teamSelect),
         supabase.from("matches").select("*"),
         supabase.from("tournaments").select("*")

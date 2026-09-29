@@ -1,5 +1,9 @@
 # Padel League Website
 
+## Player profile merging and visibility
+
+Admin can now merge accidental duplicate player profiles or disable unused profiles under **Admin > Regular Tournament > People**. Run `SUPABASE_PLAYER_PROFILE_MERGE_UPDATE.sql` before deploying this website version. Follow `PLAYER_PROFILE_MANAGEMENT_README.md` for exact instructions.
+
 ## Player rating calibration vote
 
 The website now includes a private player-rating vote for preparing the future 1–10 rating baseline. Run `SUPABASE_PLAYER_RATING_VOTE_UPDATE.sql` once, then follow `PLAYER_RATING_VOTE_README.md`. Players open **Players > Rate players** and Admin reviews private averages under **Admin > Regular Tournament > Ratings**. This does not change current standings or leaderboards.

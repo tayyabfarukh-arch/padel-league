@@ -1,7 +1,15 @@
-PLAYER RATING DASHBOARD COMPLETE-DATA FIX
+PLAYER PROFILE MERGE AND VISIBILITY
 Created: September 29, 2026
 
 This release adds:
+- Admin profile management under Regular Tournament > People.
+- A protected merge tool that keeps the original profile and removes an accidental duplicate.
+- Account links, teams, tournament participation, Americano appearances, rating votes, and rating records transfer to the surviving profile.
+- Conflicting teams or Americano matches stop the complete transaction without partial changes.
+- Reversible profile disabling for unused or suspicious profiles.
+- Disabled profiles remain stored but disappear from public dashboards and player-selection workflows.
+- SUPABASE_PLAYER_PROFILE_MERGE_UPDATE.sql adds the merge function, audit log, visibility field, and access protections.
+- The Supabase update must run before deploying this website version.
 - Admin rating totals now load every saved vote in ordered batches instead of stopping at Supabase's first 1,000 rows.
 - Vote counts, skipped counts, participating voters, and baseline averages now use the complete calibration dataset.
 - Refresh totals fetches all batches again without changing or resetting any vote.

@@ -46,7 +46,7 @@ export function PlayerRatingVotePanel({ players }: { players: Player[] }) {
       return;
     }
 
-    const { data: playerData } = await supabase.from("players").select("*").eq("user_id", nextUserId).maybeSingle();
+    const { data: playerData } = await supabase.from("players").select("*").eq("user_id", nextUserId).eq("is_active", true).maybeSingle();
     const nextPlayer = (playerData as Player | null) ?? null;
     setLinkedPlayer(nextPlayer);
     if (!nextPlayer || !nextCalibration) {

@@ -41,7 +41,7 @@ export function PredictionPanel({
         setCheckingAccount(false);
         return;
       }
-      const { data } = await supabase!.from("players").select("id").eq("user_id", nextUserId).maybeSingle();
+      const { data } = await supabase!.from("players").select("id").eq("user_id", nextUserId).eq("is_active", true).maybeSingle();
       setPlayerLinked(Boolean(data));
       setCheckingAccount(false);
     }

@@ -34,7 +34,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
     if (publicError) setError(publicError.message);
 
     if (activeSession) {
-      const { data: linkedPlayer } = await supabase.from("players").select("*").eq("user_id", activeSession.user.id).maybeSingle();
+      const { data: linkedPlayer } = await supabase.from("players").select("*").eq("user_id", activeSession.user.id).eq("is_active", true).maybeSingle();
       setPlayer((linkedPlayer as Player | null) ?? null);
       const { data: ownRows } = await supabase
         .from("tournament_registrations")

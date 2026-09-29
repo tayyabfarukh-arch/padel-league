@@ -8,6 +8,7 @@ export type KnockoutFormat = "direct_semifinal" | "quarterfinal";
 export type Player = {
   id: string;
   user_id?: string | null;
+  is_active: boolean;
   name: string;
   photo_url: string | null;
   created_at: string;

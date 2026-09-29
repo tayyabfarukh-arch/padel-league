@@ -9,10 +9,12 @@ const americanoMatchSelect = `*, side_1_team:teams!americano_matches_side_1_team
 const tournamentSelect =
   "*, champion:teams!tournaments_champion_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), runner_up:teams!tournaments_runner_up_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), third_place:teams!tournaments_third_place_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*))";
 
-export async function getPlayers() {
+export async function getPlayers(includeInactive = false) {
   noStore();
   if (!supabase) return [] as Player[];
-  const { data, error } = await supabase.from("players").select("*").order("name");
+  let query = supabase.from("players").select("*").order("name");
+  if (!includeInactive) query = query.eq("is_active", true);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Player[];
 }

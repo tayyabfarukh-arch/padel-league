@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
+import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { RatingCalibrationAdmin } from "@/components/RatingCalibrationAdmin";
 import { teamLabel } from "@/lib/format";
@@ -1489,6 +1490,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         {adminSection === "registrations" ? <RegistrationAdminPanel tournaments={allTournaments.filter((item) => item.tournament_format !== "singles_americano")} teams={teams} /> : null}
         {adminSection === "people" ? (
           <>
+        <PlayerProfileAdmin players={players} />
         <Panel title="Add player">
           <form onSubmit={addPlayer} className="space-y-3">
             <input className="field" name="name" placeholder="Player name" required />
