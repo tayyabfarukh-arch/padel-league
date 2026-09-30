@@ -38,4 +38,6 @@ Merging cannot be undone. If both profiles appear together in one team or one Am
 
 The profile remains in Supabase but disappears from public player leaderboards, player pages, rating choices, claim lists, and registration selections. Its historical database records are not deleted.
 
+The Admin rating review also excludes the disabled profile as a ranked row and excludes ratings submitted by that disabled profile from every active player’s totals and average. The stored choices are preserved and become eligible again only if the profile is restored.
+
 To make it visible again, find it in **Disabled profiles** and click **Restore**.

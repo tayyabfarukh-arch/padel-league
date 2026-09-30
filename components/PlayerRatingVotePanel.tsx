@@ -59,14 +59,16 @@ export function PlayerRatingVotePanel({ players }: { players: Player[] }) {
     if (voteError) setError(voteError.message);
     const nextChoices: Record<string, Choice> = {};
     const nextDecidedIds: string[] = [];
+    const activePlayerIds = new Set(players.map((player) => player.id));
     for (const vote of (voteData ?? []) as PlayerRatingVote[]) {
+      if (!activePlayerIds.has(vote.rated_player_id) || vote.rated_player_id === nextPlayer.id) continue;
       nextChoices[vote.rated_player_id] = vote.rating;
       nextDecidedIds.push(vote.rated_player_id);
     }
     setChoices(nextChoices);
     setDecidedIds(nextDecidedIds);
     setLoading(false);
-  }, []);
+  }, [players]);
 
   useEffect(() => {
     void load();

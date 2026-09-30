@@ -1,7 +1,13 @@
-PLAYER PROFILE MERGE AND VISIBILITY
-Created: September 29, 2026
+DISABLED PROFILE RATING FILTER FIX
+Created: September 30, 2026
 
 This release adds:
+- Disabled profiles no longer appear in the Admin rating review ranking.
+- Ratings submitted by disabled profiles no longer affect active players' vote counts or baseline averages.
+- Stored choices involving disabled profiles are preserved but clearly reported as excluded.
+- Restoring a profile automatically makes its preserved rating choices eligible again.
+- The player voting page no longer counts old choices for disabled profiles in completion progress.
+- No Supabase SQL update is required after the V5 profile-management migration.
 - Admin profile management under Regular Tournament > People.
 - A protected merge tool that keeps the original profile and removes an accidental duplicate.
 - Account links, teams, tournament participation, Americano appearances, rating votes, and rating records transfer to the surviving profile.

@@ -73,15 +73,22 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
     await load();
   }
 
-  const summaries = useMemo(() => players.map((player) => {
-    const ratings = votes.filter((vote) => vote.rated_player_id === player.id && vote.rating !== null).map((vote) => Number(vote.rating)).sort((a, b) => a - b);
-    const skipped = votes.filter((vote) => vote.rated_player_id === player.id && vote.rating === null).length;
+  const activePlayers = useMemo(() => players.filter((player) => player.is_active !== false), [players]);
+  const activePlayerIds = useMemo(() => new Set(activePlayers.map((player) => player.id)), [activePlayers]);
+  const eligibleVotes = useMemo(
+    () => votes.filter((vote) => activePlayerIds.has(vote.voter_player_id) && activePlayerIds.has(vote.rated_player_id)),
+    [activePlayerIds, votes]
+  );
+  const excludedVoteCount = votes.length - eligibleVotes.length;
+  const summaries = useMemo(() => activePlayers.map((player) => {
+    const ratings = eligibleVotes.filter((vote) => vote.rated_player_id === player.id && vote.rating !== null).map((vote) => Number(vote.rating)).sort((a, b) => a - b);
+    const skipped = eligibleVotes.filter((vote) => vote.rated_player_id === player.id && vote.rating === null).length;
     const included = ratings.length >= 5 ? ratings.slice(1, -1) : ratings;
     const average = included.length ? included.reduce((total, rating) => total + rating, 0) / included.length : null;
     return { player, votes: ratings.length, skipped, average, trimmed: ratings.length >= 5 };
-  }).sort((a, b) => (b.average ?? -1) - (a.average ?? -1)), [players, votes]);
-  const voterCount = new Set(votes.map((vote) => vote.voter_user_id)).size;
-  const numericVoteCount = votes.filter((vote) => vote.rating !== null).length;
+  }).sort((a, b) => (b.average ?? -1) - (a.average ?? -1)), [activePlayers, eligibleVotes]);
+  const voterCount = new Set(eligibleVotes.map((vote) => vote.voter_user_id)).size;
+  const numericVoteCount = eligibleVotes.filter((vote) => vote.rating !== null).length;
 
   return (
     <section className="sport-card p-5 lg:col-span-2">
@@ -94,7 +101,8 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
       {message ? <p className="mt-4 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{message}</p> : null}
       {calibration ? (
         <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3"><Metric label="Participating voters" value={voterCount} /><Metric label="Numeric ratings" value={numericVoteCount} /><Metric label="Don't know choices" value={votes.length - numericVoteCount} /></div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3"><Metric label="Participating voters" value={voterCount} /><Metric label="Numeric ratings" value={numericVoteCount} /><Metric label="Don't know choices" value={eligibleVotes.length - numericVoteCount} /></div>
+          {excludedVoteCount ? <p className="mt-3 rounded-md bg-slate-50 p-3 text-xs font-bold text-slate-600">{excludedVoteCount} stored choices involving disabled profiles are excluded from these totals and averages.</p> : null}
           <div className="mt-4 flex flex-wrap gap-2">
             {calibration.status === "open" ? <button className="btn-secondary text-red-700" disabled={busy} onClick={() => void changeStatus("closed")}><LockKeyhole className="h-4 w-4" /> Close voting</button> : <button className="btn-primary" disabled={busy} onClick={() => void changeStatus("open")}><UnlockKeyhole className="h-4 w-4" /> {calibration.status === "draft" ? "Open voting" : "Reopen voting"}</button>}
             <button className="btn-secondary" disabled={busy} onClick={() => void load()}><RotateCcw className="h-4 w-4" /> Refresh totals</button>
