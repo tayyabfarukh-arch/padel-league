@@ -42,6 +42,17 @@ export type RatingCalibration = {
   created_at: string;
   opened_at: string | null;
   closed_at: string | null;
+  published_at?: string | null;
+  published_by?: string | null;
+};
+
+export type PlayerRating = {
+  player_id: string;
+  rating: number;
+  reliability: number;
+  rated_matches: number;
+  provisional: boolean;
+  updated_at: string;
 };
 
 export type PlayerRatingVote = {
@@ -224,6 +235,7 @@ export type AmericanoStanding = {
 
 export type TeamStats = {
   team: Team;
+  rating?: number | null;
   played: number;
   wins: number;
   draws: number;

@@ -6,25 +6,25 @@ import { PlayerAvatar, TeamAvatar } from "./Avatar";
 
 type DetailItem = [string, string | number];
 
-export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: number }) {
+export function TeamLeaderboard({ rows, limit, showRating = false }: { rows: TeamStats[]; limit?: number; showRating?: boolean }) {
   const displayRows = limit ? rows.slice(0, limit) : rows;
 
   return (
     <div className="sport-card overflow-hidden">
       <div className="md:hidden">
         {displayRows.map((row, index) => (
-          <MobileTeamRow key={row.team.id} row={row} index={index} />
+          <MobileTeamRow key={row.team.id} row={row} index={index} showRating={showRating} />
         ))}
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <div className="min-w-[1112px]">
-          <Header label="Team" />
+        <div className={showRating ? "min-w-[1184px]" : "min-w-[1112px]"}>
+          <Header label="Team" showRating={showRating} />
           {displayRows.map((row, index) => (
             <Link
               href={`/teams/${row.team.id}`}
               key={row.team.id}
-              className={`rank-row rank-row--${index + 1} grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
+              className={`rank-row rank-row--${index + 1} grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -34,8 +34,8 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
-              {teamDetails(row).slice(0, 13).map(([label, value]) => (
-                <TableMetric key={label} value={value} featured={label === "Pts"} />
+              {teamDetails(row, showRating).slice(0, showRating ? 14 : 13).map(([label, value]) => (
+                <TableMetric key={label} value={value} featured={label === (showRating ? "Rating" : "Pts")} />
               ))}
             </Link>
           ))}
@@ -45,25 +45,25 @@ export function TeamLeaderboard({ rows, limit }: { rows: TeamStats[]; limit?: nu
   );
 }
 
-export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?: number }) {
+export function PlayerLeaderboard({ rows, limit, showRating = false }: { rows: PlayerStats[]; limit?: number; showRating?: boolean }) {
   const displayRows = limit ? rows.slice(0, limit) : rows;
 
   return (
     <div className="sport-card overflow-hidden">
       <div className="md:hidden">
         {displayRows.map((row, index) => (
-          <MobilePlayerRow key={row.player.id} row={row} index={index} />
+          <MobilePlayerRow key={row.player.id} row={row} index={index} showRating={showRating} />
         ))}
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <div className="min-w-[1112px]">
-          <Header label="Player" />
+        <div className={showRating ? "min-w-[1184px]" : "min-w-[1112px]"}>
+          <Header label="Player" showRating={showRating} />
           {displayRows.map((row, index) => (
             <Link
               href={`/players/${row.player.id}`}
               key={row.player.id}
-              className={`rank-row rank-row--${index + 1} grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
+              className={`rank-row rank-row--${index + 1} grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
               <div className="flex min-w-0 items-center gap-3 p-3">
@@ -73,8 +73,8 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
-              {playerDetails(row).slice(0, 13).map(([label, value]) => (
-                <TableMetric key={label} value={value} featured={label === "Pts"} dark />
+              {playerDetails(row, showRating).slice(0, showRating ? 14 : 13).map(([label, value]) => (
+                <TableMetric key={label} value={value} featured={label === (showRating ? "Rating" : "Pts")} dark />
               ))}
             </Link>
           ))}
@@ -84,7 +84,7 @@ export function PlayerLeaderboard({ rows, limit }: { rows: PlayerStats[]; limit?
   );
 }
 
-function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
+function MobileTeamRow({ row, index, showRating }: { row: TeamStats; index: number; showRating: boolean }) {
   const name = teamLabel(row.team);
 
   return (
@@ -98,15 +98,15 @@ function MobileTeamRow({ row, index }: { row: TeamStats; index: number }) {
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
-        <MobileSummaryStats wins={row.wins} points={row.points} />
+        <MobileSummaryStats wins={row.wins} points={row.points} rating={row.rating} showRating={showRating} />
         <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
       </summary>
-      <ExpandedDetails href={`/teams/${row.team.id}`} title={name} items={teamDetails(row)} />
+      <ExpandedDetails href={`/teams/${row.team.id}`} title={name} items={teamDetails(row, showRating)} />
     </details>
   );
 }
 
-function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
+function MobilePlayerRow({ row, index, showRating }: { row: PlayerStats; index: number; showRating: boolean }) {
   return (
     <details className={`rank-row rank-row--${index + 1} group border-b border-slate-100 last:border-b-0`}>
       <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto_auto] items-center gap-2 p-3 transition hover:bg-emerald-50/60 [&::-webkit-details-marker]:hidden">
@@ -118,18 +118,18 @@ function MobilePlayerRow({ row, index }: { row: PlayerStats; index: number }) {
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
-        <MobileSummaryStats wins={row.wins} points={row.points} dark />
+        <MobileSummaryStats wins={row.wins} points={row.points} rating={row.rating} showRating={showRating} dark />
         <ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" />
       </summary>
-      <ExpandedDetails href={`/players/${row.player.id}`} items={playerDetails(row)} />
+      <ExpandedDetails href={`/players/${row.player.id}`} items={playerDetails(row, showRating)} />
     </details>
   );
 }
 
-function Header({ label }: { label: string }) {
-  const columns = ["MP", "W", "D", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
+function Header({ label, showRating }: { label: string; showRating: boolean }) {
+  const columns = [...(showRating ? ["Rating"] : []), "MP", "W", "D", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
   return (
-    <div className="grid grid-cols-[56px_260px_repeat(13,72px)] border-b border-white/10 bg-ink text-[10px] font-black uppercase text-slate-300">
+    <div className={`grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-white/10 bg-ink text-[10px] font-black uppercase text-slate-300`}>
       <div className="p-3">Rank</div>
       <div className="p-3">{label}</div>
       {columns.map((column) => (
@@ -177,10 +177,14 @@ function RankBadge({ index }: { index: number }) {
 function MobileSummaryStats({
   wins,
   points,
+  rating,
+  showRating,
   dark = false
 }: {
   wins: number;
   points: number;
+  rating?: number | null;
+  showRating: boolean;
   dark?: boolean;
 }) {
   return (
@@ -190,8 +194,8 @@ function MobileSummaryStats({
         <span className="block text-sm font-black leading-none text-slate-950">{wins}</span>
       </span>
       <span className={`min-w-11 rounded-md px-1.5 py-1 text-center text-white shadow-sm ${dark ? "bg-ink" : "bg-court"}`}>
-        <span className="block text-[9px] font-black uppercase opacity-75">Pts</span>
-        <span className="block text-sm font-black leading-none">{signed(points)}</span>
+        <span className="block text-[9px] font-black uppercase opacity-75">{showRating ? "Rating" : "Pts"}</span>
+        <span className="block text-sm font-black leading-none">{showRating ? formatRating(rating) : signed(points)}</span>
       </span>
     </div>
   );
@@ -205,8 +209,9 @@ function TableMetric({ value, featured = false, dark = false }: { value: string 
   );
 }
 
-function teamDetails(row: TeamStats): DetailItem[] {
+function teamDetails(row: TeamStats, showRating = false): DetailItem[] {
   return [
+    ...(showRating ? [["Rating", formatRating(row.rating)] as DetailItem] : []),
     ["MP", row.played],
     ["W", row.wins],
     ["D", row.draws],
@@ -224,8 +229,9 @@ function teamDetails(row: TeamStats): DetailItem[] {
   ];
 }
 
-function playerDetails(row: PlayerStats): DetailItem[] {
+function playerDetails(row: PlayerStats, showRating = false): DetailItem[] {
   return [
+    ...(showRating ? [["Rating", formatRating(row.rating)] as DetailItem] : []),
     ["MP", row.played],
     ["W", row.wins],
     ["D", row.draws],
@@ -245,6 +251,10 @@ function playerDetails(row: PlayerStats): DetailItem[] {
 
 function signed(value: number) {
   return value > 0 ? `+${value}` : value;
+}
+
+function formatRating(value?: number | null) {
+  return value == null ? "-" : value.toFixed(2);
 }
 
 function VerifiedPlayer({ player }: { player: PlayerStats["player"] }) {

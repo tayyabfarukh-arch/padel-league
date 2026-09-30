@@ -4,23 +4,25 @@ import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
-import { getAmericanoMatches, getCourtStreams, getMatches, getPlayers, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
+import { getAmericanoMatches, getCourtStreams, getMatches, getPlayerRatings, getPlayers, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
 import { courtStreamUrl, teamLabel } from "@/lib/format";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
+import { applyPlayerRatings, applyTeamRatings } from "@/lib/ratings";
 import { playersFromTeams, teamsFromTournamentTeams } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  const [players, tournamentPlayers, tournamentTeams, tournaments, matches, americanoMatches, courtStreams] = await Promise.all([
+  const [players, tournamentPlayers, tournamentTeams, tournaments, matches, americanoMatches, courtStreams, ratings] = await Promise.all([
     getPlayers(),
     getTournamentPlayers(),
     getTournamentTeams(),
     getTournaments(),
     getMatches(),
     getAmericanoMatches(),
-    getCourtStreams()
+    getCourtStreams(),
+    getPlayerRatings()
   ]);
   const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
   const regularTournamentTeams = tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id));
@@ -37,8 +39,8 @@ export default async function Home() {
     : matches;
   const completed = tournaments.filter((tournament) => tournament.status === "completed" && tournament.tournament_format === "regular");
   const lastChampion = completed[0]?.champion;
-  const teamStats = calculateTeamStats(teams, matches, tournaments);
-  const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
+  const teamStats = applyTeamRatings(calculateTeamStats(teams, matches, tournaments), ratings);
+  const playerStats = applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings);
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);
   const activeIsAmericano = Boolean(active && active.tournament_format !== "regular");
@@ -109,11 +111,11 @@ export default async function Home() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="section-title">Top teams</h2>
-          <TeamLeaderboard rows={teamStats} limit={5} />
+          <TeamLeaderboard rows={teamStats} limit={5} showRating />
         </section>
         <section>
           <h2 className="section-title">Top players</h2>
-          <PlayerLeaderboard rows={playerStats} limit={5} />
+          <PlayerLeaderboard rows={playerStats} limit={5} showRating />
         </section>
       </div>
 

@@ -1,7 +1,19 @@
-DISABLED PROFILE RATING FILTER FIX
+PUBLISHED RATING LEADERBOARDS
 Created: September 30, 2026
 
 This release adds:
+- Admin can publish or republish the approved voting baseline after voting is closed.
+- Disabled players and votes involving disabled profiles are excluded from publication.
+- The overall Players leaderboard is ranked by each player's published voting rating.
+- The overall Teams leaderboard is ranked by the average published rating of both players.
+- A team remains unrated until both players have a published rating.
+- Rating ties use wins, then existing points, as the fallback order.
+- Desktop overall leaderboards show Rating together with all existing match statistics.
+- Mobile overall leaderboards show Wins and Rating in the compact row; all other details remain available by expanding it.
+- Tournament group standings keep their existing wins, points, and head-to-head logic.
+- SUPABASE_PUBLISH_RATINGS_UPDATE.sql preserves all existing data and adds the protected publishing function.
+- No new Netlify environment variables are required.
+- Previous release: Disabled profile rating filter fix
 - Disabled profiles no longer appear in the Admin rating review ranking.
 - Ratings submitted by disabled profiles no longer affect active players' vote counts or baseline averages.
 - Stored choices involving disabled profiles are preserved but clearly reported as excluded.

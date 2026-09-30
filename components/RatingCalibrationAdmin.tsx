@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, LockKeyhole, RotateCcw, UnlockKeyhole } from "lucide-react";
+import { BarChart3, LockKeyhole, RotateCcw, Upload, UnlockKeyhole } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Player, PlayerRatingVote, RatingCalibration, RatingCalibrationStatus } from "@/lib/types";
 import { PlayerAvatar } from "./Avatar";
@@ -73,6 +73,30 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
     await load();
   }
 
+  async function publishRatings() {
+    if (!supabase || !calibration || calibration.status !== "closed") return;
+    const confirmed = window.confirm(
+      calibration.published_at
+        ? "Replace the published leaderboard ratings with the latest approved totals?"
+        : "Publish these approved baseline ratings to the public leaderboards?"
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    setMessage("");
+    setError("");
+    const { data, error: publishError } = await supabase.rpc("publish_rating_calibration", {
+      p_calibration_id: calibration.id
+    });
+    setBusy(false);
+    if (publishError) {
+      setError(publishError.message);
+      return;
+    }
+    const result = data as { published_players?: number } | null;
+    setMessage(`${result?.published_players ?? 0} player ratings are now published on the leaderboards.`);
+    await load();
+  }
+
   const activePlayers = useMemo(() => players.filter((player) => player.is_active !== false), [players]);
   const activePlayerIds = useMemo(() => new Set(activePlayers.map((player) => player.id)), [activePlayers]);
   const eligibleVotes = useMemo(
@@ -93,7 +117,7 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
   return (
     <section className="sport-card p-5 lg:col-span-2">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h2 className="text-lg font-black text-slate-950">Player rating calibration</h2><p className="text-sm font-semibold text-slate-500">Private community voting for the future 1–10 rating baseline. This does not change current leaderboards.</p></div>
+        <div><h2 className="text-lg font-black text-slate-950">Player rating calibration</h2><p className="text-sm font-semibold text-slate-500">Review the private community vote, close voting, then publish the approved 1-10 baseline to the public leaderboards.</p></div>
         {calibration ? <span className={`self-start rounded-md px-3 py-2 text-sm font-black ${calibration.status === "open" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{calibration.status === "open" ? "Voting open" : "Voting closed"}</span> : null}
       </div>
       {loading ? <p className="mt-4 text-sm font-bold text-slate-500">Loading rating votes...</p> : null}
@@ -106,7 +130,10 @@ export function RatingCalibrationAdmin({ players }: { players: Player[] }) {
           <div className="mt-4 flex flex-wrap gap-2">
             {calibration.status === "open" ? <button className="btn-secondary text-red-700" disabled={busy} onClick={() => void changeStatus("closed")}><LockKeyhole className="h-4 w-4" /> Close voting</button> : <button className="btn-primary" disabled={busy} onClick={() => void changeStatus("open")}><UnlockKeyhole className="h-4 w-4" /> {calibration.status === "draft" ? "Open voting" : "Reopen voting"}</button>}
             <button className="btn-secondary" disabled={busy} onClick={() => void load()}><RotateCcw className="h-4 w-4" /> Refresh totals</button>
+            <button className="btn-primary" disabled={busy || calibration.status !== "closed"} onClick={() => void publishRatings()}><Upload className="h-4 w-4" /> {calibration.published_at ? "Republish ratings" : "Publish ratings"}</button>
           </div>
+          {calibration.status !== "closed" ? <p className="mt-2 text-xs font-bold text-slate-500">Close voting before publishing the leaderboard ratings.</p> : null}
+          {calibration.published_at ? <p className="mt-2 text-xs font-bold text-emerald-700">Published {new Date(calibration.published_at).toLocaleString()}.</p> : null}
           <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
             <div className="grid grid-cols-[1fr_70px_82px] bg-ink px-3 py-2 text-[10px] font-black uppercase text-slate-300 sm:grid-cols-[1fr_100px_100px_120px]"><span>Player</span><span className="text-center">Votes</span><span className="hidden text-center sm:block">Skipped</span><span className="text-center">Baseline</span></div>
             {summaries.map((summary) => {
