@@ -1,7 +1,19 @@
-MATCH-BASED RATING ENGINE
-Created: September 30, 2026
+BATCH RESULTS AND TEAM STATUS
+Created: October 2, 2026
 
 This release adds:
+- Enter scores for several displayed matches and submit them together from any match form.
+- Batch results are validated and saved transactionally in displayed schedule order.
+- One invalid result prevents the entire batch from being partially saved.
+- Standings and rating updates refresh once after the full batch finishes.
+- Admin can reversibly deactivate or reactivate teams under Regular Tournament > People.
+- Inactive teams remain in match and tournament history and never lose statistics.
+- Player profiles and the Players leaderboard remain unchanged when a team is deactivated.
+- The Teams leaderboard defaults to Active and includes Active, Inactive and All selectors.
+- The home page Top teams list includes active teams only.
+- SUPABASE_BATCH_RESULTS_AND_TEAM_STATUS_UPDATE.sql preserves all existing data.
+- No new Netlify environment variables are required.
+- Previous release: Match-based rating engine
 - Every newly completed regular-team match now updates all four players' published ratings.
 - An even matchup moves established players by 0.15.
 - Rating difference adjusts the movement by 0.03 per rating point, from 0.05 to 0.30.

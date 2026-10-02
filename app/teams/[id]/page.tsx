@@ -11,7 +11,7 @@ export const revalidate = 0;
 
 export default async function TeamProfilePage({ params }: { params: { id: string } }) {
   const [teams, matches, tournaments, courtStreams] = await Promise.all([
-    getTeams(),
+    getTeams(true),
     getMatches(),
     getTournaments(),
     getCourtStreams()

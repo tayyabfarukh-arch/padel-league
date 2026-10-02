@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowLeftRight, Check, Filter, GripVertical, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
+import { ArrowLeftRight, Check, Eye, EyeOff, Filter, GripVertical, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
@@ -385,6 +385,21 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       });
       if (error) throw error;
     });
+  }
+
+  async function toggleTeamStatus(team: Team) {
+    const nextActive = team.is_active === false;
+    if (!nextActive && !window.confirm(`Deactivate ${teamLabel(team)}? It will leave the default Teams leaderboard but all history and player statistics will remain.`)) return;
+    await run(async () => {
+      const { data, error } = await supabase!
+        .from("teams")
+        .update({ is_active: nextActive })
+        .eq("id", team.id)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("The team status was not updated.");
+    }, nextActive ? "Team reactivated. Refreshing data..." : "Team deactivated. Its history and player statistics are unchanged.");
   }
 
   async function createTournament(event: FormEvent<HTMLFormElement>) {
@@ -1515,6 +1530,32 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <FileField name="photo" label="Team photo" />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create team</button>
           </form>
+        </Panel>
+
+        <Panel title="Manage team status">
+          <p className="mb-3 text-xs font-semibold text-slate-500">Inactive teams disappear from the default Teams leaderboard. They remain stored in tournament history, and both players keep all individual statistics.</p>
+          <div className="max-h-96 divide-y divide-slate-100 overflow-y-auto rounded-md border border-slate-200">
+            {[...teams].sort((a, b) => teamLabel(a).localeCompare(teamLabel(b))).map((team) => {
+              const active = team.is_active !== false;
+              return (
+                <div key={team.id} className="flex items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-950">{teamLabel(team)}</p>
+                    <p className={`text-xs font-bold ${active ? "text-emerald-700" : "text-slate-500"}`}>{active ? "Active" : "Inactive"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={active ? "btn-secondary shrink-0 text-rose-700" : "btn-primary shrink-0"}
+                    disabled={busy}
+                    onClick={() => void toggleTeamStatus(team)}
+                  >
+                    {active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {active ? "Deactivate" : "Reactivate"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </Panel>
           </>
         ) : null}

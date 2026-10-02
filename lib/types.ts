@@ -68,6 +68,7 @@ export type PlayerRatingVote = {
 
 export type Team = {
   id: string;
+  is_active: boolean;
   player_1_id: string;
   player_2_id: string;
   team_name: string;

@@ -8,7 +8,7 @@ export const revalidate = 0;
 export default async function AdminPage() {
   const [players, teams, tournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams] = await Promise.all([
     getPlayers(true),
-    getTeams(),
+    getTeams(true),
     getTournaments(),
     getTournamentPlayers(),
     getTournamentTeams(),

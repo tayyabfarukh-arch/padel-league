@@ -39,7 +39,7 @@ export default async function Home() {
     : matches;
   const completed = tournaments.filter((tournament) => tournament.status === "completed" && tournament.tournament_format === "regular");
   const lastChampion = completed[0]?.champion;
-  const teamStats = applyTeamRatings(calculateTeamStats(teams, matches, tournaments), ratings);
+  const teamStats = applyTeamRatings(calculateTeamStats(teams.filter((team) => team.is_active !== false), matches, tournaments), ratings);
   const playerStats = applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings);
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);

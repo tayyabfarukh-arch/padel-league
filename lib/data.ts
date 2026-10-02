@@ -28,10 +28,12 @@ export async function getPlayerRatings() {
   return data as PlayerRating[];
 }
 
-export async function getTeams() {
+export async function getTeams(includeInactive = false) {
   noStore();
   if (!supabase) return [] as Team[];
-  const { data, error } = await supabase.from("teams").select(teamSelect).order("created_at", { ascending: false });
+  let query = supabase.from("teams").select(teamSelect).order("created_at", { ascending: false });
+  if (!includeInactive) query = query.eq("is_active", true);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Team[];
 }

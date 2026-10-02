@@ -1,5 +1,5 @@
 import { EmptyState } from "@/components/EmptyState";
-import { TeamLeaderboard } from "@/components/Leaderboard";
+import { TeamLeaderboardFilter } from "@/components/TeamLeaderboardFilter";
 import { getMatches, getPlayerRatings, getTournamentTeams, getTournaments } from "@/lib/data";
 import { applyTeamRatings } from "@/lib/ratings";
 import { calculateTeamStats } from "@/lib/scoring";
@@ -20,7 +20,7 @@ export default async function TeamsPage() {
         <p className="text-sm font-bold uppercase text-limeball">Partnership rankings</p>
         <h1 className="mt-1 text-3xl font-black">Teams leaderboard</h1>
       </section>
-      <TeamLeaderboard rows={rows} showRating />
+      <TeamLeaderboardFilter rows={rows} />
     </div>
   );
 }

@@ -8,6 +8,16 @@ import { validateScore } from "@/lib/scoring";
 import { supabase } from "@/lib/supabase";
 import type { Match, PointsScoringMode } from "@/lib/types";
 
+let batchSubmissionInProgress = false;
+
+type PendingResult = {
+  match_id: string;
+  team_1_score: number;
+  team_2_score: number;
+  deciding_point_winner_team_id: string | null;
+  ended_due_to_time: boolean;
+};
+
 export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixed_total" }: { match: Match; targetScore: number; pointsScoringMode?: PointsScoringMode }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -31,50 +41,27 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
 
   async function submitScore(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase) return;
+    if (!supabase || batchSubmissionInProgress) return;
 
-    const form = new FormData(event.currentTarget);
-    const enteredTeam1Score = Number(form.get("team_1_score"));
-    const enteredTeam2Score = Number(form.get("team_2_score"));
-    const validation = validateScore(
-      enteredTeam1Score,
-      enteredTeam2Score,
-      targetScore,
-      match.stage,
-      isTimedFinishScore && endedDueToTime,
-      pointsScoringMode
-    );
-
-    if (!validation.valid) {
-      if (isTimedFinishScore && !endedDueToTime) {
-        setMessage(
-          `Choose whether the match closed at ${targetScore} because court time ended, or continue the extra game to ${targetScore + 1}.`
-        );
-        return;
-      }
-      setMessage(
-        match.stage === "group"
-          ? pointsScoringMode === "race_to"
-            ? `One team must reach ${targetScore}; the other score must be lower.`
-            : `Both scores must total ${targetScore} points.`
-          : `Finish at ${targetScore}, or play to ${targetScore + 1} after ${targetScore - 1}-${targetScore - 1}.`
-      );
+    let pendingResults: PendingResult[];
+    try {
+      pendingResults = collectPendingResults();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Check the entered results.");
       return;
     }
-    if (tiedGroupScore && !decidingWinnerId) {
-      setMessage("Select the team that won the Golden point.");
+    if (!pendingResults.length) {
+      setMessage("Enter at least one complete result.");
       return;
     }
 
+    batchSubmissionInProgress = true;
     setBusy(true);
     setMessage("");
-    const { error } = await supabase.rpc("submit_match_score", {
-      p_match_id: match.id,
-      p_team_1_score: enteredTeam1Score,
-      p_team_2_score: enteredTeam2Score,
-      p_deciding_point_winner_team_id: tiedGroupScore ? decidingWinnerId : null,
-      p_ended_due_to_time: isTimedFinishScore && endedDueToTime
+    const { data, error } = await supabase.rpc("submit_match_scores_batch", {
+      p_results: pendingResults
     });
+    batchSubmissionInProgress = false;
     setBusy(false);
 
     if (error) {
@@ -82,12 +69,62 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
       return;
     }
 
-    setMessage("Result saved. Updating standings...");
+    setMessage(`${Number(data) || pendingResults.length} results saved. Updating standings and ratings...`);
     router.refresh();
   }
 
+  function collectPendingResults() {
+    const forms = Array.from(document.querySelectorAll<HTMLFormElement>('form[data-match-score-form="true"]'));
+    const results: PendingResult[] = [];
+
+    for (const scoreForm of forms) {
+      const form = new FormData(scoreForm);
+      const team1Raw = String(form.get("team_1_score") ?? "").trim();
+      const team2Raw = String(form.get("team_2_score") ?? "").trim();
+      if (!team1Raw && !team2Raw) continue;
+
+      const matchLabel = String(form.get("match_label") ?? "this match");
+      if (!team1Raw || !team2Raw) throw new Error(`Enter both scores for ${matchLabel}.`);
+
+      const team1 = Number(team1Raw);
+      const team2 = Number(team2Raw);
+      const stage = String(form.get("stage")) as Match["stage"];
+      const target = Number(form.get("target_score"));
+      const scoringMode = String(form.get("points_scoring_mode")) as PointsScoringMode;
+      const timedFinish = form.get("ended_due_to_time") === "yes";
+      const decidingWinner = String(form.get("deciding_point_winner_team_id") ?? "") || null;
+      const tiedGroup = stage === "group" && team1 === team2;
+      const validation = validateScore(team1, team2, target, stage, timedFinish, scoringMode);
+
+      if (!validation.valid) {
+        throw new Error(
+          stage === "group"
+            ? scoringMode === "race_to"
+              ? `${matchLabel}: one team must reach ${target}.`
+              : `${matchLabel}: both scores must total ${target}.`
+            : `${matchLabel}: finish at ${target}, continue to ${target + 1} after ${target - 1}-${target - 1}, or confirm the time-limited finish.`
+        );
+      }
+      if (tiedGroup && !decidingWinner) throw new Error(`Select the Golden point winner for ${matchLabel}.`);
+
+      results.push({
+        match_id: String(form.get("match_id")),
+        team_1_score: team1,
+        team_2_score: team2,
+        deciding_point_winner_team_id: tiedGroup ? decidingWinner : null,
+        ended_due_to_time: timedFinish
+      });
+    }
+    return results;
+  }
+
   return (
-    <form onSubmit={submitScore} className="mt-4 border-t border-slate-200 pt-3">
+    <form data-match-score-form="true" onSubmit={submitScore} className="mt-4 border-t border-slate-200 pt-3">
+      <input type="hidden" name="match_id" value={match.id} />
+      <input type="hidden" name="match_label" value={`${teamLabel(match.team_1)} vs ${teamLabel(match.team_2)}`} />
+      <input type="hidden" name="stage" value={match.stage} />
+      <input type="hidden" name="target_score" value={targetScore} />
+      <input type="hidden" name="points_scoring_mode" value={pointsScoringMode} />
       <p className="mb-3 text-xs font-bold text-slate-500">
         {match.stage === "group"
           ? pointsScoringMode === "race_to"
@@ -109,7 +146,6 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
               setTeam1Score(event.target.value);
               setEndedDueToTime(false);
             }}
-            required
           />
         </label>
         <label className="min-w-0">
@@ -125,7 +161,6 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
               setTeam2Score(event.target.value);
               setEndedDueToTime(false);
             }}
-            required
           />
         </label>
         {tiedGroupScore ? (
@@ -133,6 +168,7 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
             <span className="mb-1 block text-xs font-black text-slate-600">Golden point winner</span>
             <select
               className="field"
+              name="deciding_point_winner_team_id"
               value={decidingWinnerId}
               onChange={(event) => setDecidingWinnerId(event.target.value)}
               required
@@ -150,6 +186,7 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
             </span>
             <select
               className="field"
+              name="ended_due_to_time"
               value={endedDueToTime ? "yes" : "no"}
               onChange={(event) => setEndedDueToTime(event.target.value === "yes")}
             >
@@ -159,7 +196,7 @@ export function InlineMatchScore({ match, targetScore, pointsScoringMode = "fixe
           </label>
         ) : null}
         <button className="btn-primary col-span-2 w-full" disabled={busy}>
-          <Save className="h-4 w-4" /> {busy ? "Saving..." : "Submit result"}
+          <Save className="h-4 w-4" /> {busy ? "Saving entered results..." : "Submit all entered results"}
         </button>
       </div>
       {message ? <p className="mt-2 text-xs font-bold text-slate-600">{message}</p> : null}
