@@ -1,7 +1,20 @@
-PUBLISHED RATING LEADERBOARDS
+MATCH-BASED RATING ENGINE
 Created: September 30, 2026
 
 This release adds:
+- Every newly completed regular-team match now updates all four players' published ratings.
+- An even matchup moves established players by 0.15.
+- Rating difference adjusts the movement by 0.03 per rating point, from 0.05 to 0.30.
+- New unrated players begin at the active league average and receive provisional movement for their first 10 matches.
+- Match cards show a compact green positive change for the winner and red negative change for the loser.
+- The displayed team change is the average exact movement of its two players.
+- Every player's before, change, and after values are preserved in the rating audit history.
+- Admin score corrections automatically reverse the previous effect before applying the corrected result.
+- Clearing a test score or deleting a completed match automatically reverses its rating effect.
+- The database prevents duplicate rating events for the same player and match.
+- SUPABASE_MATCH_RATING_ENGINE_UPDATE.sql must run after SUPABASE_PUBLISH_RATINGS_UPDATE.sql.
+- No new Netlify environment variables are required.
+- Previous release: Published rating leaderboards
 - Admin can publish or republish the approved voting baseline after voting is closed.
 - Disabled players and votes involving disabled profiles are excluded from publication.
 - The overall Players leaderboard is ranked by each player's published voting rating.

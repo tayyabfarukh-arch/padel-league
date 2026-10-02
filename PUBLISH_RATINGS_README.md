@@ -22,4 +22,6 @@ This does not delete players, votes, teams, matches or tournament history.
 
 The Players leaderboard will then rank players by their published rating. The Teams leaderboard uses the average published rating of both players. A team stays unrated until both players have a published rating.
 
+Publish or republish the baseline only before the first rated tournament result. Supabase blocks republishing after match-based rating changes have started.
+
 No new Netlify environment variables are needed.

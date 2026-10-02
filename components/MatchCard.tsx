@@ -89,7 +89,10 @@ export function MatchCard({
           {completed ? (
             <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : "loser"} />
           ) : null}
-          <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_1)}</p>
+          <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm font-bold text-slate-900">
+            <span className="truncate">{teamLabel(match.team_1)}</span>
+            <RatingChange value={match.team_1_rating_change} />
+          </p>
         </div>
         <div className="min-w-14 rounded-md bg-slate-950 px-3 py-2 text-center text-lg font-black text-white shadow-sm">
           {completed ? `${match.team_1_games}-${match.team_2_games}` : "vs"}
@@ -104,7 +107,10 @@ export function MatchCard({
           {completed ? (
             <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : "loser"} align="right" />
           ) : null}
-          <p className="mt-2 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
+          <p className="mt-2 flex min-w-0 items-center justify-end gap-1.5 text-sm font-bold text-slate-900">
+            <RatingChange value={match.team_2_rating_change} />
+            <span className="truncate">{teamLabel(match.team_2)}</span>
+          </p>
         </div>
       </div>
       {completed && match.deciding_point_winner_team_id ? (
@@ -159,5 +165,18 @@ function ResultLabel({ result, align = "left" }: { result: Result; align?: "left
     <p className={`mt-2 text-[10px] font-black uppercase ${styles} ${align === "right" ? "text-right" : ""}`}>
       {result === "winner" ? "Winner" : result === "loser" ? "Loser" : "Draw"}
     </p>
+  );
+}
+
+function RatingChange({ value }: { value?: number | null }) {
+  if (value == null || Math.abs(Number(value)) < 0.0005) return null;
+  const change = Number(value);
+  return (
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black ${change > 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+      title="Team rating change from this match"
+    >
+      {change > 0 ? "+" : ""}{change.toFixed(2)}
+    </span>
   );
 }

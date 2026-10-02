@@ -32,6 +32,13 @@ begin
     raise exception 'Close voting before publishing player ratings.';
   end if;
 
+  if exists (
+    select 1 from public.rating_events
+    where match_id is not null or americano_match_id is not null
+  ) then
+    raise exception 'Ratings cannot be republished after match-based rating updates have started.';
+  end if;
+
   with eligible_votes as (
     select vote.id, vote.rated_player_id, vote.rating
     from public.player_rating_votes as vote
