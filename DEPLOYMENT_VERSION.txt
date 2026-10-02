@@ -1,7 +1,12 @@
-BATCH RESULTS AND TEAM STATUS
+EXACT RATING CHANGE DISPLAY
 Created: October 2, 2026
 
 This release adds:
+- Match rating badges now use the exact player audit events as their source.
+- Team changes are calculated from the two actual player changes after rating limits and provisional adjustments.
+- Existing cached match values remain as a fallback for older results without audit events.
+- No additional Supabase SQL is required after the match-rating engine.
+- Previous release: Batch results and team status
 - Enter scores for several displayed matches and submit them together from any match form.
 - Batch results are validated and saved transactionally in displayed schedule order.
 - One invalid result prevents the entire batch from being partially saved.

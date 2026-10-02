@@ -195,6 +195,10 @@ export type Match = {
   created_at: string;
   team_1?: Team;
   team_2?: Team;
+  rating_events?: Array<{
+    player_id: string;
+    rating_change: number;
+  }>;
 };
 
 export type AmericanoMatch = {

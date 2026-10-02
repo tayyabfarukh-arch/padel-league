@@ -28,6 +28,8 @@ export function MatchCard({
           : null)
     : null;
   const drawn = completed && !visualWinnerId;
+  const team1RatingChange = ratingChangeFromEvents(match, match.team_1_id, match.team_1_rating_change);
+  const team2RatingChange = ratingChangeFromEvents(match, match.team_2_id, match.team_2_rating_change);
 
   return (
     <article
@@ -91,7 +93,7 @@ export function MatchCard({
           ) : null}
           <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm font-bold text-slate-900">
             <span className="truncate">{teamLabel(match.team_1)}</span>
-            <RatingChange value={match.team_1_rating_change} />
+            <RatingChange value={team1RatingChange} />
           </p>
         </div>
         <div className="min-w-14 rounded-md bg-slate-950 px-3 py-2 text-center text-lg font-black text-white shadow-sm">
@@ -108,7 +110,7 @@ export function MatchCard({
             <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : "loser"} align="right" />
           ) : null}
           <p className="mt-2 flex min-w-0 items-center justify-end gap-1.5 text-sm font-bold text-slate-900">
-            <RatingChange value={match.team_2_rating_change} />
+            <RatingChange value={team2RatingChange} />
             <span className="truncate">{teamLabel(match.team_2)}</span>
           </p>
         </div>
@@ -179,4 +181,16 @@ function RatingChange({ value }: { value?: number | null }) {
       {change > 0 ? "+" : ""}{change.toFixed(2)}
     </span>
   );
+}
+
+function ratingChangeFromEvents(match: Match, teamId: string, fallback?: number | null) {
+  if (!match.rating_events?.length) return fallback;
+  const team = teamId === match.team_1_id ? match.team_1 : match.team_2;
+  if (!team) return fallback;
+  const playerIds = new Set([team.player_1_id, team.player_2_id]);
+  const changes = match.rating_events
+    .filter((event) => playerIds.has(event.player_id))
+    .map((event) => Number(event.rating_change));
+  if (!changes.length) return fallback;
+  return changes.reduce((total, change) => total + change, 0) / changes.length;
 }

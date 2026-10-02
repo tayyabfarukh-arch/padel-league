@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import type { AmericanoMatch, CourtStream, Match, Player, PlayerRating, Prediction, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
-const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect})`;
+const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), rating_events:rating_events!rating_events_match_id_fkey(player_id,rating_change)`;
 const americanoMatchSelect = `*, side_1_team:teams!americano_matches_side_1_team_id_fkey(${teamSelect}), side_2_team:teams!americano_matches_side_2_team_id_fkey(${teamSelect}), side_1_player_1:players!americano_matches_side_1_player_1_id_fkey(*), side_1_player_2:players!americano_matches_side_1_player_2_id_fkey(*), side_2_player_1:players!americano_matches_side_2_player_1_id_fkey(*), side_2_player_2:players!americano_matches_side_2_player_2_id_fkey(*)`;
 const tournamentSelect =
   "*, champion:teams!tournaments_champion_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), runner_up:teams!tournaments_runner_up_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), third_place:teams!tournaments_third_place_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*))";
