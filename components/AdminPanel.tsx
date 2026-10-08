@@ -453,6 +453,32 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     });
   }
 
+  async function replaceTournamentTeam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const outgoingTeamId = String(form.get("outgoing_team_id") ?? "");
+    const replacementTeamId = String(form.get("replacement_team_id") ?? "");
+    const outgoingTeam = teams.find((team) => team.id === outgoingTeamId);
+    const replacementTeam = teams.find((team) => team.id === replacementTeamId);
+    if (!outgoingTeam || !replacementTeam) {
+      setMessageType("error");
+      setMessage("Select both the withdrawn team and its replacement.");
+      return;
+    }
+    if (!window.confirm(`Replace ${teamLabel(outgoingTeam)} with ${teamLabel(replacementTeam)} in this tournament and every scheduled match?`)) return;
+
+    await run(async () => {
+      const { data, error } = await supabase!.rpc("replace_tournament_team", {
+        p_tournament_id: teamTournamentId,
+        p_outgoing_team_id: outgoingTeamId,
+        p_replacement_team_id: replacementTeamId
+      });
+      if (error) throw error;
+      const result = data as { updated_matches?: number; cleared_predictions?: number } | null;
+      setMessage(`Team replaced in ${result?.updated_matches ?? 0} matches. ${result?.cleared_predictions ?? 0} withdrawn-team predictions were cleared.`);
+    }, "Team and scheduled matches replaced successfully. Refreshing data...");
+  }
+
   async function updateTournamentSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -1688,6 +1714,34 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             </fieldset>
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Add selected teams</button>
           </form>
+          {selectedTournamentAssignments.length ? (
+            <form onSubmit={replaceTournamentTeam} className="mt-5 space-y-3 border-t border-slate-200 pt-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-950">Replace a withdrawn team</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">The replacement keeps the same group, rounds and courts. This is allowed only while the tournament is Upcoming and before the withdrawn team has a submitted result.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Select
+                  name="outgoing_team_id"
+                  label="Withdrawn team"
+                  options={selectedTournamentAssignments.map((entry) => [entry.team_id, teamLabel(entry.team)])}
+                />
+                <Select
+                  name="replacement_team_id"
+                  label="Replacement team"
+                  options={teams
+                    .filter((team) => team.is_active !== false && !selectedTournamentAssignments.some((entry) => entry.team_id === team.id))
+                    .map((team) => [team.id, teamLabel(team)])}
+                />
+              </div>
+              <button
+                className="btn-secondary"
+                disabled={busy || !teams.some((team) => team.is_active !== false && !selectedTournamentAssignments.some((entry) => entry.team_id === team.id))}
+              >
+                <ArrowLeftRight className="h-4 w-4" /> Replace team in schedule
+              </button>
+            </form>
+          ) : null}
           <div className="mt-5 border-t border-slate-200 pt-4">
             <h3 className="text-sm font-black text-slate-950">Teams already added</h3>
             <div className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">

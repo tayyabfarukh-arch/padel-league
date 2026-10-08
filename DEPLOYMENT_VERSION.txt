@@ -1,7 +1,18 @@
-EXACT RATING CHANGE DISPLAY
-Created: October 2, 2026
+PREDICTION RESULTS AND TEAM REPLACEMENT
+Created: October 8, 2026
 
 This release adds:
+- Completed tournaments remain available on the Predictions page as history.
+- Correct predictions show 😎 beside the player's profile name and picture.
+- Wrong predictions show 🐒 beside the player's profile name and picture.
+- Active tournaments show locked predictions awaiting the final champion.
+- The newest Upcoming tournament remains the default prediction view.
+- Admin can transactionally replace a withdrawn team in an Upcoming tournament.
+- The replacement inherits the same group and every scheduled round and court.
+- Replacement is blocked when affected results already exist or the replacement is already participating.
+- Predictions for the withdrawn team are cleared so affected voters can vote again.
+- SUPABASE_TEAM_REPLACEMENT_UPDATE.sql preserves all existing tournament data.
+- Previous release: Exact rating change display
 - Match rating badges now use the exact player audit events as their source.
 - Team changes are calculated from the two actual player changes after rating limits and provisional adjustments.
 - Existing cached match values remain as a fallback for older results without audit events.

@@ -1,17 +1,18 @@
 import { EmptyState } from "@/components/EmptyState";
 import { PredictionPanel } from "@/components/PredictionPanel";
-import { getPredictions, getTournamentTeams, getTournaments } from "@/lib/data";
+import { getPlayers, getPredictions, getTournamentTeams, getTournaments } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function PredictionsPage() {
-  const [allTournaments, tournamentTeams, predictions] = await Promise.all([
+  const [allTournaments, tournamentTeams, predictions, players] = await Promise.all([
     getTournaments(),
     getTournamentTeams(),
-    getPredictions()
+    getPredictions(),
+    getPlayers()
   ]);
-  const tournaments = allTournaments.filter((item) => item.status !== "completed" && item.tournament_format !== "singles_americano");
+  const tournaments = allTournaments.filter((item) => item.tournament_format !== "singles_americano");
   if (!tournaments.length) {
     return <EmptyState title="No prediction available" body="Predictions appear after the Admin creates an upcoming tournament." />;
   }
@@ -23,7 +24,7 @@ export default async function PredictionsPage() {
         <h1 className="mt-1 text-3xl font-black">Tournament predictions</h1>
         <p className="mt-2 text-sm text-slate-300">Sign in with an approved player account and vote before the tournament becomes active.</p>
       </section>
-      <PredictionPanel tournaments={tournaments} tournamentTeams={tournamentTeams} predictions={predictions} />
+      <PredictionPanel tournaments={tournaments} tournamentTeams={tournamentTeams} predictions={predictions} players={players} />
     </div>
   );
 }
