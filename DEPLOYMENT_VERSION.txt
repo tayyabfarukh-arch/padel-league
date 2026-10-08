@@ -1,7 +1,13 @@
-PREDICTION RESULTS AND TEAM REPLACEMENT
+PLAYER LEADERBOARD PREDICTION EMOJIS
 Created: October 8, 2026
 
 This release adds:
+- The Players leaderboard now shows 😎 or 🐒 beside player names for the latest completed tournament prediction.
+- The Home page Top Players list shows the same latest prediction outcome.
+- Players who did not submit a prediction receive no emoji.
+- Emojis automatically change when a newer tournament is completed with a confirmed champion.
+- No additional Supabase SQL is required after the V11 prediction/team-replacement update.
+- Previous release: Prediction results and team replacement
 - Completed tournaments remain available on the Predictions page as history.
 - Correct predictions show 😎 beside the player's profile name and picture.
 - Wrong predictions show 🐒 beside the player's profile name and picture.

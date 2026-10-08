@@ -69,7 +69,7 @@ export function PlayerLeaderboard({ rows, limit, showRating = false }: { rows: P
               <div className="flex min-w-0 items-center gap-3 p-3">
                 <PlayerAvatar player={row.player} size={42} />
                 <div className="min-w-0">
-                  <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /></p>
+                  <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ function MobilePlayerRow({ row, index, showRating }: { row: PlayerStats; index: 
         <div className="flex min-w-0 items-center gap-3">
           <PlayerAvatar player={row.player} size={42} />
           <div className="min-w-0">
-            <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /></p>
+            <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
@@ -260,4 +260,19 @@ function formatRating(value?: number | null) {
 function VerifiedPlayer({ player }: { player: PlayerStats["player"] }) {
   if (!player.user_id) return null;
   return <BadgeCheck className="h-4 w-4 shrink-0 fill-emerald-100 text-emerald-600" aria-label="Verified player account" />;
+}
+
+function PredictionEmoji({ outcome }: { outcome?: PlayerStats["predictionOutcome"] }) {
+  if (!outcome) return null;
+  const correct = outcome === "correct";
+  return (
+    <span
+      className="shrink-0 text-base leading-none"
+      role="img"
+      aria-label={correct ? "Correct latest tournament prediction" : "Wrong latest tournament prediction"}
+      title={correct ? "Correct latest tournament prediction" : "Wrong latest tournament prediction"}
+    >
+      {correct ? "😎" : "🐒"}
+    </span>
+  );
 }

@@ -4,17 +4,18 @@ import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
-import { getAmericanoMatches, getCourtStreams, getMatches, getPlayerRatings, getPlayers, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
+import { getAmericanoMatches, getCourtStreams, getMatches, getPlayerRatings, getPlayers, getPredictions, getTournamentPlayers, getTournamentTeams, getTournaments } from "@/lib/data";
 import { courtStreamUrl, teamLabel } from "@/lib/format";
 import { calculatePlayerStats, calculateTeamStats } from "@/lib/scoring";
 import { applyPlayerRatings, applyTeamRatings } from "@/lib/ratings";
+import { applyLatestPredictionOutcomes } from "@/lib/prediction-outcomes";
 import { playersFromTeams, teamsFromTournamentTeams } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  const [players, tournamentPlayers, tournamentTeams, tournaments, matches, americanoMatches, courtStreams, ratings] = await Promise.all([
+  const [players, tournamentPlayers, tournamentTeams, tournaments, matches, americanoMatches, courtStreams, ratings, predictions] = await Promise.all([
     getPlayers(),
     getTournamentPlayers(),
     getTournamentTeams(),
@@ -22,7 +23,8 @@ export default async function Home() {
     getMatches(),
     getAmericanoMatches(),
     getCourtStreams(),
-    getPlayerRatings()
+    getPlayerRatings(),
+    getPredictions()
   ]);
   const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
   const regularTournamentTeams = tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id));
@@ -40,7 +42,11 @@ export default async function Home() {
   const completed = tournaments.filter((tournament) => tournament.status === "completed" && tournament.tournament_format === "regular");
   const lastChampion = completed[0]?.champion;
   const teamStats = applyTeamRatings(calculateTeamStats(teams.filter((team) => team.is_active !== false), matches, tournaments), ratings);
-  const playerStats = applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings);
+  const playerStats = applyLatestPredictionOutcomes(
+    applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings),
+    predictions,
+    tournaments
+  );
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);
   const activeIsAmericano = Boolean(active && active.tournament_format !== "regular");
