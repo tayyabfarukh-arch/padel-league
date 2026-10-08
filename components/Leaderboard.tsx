@@ -69,7 +69,7 @@ export function PlayerLeaderboard({ rows, limit, showRating = false }: { rows: P
               <div className="flex min-w-0 items-center gap-3 p-3">
                 <PlayerAvatar player={row.player} size={42} />
                 <div className="min-w-0">
-                  <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
+                  <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><ChampionEmoji champion={row.latestTournamentChampion} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
                   <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ function MobilePlayerRow({ row, index, showRating }: { row: PlayerStats; index: 
         <div className="flex min-w-0 items-center gap-3">
           <PlayerAvatar player={row.player} size={42} />
           <div className="min-w-0">
-            <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
+            <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><ChampionEmoji champion={row.latestTournamentChampion} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
             <p className="truncate text-xs font-semibold text-slate-500">{row.gamesWon}-{row.gamesLost} score</p>
           </div>
         </div>
@@ -265,14 +265,20 @@ function VerifiedPlayer({ player }: { player: PlayerStats["player"] }) {
 function PredictionEmoji({ outcome }: { outcome?: PlayerStats["predictionOutcome"] }) {
   if (!outcome) return null;
   const correct = outcome === "correct";
+  const noVote = outcome === "no_vote";
   return (
     <span
       className="shrink-0 text-base leading-none"
       role="img"
-      aria-label={correct ? "Correct latest tournament prediction" : "Wrong latest tournament prediction"}
-      title={correct ? "Correct latest tournament prediction" : "Wrong latest tournament prediction"}
+      aria-label={correct ? "Correct latest tournament prediction" : noVote ? "No latest tournament prediction" : "Wrong latest tournament prediction"}
+      title={correct ? "Correct latest tournament prediction" : noVote ? "No prediction submitted" : "Wrong latest tournament prediction"}
     >
-      {correct ? "😎" : "🐒"}
+      {correct ? "😎" : noVote ? "🐀" : "🐒"}
     </span>
   );
+}
+
+function ChampionEmoji({ champion }: { champion?: boolean }) {
+  if (!champion) return null;
+  return <span className="shrink-0 text-base leading-none" role="img" aria-label="Latest tournament champion" title="Latest tournament champion">👑</span>;
 }

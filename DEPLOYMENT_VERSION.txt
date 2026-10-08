@@ -1,7 +1,11 @@
-PLAYER LEADERBOARD PREDICTION EMOJIS
+PREDICTION BADGES AND CLEAN PLAYER NAMES
 Created: October 8, 2026
 
 This release adds:
+- Latest tournament prediction badges are now 😎 for correct, 🐒 for wrong, and 🐀 for no prediction.
+- Players who won the latest completed tournament receive a separate 👑 badge.
+- Player usernames and display names cannot contain emojis.
+- SUPABASE_PLAYER_NAME_EMOJI_CLEANUP_UPDATE.sql removes existing emojis from player names without deleting any profile data.
 - The Players leaderboard now shows 😎 or 🐒 beside player names for the latest completed tournament prediction.
 - The Home page Top Players list shows the same latest prediction outcome.
 - Players who did not submit a prediction receive no emoji.

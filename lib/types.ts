@@ -261,7 +261,8 @@ export type TeamStats = {
 
 export type PlayerStats = Omit<TeamStats, "team"> & {
   player: Player;
-  predictionOutcome?: "correct" | "wrong" | null;
+  predictionOutcome?: "correct" | "wrong" | "no_vote" | null;
+  latestTournamentChampion?: boolean;
   bestPartner?: Player;
   mostPlayedPartner?: Player;
   mostSuccessfulPartner?: Player;

@@ -11,6 +11,7 @@ import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { RatingCalibrationAdmin } from "@/components/RatingCalibrationAdmin";
 import { teamLabel } from "@/lib/format";
+import { containsEmoji } from "@/lib/name-validation";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
 import { generateRegularGroupSchedule, matchPairKey } from "@/lib/regular-schedule";
 import type { CourtScheduleRule } from "@/lib/regular-schedule";
@@ -351,9 +352,15 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   async function addPlayer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") ?? "").trim();
+    if (containsEmoji(name)) {
+      setMessageType("error");
+      setMessage("Player names cannot contain emojis. Please remove the emoji and try again.");
+      return;
+    }
     await run(async () => {
       const photo_url = await uploadPhoto("player-photos", form.get("photo") as File);
-      const { error } = await supabase!.from("players").insert({ name: form.get("name"), photo_url });
+      const { error } = await supabase!.from("players").insert({ name, photo_url });
       if (error) throw error;
     });
   }

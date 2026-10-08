@@ -6,6 +6,7 @@ import { Camera, Check, CheckCircle2, ChevronDown, KeyRound, LogIn, LogOut, Mail
 import { PlayerAvatar } from "@/components/Avatar";
 import { StatsGrid } from "@/components/StatsGrid";
 import { calculatePlayerStats } from "@/lib/scoring";
+import { containsEmoji } from "@/lib/name-validation";
 import { supabase } from "@/lib/supabase";
 import type { AppUser, Match, Player, PlayerClaim, PlayerStats, Team, Tournament } from "@/lib/types";
 
@@ -208,6 +209,10 @@ export function AccountPanel() {
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const photo = form.get("photo") as File | null;
+    if (containsEmoji(name)) {
+      setError("Player names cannot contain emojis. Please use letters, numbers, spaces, or punctuation only.");
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
@@ -243,6 +248,10 @@ export function AccountPanel() {
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") ?? "").trim();
     const photo = form.get("photo") as File | null;
+    if (containsEmoji(name)) {
+      setError("Player names cannot contain emojis. Please use letters, numbers, spaces, or punctuation only.");
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");

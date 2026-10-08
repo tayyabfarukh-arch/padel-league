@@ -38,6 +38,23 @@ export function PredictionPanel({
   const votingOpen = tournament?.status === "upcoming";
   const completed = tournament?.status === "completed";
   const championId = tournament?.champion_team_id;
+  const championPlayerIds = new Set([
+    tournament?.champion?.player_1_id,
+    tournament?.champion?.player_2_id
+  ].filter((playerId): playerId is string => Boolean(playerId)));
+  const predictionRows = completed
+    ? players
+        .filter((player) => Boolean(player.user_id))
+        .map((player) => ({
+          key: player.id,
+          player,
+          prediction: tournamentPredictions.find((prediction) => prediction.voter_user_id === player.user_id)
+        }))
+    : tournamentPredictions.map((prediction) => ({
+        key: prediction.id,
+        player: players.find((player) => player.user_id === prediction.voter_user_id),
+        prediction
+      }));
 
   useEffect(() => {
     if (!supabase) return;
@@ -134,29 +151,31 @@ export function PredictionPanel({
           })}
         </div>
         {!teams.length ? <p className="sport-card p-4 text-sm font-semibold text-slate-500">No teams have been added to this tournament yet.</p> : null}
-        {!votingOpen && tournamentPredictions.length ? (
+        {!votingOpen && predictionRows.length ? (
           <div className="mt-5">
             <h3 className="section-title">Player predictions</h3>
             <div className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white">
-              {tournamentPredictions.map((prediction) => {
-                const voter = players.find((player) => player.user_id === prediction.voter_user_id);
-                const correct = Boolean(completed && championId && prediction.predicted_team_id === championId);
+              {predictionRows.map(({ key, player: voter, prediction }) => {
+                const correct = Boolean(completed && championId && prediction?.predicted_team_id === championId);
                 const outcomeReady = Boolean(completed && championId);
+                const champion = championPlayerIds.has(voter?.id ?? "");
                 return (
-                  <div key={prediction.id} className="flex items-center gap-3 p-3">
+                  <div key={key} className="flex items-center gap-3 p-3">
                     <PlayerAvatar player={voter} size={38} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black text-slate-950">{voter?.name ?? "Legacy voter"}</p>
-                      <p className="truncate text-xs font-semibold text-slate-500">Predicted {teamLabel(prediction.predicted_team)}</p>
+                      <p className="truncate text-xs font-semibold text-slate-500">{prediction ? `Predicted ${teamLabel(prediction.predicted_team)}` : "No prediction submitted"}</p>
                     </div>
-                    <span
-                      className="shrink-0 text-2xl"
-                      role="img"
-                      aria-label={outcomeReady ? (correct ? "Correct prediction" : "Wrong prediction") : "Awaiting tournament result"}
-                      title={outcomeReady ? (correct ? "Correct prediction" : "Wrong prediction") : "Awaiting tournament result"}
-                    >
-                      {outcomeReady ? (correct ? "😎" : "🐒") : "⌛"}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-1 text-2xl">
+                      {champion ? <span role="img" aria-label="Tournament champion" title="Tournament champion">👑</span> : null}
+                      <span
+                        role="img"
+                        aria-label={outcomeReady ? (prediction ? (correct ? "Correct prediction" : "Wrong prediction") : "No prediction") : "Awaiting tournament result"}
+                        title={outcomeReady ? (prediction ? (correct ? "Correct prediction" : "Wrong prediction") : "No prediction submitted") : "Awaiting tournament result"}
+                      >
+                        {outcomeReady ? (prediction ? (correct ? "😎" : "🐒") : "🐀") : "⌛"}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
