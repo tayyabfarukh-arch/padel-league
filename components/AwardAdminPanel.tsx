@@ -50,7 +50,12 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
     const categoryIds = new Set((openMonthly.categories ?? []).map((category) => category.id));
     return new Set(votes.filter((vote) => categoryIds.has(vote.category_id)).map((vote) => vote.voter_user_id)).size;
   }, [openMonthly, votes]);
-  const liveMonthlyLeaders = useMemo(() => {
+  const monthlyVoteCount = useMemo(() => {
+    if (!openMonthly) return 0;
+    const categoryIds = new Set((openMonthly.categories ?? []).map((category) => category.id));
+    return votes.filter((vote) => categoryIds.has(vote.category_id)).length;
+  }, [openMonthly, votes]);
+  const liveMonthlyResults = useMemo(() => {
     if (!openMonthly) return [];
     const playersById = new Map(activePlayers.map((player) => [player.id, player]));
 
@@ -62,15 +67,14 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
           if (vote.category_id !== category.id || !playersById.has(vote.nominee_player_id)) continue;
           totals.set(vote.nominee_player_id, (totals.get(vote.nominee_player_id) ?? 0) + 1);
         }
-        const topVotes = Math.max(0, ...totals.values());
-        const leaders = topVotes === 0
-          ? []
-          : [...totals.entries()]
-              .filter(([, total]) => total === topVotes)
-              .map(([playerId]) => playersById.get(playerId))
-              .filter((player): player is Player => Boolean(player));
+        const results = [...totals.entries()]
+          .map(([playerId, total]) => ({ player: playersById.get(playerId), total }))
+          .filter((result): result is { player: Player; total: number } => Boolean(result.player))
+          .sort((a, b) => b.total - a.total || a.player.name.localeCompare(b.player.name));
+        const totalVotes = results.reduce((sum, result) => sum + result.total, 0);
+        const topVotes = results[0]?.total ?? 0;
 
-        return { category, leaders, topVotes };
+        return { category, results, totalVotes, topVotes };
       });
   }, [activePlayers, openMonthly, votes]);
 
@@ -185,43 +189,44 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
               <p className="text-sm font-black text-slate-950">{openMonthly.title}</p>
               <p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(openMonthly)}</p>
               <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-                Voting is open. {monthlyParticipantCount} player{monthlyParticipantCount === 1 ? " has" : "s have"} participated.
+                Voting is open. {monthlyParticipantCount} player{monthlyParticipantCount === 1 ? " has" : "s have"} participated and {monthlyVoteCount} vote{monthlyVoteCount === 1 ? " has" : "s have"} been recorded.
               </p>
 
               <div className="mt-4">
                 <div className="mb-2 flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase text-slate-700">Live voting leaders</p>
-                    <p className="text-[11px] font-semibold text-slate-500">Aggregate results only. Individual votes remain private.</p>
+                    <p className="text-xs font-black uppercase text-slate-700">Full live voting results</p>
+                    <p className="text-[11px] font-semibold text-slate-500">Scroll sideways to see every category. Individual votes remain private.</p>
                   </div>
                   <span className="shrink-0 text-[10px] font-bold text-slate-400">Updates every 15 sec</span>
                 </div>
                 <div className="flex snap-x gap-3 overflow-x-auto pb-2">
-                  {liveMonthlyLeaders.map(({ category, leaders, topVotes }) => (
-                    <div key={category.id} className="min-w-[230px] snap-start rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <p className="truncate text-xs font-black uppercase text-slate-600" title={category.name}>{category.name}</p>
-                      {leaders.length ? (
-                        <div className="mt-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-2">
-                              {leaders.slice(0, 3).map((player) => (
-                                <PlayerAvatar key={player.id} player={player} size={34} />
-                              ))}
+                  {liveMonthlyResults.map(({ category, results, totalVotes, topVotes }) => (
+                    <div key={category.id} className="min-w-[290px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2.5">
+                        <p className="truncate text-xs font-black uppercase text-slate-700" title={category.name}>{category.name}</p>
+                        <span className="shrink-0 rounded bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+                          {totalVotes} vote{totalVotes === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      {results.length ? (
+                        <div className="max-h-72 divide-y divide-slate-200 overflow-y-auto">
+                          {results.map(({ player, total }, index) => (
+                            <div key={player.id} className={`flex items-center gap-2 px-3 py-2 ${total === topVotes ? "bg-emerald-50" : "bg-slate-50"}`}>
+                              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-black ${total === topVotes ? "bg-court text-white" : "bg-white text-slate-500 ring-1 ring-slate-200"}`}>
+                                {index + 1}
+                              </span>
+                              <PlayerAvatar player={player} size={30} />
+                              <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-900">{player.name}</span>
+                              <div className="shrink-0 text-right">
+                                <p className="text-sm font-black text-slate-950">{total}</p>
+                                <p className="text-[10px] font-bold text-slate-500">{totalVotes ? Math.round((total / totalVotes) * 100) : 0}%</p>
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-black text-slate-950">
-                                {leaders.slice(0, 2).map((player) => player.name).join(" & ")}
-                                {leaders.length > 2 ? ` +${leaders.length - 2}` : ""}
-                              </p>
-                              <p className="text-[11px] font-bold text-slate-500">{leaders.length > 1 ? "Currently tied" : "Currently leading"}</p>
-                            </div>
-                            <span className="shrink-0 rounded-md bg-court px-2 py-1 text-xs font-black text-white">
-                              {topVotes} vote{topVotes === 1 ? "" : "s"}
-                            </span>
-                          </div>
+                          ))}
                         </div>
                       ) : (
-                        <p className="mt-3 text-sm font-bold text-slate-400">No votes yet</p>
+                        <p className="p-3 text-sm font-bold text-slate-400">No votes yet</p>
                       )}
                     </div>
                   ))}

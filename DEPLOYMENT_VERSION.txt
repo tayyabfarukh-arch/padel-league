@@ -1,3 +1,16 @@
+FULL LIVE MONTHLY AWARD VOTING RESULTS
+Created: October 13, 2026
+
+This release expands the live Awards dashboard:
+- Shows the total number of participants and the total number of votes recorded.
+- Shows every player who received votes in every monthly award category.
+- Orders results from highest to lowest with rank, profile picture, vote count, and percentage.
+- Highlights the current leader and handles tied totals correctly.
+- Category cards scroll horizontally and long player lists scroll vertically.
+- Results refresh automatically every 15 seconds while voting is open.
+- Individual voter identities and selections remain private.
+- No Supabase SQL changes and no new Netlify environment variables are required.
+
 LIVE MONTHLY AWARD VOTING LEADERS
 Created: October 13, 2026
 
