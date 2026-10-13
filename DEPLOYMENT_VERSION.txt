@@ -1,3 +1,14 @@
+LIVE MONTHLY AWARD VOTING LEADERS
+Created: October 13, 2026
+
+This release adds:
+- A compact, horizontally scrollable live-leaders strip in Admin > Awards.
+- The current leader, profile picture, and aggregate vote total for every monthly award.
+- Clear handling when two or more players are tied for the lead.
+- Automatic result refresh every 15 seconds while monthly voting is open.
+- Individual voters and their selections remain private.
+- No Supabase SQL changes and no new Netlify environment variables are required.
+
 PLAYER PROFILE PREDICTION RECORD
 Created: October 13, 2026
 

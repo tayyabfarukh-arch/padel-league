@@ -19,10 +19,12 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
   const [error, setError] = useState("");
   const activePlayers = useMemo(() => players.filter((player) => player.is_active !== false), [players]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!supabase) return;
-    setLoading(true);
-    setError("");
+    if (!silent) {
+      setLoading(true);
+      setError("");
+    }
     const [{ data: cycleData, error: cycleError }, { data: voteData, error: voteError }] = await Promise.all([
       supabase.from("award_cycles").select("*, categories:award_categories(*, winners:award_winners(*, player:players(*)))").order("period_end", { ascending: false }),
       supabase.from("award_votes").select("*")
@@ -42,6 +44,41 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
 
   const weeklyDraft = cycles.find((cycle) => cycle.period_type === "weekly" && cycle.status === "draft");
   const openMonthly = cycles.find((cycle) => cycle.period_type === "monthly" && cycle.status === "open");
+  const openMonthlyId = openMonthly?.id;
+  const monthlyParticipantCount = useMemo(() => {
+    if (!openMonthly) return 0;
+    const categoryIds = new Set((openMonthly.categories ?? []).map((category) => category.id));
+    return new Set(votes.filter((vote) => categoryIds.has(vote.category_id)).map((vote) => vote.voter_user_id)).size;
+  }, [openMonthly, votes]);
+  const liveMonthlyLeaders = useMemo(() => {
+    if (!openMonthly) return [];
+    const playersById = new Map(activePlayers.map((player) => [player.id, player]));
+
+    return [...(openMonthly.categories ?? [])]
+      .sort((a, b) => a.display_order - b.display_order)
+      .map((category) => {
+        const totals = new Map<string, number>();
+        for (const vote of votes) {
+          if (vote.category_id !== category.id || !playersById.has(vote.nominee_player_id)) continue;
+          totals.set(vote.nominee_player_id, (totals.get(vote.nominee_player_id) ?? 0) + 1);
+        }
+        const topVotes = Math.max(0, ...totals.values());
+        const leaders = topVotes === 0
+          ? []
+          : [...totals.entries()]
+              .filter(([, total]) => total === topVotes)
+              .map(([playerId]) => playersById.get(playerId))
+              .filter((player): player is Player => Boolean(player));
+
+        return { category, leaders, topVotes };
+      });
+  }, [activePlayers, openMonthly, votes]);
+
+  useEffect(() => {
+    if (!openMonthlyId) return;
+    const timer = window.setInterval(() => { void load(true); }, 15000);
+    return () => window.clearInterval(timer);
+  }, [load, openMonthlyId]);
 
   async function createCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,7 +181,55 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
             </div>
           ) : null}
           {openMonthly ? (
-            <div className={`${weeklyDraft ? "mt-5 border-t border-slate-200 pt-5" : "mt-4"}`}><p className="text-sm font-black text-slate-950">{openMonthly.title}</p><p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(openMonthly)}</p><p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Voting is open. {new Set(votes.filter((vote) => (openMonthly.categories ?? []).some((category) => category.id === vote.category_id)).map((vote) => vote.voter_user_id)).size} players have participated.</p><button type="button" className="btn-secondary mt-3 text-red-700" disabled={busy} onClick={() => void finalizeMonthly()}><LockKeyhole className="h-4 w-4" /> Close voting and publish</button></div>
+            <div className={`${weeklyDraft ? "mt-5 border-t border-slate-200 pt-5" : "mt-4"}`}>
+              <p className="text-sm font-black text-slate-950">{openMonthly.title}</p>
+              <p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(openMonthly)}</p>
+              <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+                Voting is open. {monthlyParticipantCount} player{monthlyParticipantCount === 1 ? " has" : "s have"} participated.
+              </p>
+
+              <div className="mt-4">
+                <div className="mb-2 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase text-slate-700">Live voting leaders</p>
+                    <p className="text-[11px] font-semibold text-slate-500">Aggregate results only. Individual votes remain private.</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold text-slate-400">Updates every 15 sec</span>
+                </div>
+                <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+                  {liveMonthlyLeaders.map(({ category, leaders, topVotes }) => (
+                    <div key={category.id} className="min-w-[230px] snap-start rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="truncate text-xs font-black uppercase text-slate-600" title={category.name}>{category.name}</p>
+                      {leaders.length ? (
+                        <div className="mt-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex -space-x-2">
+                              {leaders.slice(0, 3).map((player) => (
+                                <PlayerAvatar key={player.id} player={player} size={34} />
+                              ))}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-black text-slate-950">
+                                {leaders.slice(0, 2).map((player) => player.name).join(" & ")}
+                                {leaders.length > 2 ? ` +${leaders.length - 2}` : ""}
+                              </p>
+                              <p className="text-[11px] font-bold text-slate-500">{leaders.length > 1 ? "Currently tied" : "Currently leading"}</p>
+                            </div>
+                            <span className="shrink-0 rounded-md bg-court px-2 py-1 text-xs font-black text-white">
+                              {topVotes} vote{topVotes === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm font-bold text-slate-400">No votes yet</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button type="button" className="btn-secondary mt-3 text-red-700" disabled={busy} onClick={() => void finalizeMonthly()}><LockKeyhole className="h-4 w-4" /> Close voting and publish</button>
+            </div>
           ) : null}
           {!weeklyDraft && !openMonthly ? <p className="mt-4 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-500">No unpublished weekly awards or open monthly vote.</p> : null}
         </div>
