@@ -1,3 +1,15 @@
+PLAYER PHOTO PICKERS, ACCOUNT WORKSPACE, AND SIGN-UP TABLE
+Created: October 13, 2026
+
+This release adds:
+- Player profile pictures in every player selection control, including awards and Admin tools.
+- Searchable player pickers that show both the player's photo and name.
+- A redesigned Account page with Overview, Details, and Profile sections.
+- A clear View public profile button from the signed-in account.
+- A column-based Admin sign-ups table with account, full name, mobile, nationality, playing level, signup time, and status.
+- Linked accounts in the Admin table open the corresponding public player profile.
+- No Supabase SQL changes and no new Netlify environment variables are required for this release.
+
 PROTECTED SIGN-UP DETAILS AND ADMIN DASHBOARD
 Created: October 13, 2026
 

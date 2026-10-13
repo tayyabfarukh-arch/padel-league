@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Archive, BadgeCheck, Merge, RotateCcw, ShieldAlert } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
+import { PlayerPicker } from "@/components/PlayerPicker";
 import { supabase } from "@/lib/supabase";
 import type { Player } from "@/lib/types";
 
@@ -74,8 +75,8 @@ export function PlayerProfileAdmin({ players }: { players: Player[] }) {
         <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
           <div className="flex items-start gap-3"><Merge className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" /><div><h3 className="font-black text-slate-950">Merge duplicate profiles</h3><p className="text-sm font-semibold text-slate-600">Keep the original profile with match history. Remove the newly created duplicate.</p></div></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <PlayerSelect label="Profile to keep" value={keepId} players={players} onChange={chooseKeep} />
-            <PlayerSelect label="Duplicate to remove" value={removeId} players={players.filter((player) => player.id !== keepId)} onChange={(id) => { setRemoveId(id); setConfirmation(""); }} />
+            <PlayerPicker label="Profile to keep" value={keepId} players={players} onChange={chooseKeep} getNote={profileNote} />
+            <PlayerPicker label="Duplicate to remove" value={removeId} players={players.filter((player) => player.id !== keepId)} onChange={(id) => { setRemoveId(id); setConfirmation(""); }} getNote={profileNote} />
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <ProfilePreview player={keepPlayer} label="This profile survives" tone="keep" />
@@ -90,10 +91,8 @@ export function PlayerProfileAdmin({ players }: { players: Player[] }) {
 
         <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
           <div className="flex items-start gap-3"><Archive className="mt-0.5 h-5 w-5 shrink-0 text-slate-600" /><div><h3 className="font-black text-slate-950">Profile visibility</h3><p className="text-sm font-semibold text-slate-600">Disable a useless profile without permanently deleting it.</p></div></div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <select className="field flex-1" value={visibilityPlayerId} onChange={(event) => setVisibilityPlayerId(event.target.value)}>
-              {activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}{player.user_id ? " (account linked)" : ""}</option>)}
-            </select>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1"><PlayerPicker label="Player profile" players={activePlayers} value={visibilityPlayerId} onChange={setVisibilityPlayerId} getNote={profileNote} /></div>
             <button type="button" className="btn-secondary shrink-0 text-red-700" disabled={busy || !visibilityPlayerId} onClick={() => { const player = players.find((item) => item.id === visibilityPlayerId); if (player) void setProfileActive(player, false); }}><Archive className="h-4 w-4" /> Disable</button>
           </div>
           <p className="mt-2 text-xs font-semibold text-slate-500">Disabled profiles disappear from public player leaderboards, rating choices, claim lists, and registration selections. Their database history remains available.</p>
@@ -116,8 +115,8 @@ export function PlayerProfileAdmin({ players }: { players: Player[] }) {
   );
 }
 
-function PlayerSelect({ label, value, players, onChange }: { label: string; value: string; players: Player[]; onChange: (id: string) => void }) {
-  return <label className="block"><span className="field-label">{label}</span><select className="field" value={value} onChange={(event) => onChange(event.target.value)}>{players.map((player) => <option key={player.id} value={player.id}>{player.name}{player.is_active === false ? " (disabled)" : ""}{player.user_id ? " (account)" : ""}</option>)}</select></label>;
+function profileNote(player: Player) {
+  return [player.is_active === false ? "Disabled" : "Active", player.user_id ? "Account linked" : "No account"].join(" | ");
 }
 
 function ProfilePreview({ player, label, tone }: { player?: Player; label: string; tone: "keep" | "remove" }) {

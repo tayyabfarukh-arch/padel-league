@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Clock3, RefreshCw, UserRoundCheck, Users, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Check, Clock3, RefreshCw, UserRound, UserRoundCheck, Users, X } from "lucide-react";
+import { PlayerAvatar } from "@/components/Avatar";
 import { supabase } from "@/lib/supabase";
 import type { AppUser, Player, PlayerClaim, PlayerRegistrationDetails } from "@/lib/types";
 
@@ -61,23 +63,34 @@ export function PlayerAccountAdmin() {
       {message ? <p className="mb-3 rounded-md bg-slate-100 p-3 text-sm font-bold text-slate-700">{message}</p> : null}
       <div className="mb-4 grid gap-3 sm:grid-cols-3"><Metric icon={Users} label="Total accounts" value={accounts.length} /><Metric icon={Clock3} label="Last 7 days" value={recentCount} /><Metric icon={UserRoundCheck} label="Pending claims" value={pending.length} /></div>
       {loading ? <p className="text-sm font-bold text-slate-500">Loading sign-ups...</p> : (
-        <div className="max-h-[620px] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+        <div className="max-h-[620px] overflow-auto rounded-lg border border-slate-200">
+          <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
+            <thead className="sticky top-0 z-10 bg-ink text-[10px] font-black uppercase text-slate-300">
+              <tr><th className="px-3 py-3">Account / player</th><th className="px-3 py-3">Full name</th><th className="px-3 py-3">Mobile</th><th className="px-3 py-3">Nationality</th><th className="px-3 py-3">Playing level</th><th className="px-3 py-3">Joined</th><th className="px-3 py-3">Status</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
           {accounts.map((account) => {
             const accountDetails = detailByUser.get(account.id);
             const linkedPlayer = playerByUser.get(account.id);
             const claim = claimByUser.get(account.id);
             const status = linkedPlayer ? `Linked to ${linkedPlayer.name}` : claim?.status === "pending" ? "Claim awaiting approval" : claim?.status === "rejected" ? "Claim rejected" : "No linked player yet";
             return (
-              <div key={account.id} className="p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0"><p className="truncate font-black text-slate-950">{accountDetails?.full_name ?? `@${account.username}`}</p><p className="text-sm font-semibold text-court">@{account.username}</p><p className="mt-1 text-xs font-bold text-slate-500">Joined {new Date(account.created_at).toLocaleString()}</p></div>
-                  <span className={`self-start rounded-md px-2 py-1 text-xs font-black ${linkedPlayer ? "bg-emerald-100 text-emerald-800" : claim?.status === "pending" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{status}</span>
-                </div>
-                {accountDetails ? <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><Detail label="Mobile" value={accountDetails.phone_number} /><Detail label="Nationality" value={accountDetails.nationality} /><Detail label="Playing level" value={formatLevel(accountDetails.playing_level)} /></div> : <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs font-bold text-amber-900">Registration details not completed. This account existed before the new form.</p>}
-              </div>
+              <tr key={account.id} className="align-middle hover:bg-slate-50/80">
+                <td className="px-3 py-3">
+                  {linkedPlayer ? <Link href={`/players/${linkedPlayer.id}`} className="group flex items-center gap-2"><PlayerAvatar player={linkedPlayer} size={38} /><span className="min-w-0"><span className="flex items-center gap-1 font-black text-slate-950 group-hover:text-court">{linkedPlayer.name}<ArrowUpRight className="h-3.5 w-3.5" /></span><span className="block text-xs font-semibold text-court">@{account.username}</span></span></Link> : <div className="flex items-center gap-2"><span className="grid h-[38px] w-[38px] place-items-center rounded-full bg-slate-100 text-slate-400"><UserRound className="h-5 w-5" /></span><span className="font-black text-slate-700">@{account.username}</span></div>}
+                </td>
+                <td className="px-3 py-3 font-bold text-slate-800">{accountDetails?.full_name ?? <Missing />}</td>
+                <td className="whitespace-nowrap px-3 py-3 font-semibold text-slate-700">{accountDetails?.phone_number ?? <Missing />}</td>
+                <td className="px-3 py-3 font-semibold text-slate-700">{accountDetails?.nationality ?? <Missing />}</td>
+                <td className="px-3 py-3 font-bold text-slate-700">{accountDetails ? formatLevel(accountDetails.playing_level) : <Missing />}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-slate-600">{new Date(account.created_at).toLocaleString()}</td>
+                <td className="px-3 py-3"><span className={`inline-block rounded-md px-2 py-1 text-xs font-black ${linkedPlayer ? "bg-emerald-100 text-emerald-800" : claim?.status === "pending" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{status}</span></td>
+              </tr>
             );
           })}
-          {!accounts.length ? <p className="p-4 text-sm font-semibold text-slate-500">No player accounts yet.</p> : null}
+          {!accounts.length ? <tr><td colSpan={7} className="p-5 text-center text-sm font-semibold text-slate-500">No player accounts yet.</td></tr> : null}
+            </tbody>
+          </table>
         </div>
       )}
       </div>
@@ -88,7 +101,7 @@ export function PlayerAccountAdmin() {
         <div className="divide-y divide-slate-100 rounded-md border border-slate-200">
           {pending.map((item) => (
             <div key={item.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{item.player?.name}</p><p className="text-sm text-slate-500">Account: @{item.account?.username ?? "unknown"}</p></div>
+              <div className="flex min-w-0 flex-1 items-center gap-3">{item.player ? <PlayerAvatar player={item.player} size={42} /> : null}<div className="min-w-0"><p className="font-black text-slate-950">{item.player?.name}</p><p className="text-sm text-slate-500">Account: @{item.account?.username ?? "unknown"}</p></div></div>
               <div className="flex gap-2"><button className="btn-primary" disabled={busyId === item.id} onClick={() => void review(item.id, true)}><Check className="h-4 w-4" /> Approve</button><button className="btn-secondary text-red-700" disabled={busyId === item.id} onClick={() => void review(item.id, false)}><X className="h-4 w-4" /> Reject</button></div>
             </div>
           ))}
@@ -103,8 +116,8 @@ function Metric({ icon: Icon, label, value }: { icon: typeof Users; label: strin
   return <div className="rounded-md bg-slate-50 p-3"><div className="flex items-center gap-2 text-slate-500"><Icon className="h-4 w-4" /><p className="text-xs font-black uppercase">{label}</p></div><p className="mt-1 text-2xl font-black text-slate-950">{value}</p></div>;
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-md bg-slate-50 px-3 py-2"><p className="text-[10px] font-black uppercase text-slate-500">{label}</p><p className="mt-0.5 truncate font-bold text-slate-800">{value}</p></div>;
+function Missing() {
+  return <span className="text-xs font-bold text-amber-700">Not provided</span>;
 }
 
 function formatLevel(level: string) {

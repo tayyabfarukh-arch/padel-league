@@ -8,6 +8,7 @@ import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
 import { AwardAdminPanel } from "@/components/AwardAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
+import { PlayerPicker } from "@/components/PlayerPicker";
 import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { RatingCalibrationAdmin } from "@/components/RatingCalibrationAdmin";
@@ -1552,7 +1553,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
         <Panel title="Update player photo">
           <form onSubmit={updatePlayerPhoto} className="space-y-3">
-            <Select name="player_id" label="Player" options={players.map((player) => [player.id, player.name])} />
+            <PlayerPicker name="player_id" label="Player" players={players} />
             <FileField name="photo" label="New player photo" required />
             <button className="btn-primary" disabled={busy}><Upload className="h-4 w-4" /> Update photo</button>
           </form>
@@ -1560,8 +1561,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
         <Panel title="Create team">
           <form onSubmit={createTeam} className="space-y-3">
-            <Select name="player_1_id" label="Player 1" options={players.map((player) => [player.id, player.name])} />
-            <Select name="player_2_id" label="Player 2" options={players.map((player) => [player.id, player.name])} />
+            <PlayerPicker name="player_1_id" label="Player 1" players={players} />
+            <PlayerPicker name="player_2_id" label="Player 2" players={players} />
             <input className="field" name="team_name" placeholder="Team name (optional)" />
             <FileField name="photo" label="Team photo" />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create team</button>

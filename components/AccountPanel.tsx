@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
-import { Camera, Check, CheckCircle2, ChevronDown, KeyRound, LogIn, LogOut, Mail, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { ArrowUpRight, Camera, Check, CheckCircle2, ChevronDown, IdCard, KeyRound, LayoutDashboard, LogIn, LogOut, Mail, Search, ShieldCheck, UserPlus } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { StatsGrid } from "@/components/StatsGrid";
 import { calculatePlayerStats } from "@/lib/scoring";
@@ -23,6 +24,7 @@ export function AccountPanel() {
   const [claimPickerOpen, setClaimPickerOpen] = useState(false);
   const [claimSearch, setClaimSearch] = useState("");
   const [selectedClaimPlayerId, setSelectedClaimPlayerId] = useState("");
+  const [accountSection, setAccountSection] = useState<"overview" | "details" | "profile">("overview");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -402,17 +404,25 @@ export function AccountPanel() {
 
   return (
     <div className="space-y-5">
-      <section className="sport-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase text-court">Signed in</p>
-          <p className="font-black text-slate-950">@{account?.username ?? "player"}</p>
-          <p className="text-sm text-slate-500">{session.user.email}</p>
+      <section className="court-panel flex flex-col gap-4 rounded-lg p-5 text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          {player ? <PlayerAvatar player={player} size={70} /> : <span className="grid h-[70px] w-[70px] shrink-0 place-items-center rounded-full bg-white/10"><IdCard className="h-8 w-8 text-limeball" /></span>}
+          <div className="min-w-0"><p className="text-[10px] font-black uppercase text-limeball">Your player account</p><h2 className="truncate text-2xl font-black">{player?.name ?? registrationDetails?.full_name ?? `@${account?.username ?? "player"}`}</h2><p className="truncate text-sm font-semibold text-slate-300">@{account?.username ?? "player"} | {session.user.email}</p></div>
         </div>
-        <button className="btn-secondary" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</button>
+        <div className="flex flex-wrap gap-2">
+          {player ? <Link href={`/players/${player.id}`} className="btn-primary"><ArrowUpRight className="h-4 w-4" /> View public profile</Link> : null}
+          <button className="btn-secondary border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</button>
+        </div>
       </section>
       <Status message={message} error={error} />
 
-      <form onSubmit={updateRegistrationDetails} className="sport-card space-y-4 p-5">
+      {player ? <nav className="grid grid-cols-3 gap-1 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
+        <button type="button" className={accountSection === "overview" ? "btn-primary" : "btn-secondary border-transparent shadow-none"} onClick={() => setAccountSection("overview")}><LayoutDashboard className="h-4 w-4" /> Overview</button>
+        <button type="button" className={accountSection === "details" ? "btn-primary" : "btn-secondary border-transparent shadow-none"} onClick={() => setAccountSection("details")}><IdCard className="h-4 w-4" /> Details</button>
+        <button type="button" className={accountSection === "profile" ? "btn-primary" : "btn-secondary border-transparent shadow-none"} onClick={() => setAccountSection("profile")}><Camera className="h-4 w-4" /> Profile</button>
+      </nav> : null}
+
+      {!player || accountSection === "details" ? <form onSubmit={updateRegistrationDetails} className="sport-card space-y-4 p-5">
         <div><p className="text-xs font-black uppercase text-court">Private account information</p><h2 className="text-xl font-black text-slate-950">Registration details</h2><p className="mt-1 text-sm font-semibold text-slate-500">Only you and Admin can view these details.</p></div>
         {!registrationDetails ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">This account was created before registration details were introduced. Please complete them now.</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -422,21 +432,21 @@ export function AccountPanel() {
           <label className="block"><span className="field-label">Playing level</span><select className="field" name="playing_level" defaultValue={registrationDetails?.playing_level ?? ""} required><option value="" disabled>Select your level</option><option value="beginner">Beginner</option><option value="amateur">Amateur</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="professional">Professional</option></select></label>
         </div>
         <button className="btn-primary" disabled={busy}><CheckCircle2 className="h-4 w-4" /> Save registration details</button>
-      </form>
+      </form> : null}
 
       {player ? (
         <div className="space-y-5">
-          <form onSubmit={updateProfile} className="sport-card space-y-4 p-5">
+          {accountSection === "profile" ? <form onSubmit={updateProfile} className="sport-card mx-auto w-full max-w-2xl space-y-4 p-5">
             <div className="flex items-center gap-4">
               <PlayerAvatar player={player} size={72} />
               <div><p className="text-xs font-black uppercase text-court">Linked player profile</p><h2 className="text-xl font-black text-slate-950">{player.name}</h2></div>
             </div>
             <label className="block"><span className="field-label">Player name</span><input className="field" name="name" defaultValue={player.name} required /></label>
             <label className="block"><span className="field-label">New profile picture</span><input className="field" name="photo" type="file" accept="image/*" /></label>
-            <button className="btn-primary" disabled={busy}><Camera className="h-4 w-4" /> Save profile</button>
-          </form>
+            <div className="flex flex-wrap gap-2"><button className="btn-primary" disabled={busy}><Camera className="h-4 w-4" /> Save profile</button><Link href={`/players/${player.id}`} className="btn-secondary"><ArrowUpRight className="h-4 w-4" /> View public profile</Link></div>
+          </form> : null}
 
-          {stats ? (
+          {accountSection === "overview" && stats ? (
             <section className="space-y-4">
               <div>
                 <h2 className="section-title mb-1">Career statistics</h2>
@@ -449,9 +459,9 @@ export function AccountPanel() {
                 <PartnerSummary label="Most successful partner" value={stats.mostSuccessfulPartner?.name} />
               </div>
             </section>
-          ) : (
+          ) : accountSection === "overview" ? (
             <p className="sport-card p-4 text-sm font-semibold text-slate-500">No completed match statistics are available for this player yet.</p>
-          )}
+          ) : null}
         </div>
       ) : claim?.status === "pending" ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">

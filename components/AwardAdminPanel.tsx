@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarPlus, CheckCircle2, LockKeyhole, RotateCcw, Trophy } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
+import { PlayerPicker } from "@/components/PlayerPicker";
 import { formatAwardPeriod } from "@/lib/awards";
 import { supabase } from "@/lib/supabase";
 import type { AwardCycle, AwardVote, Player } from "@/lib/types";
@@ -136,7 +137,7 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
               <p className="text-sm font-black text-slate-950">{weeklyDraft.title}</p><p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(weeklyDraft)}</p>
               <div className="mt-3 space-y-3">
                 {(weeklyDraft.categories ?? []).sort((a, b) => a.display_order - b.display_order).map((category) => (
-                  <label key={category.id} className="block"><span className="field-label">{category.name}</span><select className="field" value={weeklyWinners[category.award_key] ?? ""} onChange={(event) => setWeeklyWinners((current) => ({ ...current, [category.award_key]: event.target.value }))}><option value="">Select winner</option>{activePlayers.map((player) => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label>
+                  <PlayerPicker key={category.id} label={category.name} players={activePlayers} value={weeklyWinners[category.award_key] ?? ""} required={false} placeholder="Select winner" onChange={(playerId) => setWeeklyWinners((current) => ({ ...current, [category.award_key]: playerId }))} />
                 ))}
               </div>
               <button type="button" className="btn-primary mt-3" disabled={busy} onClick={() => void publishWeekly()}><CheckCircle2 className="h-4 w-4" /> Publish weekly winners</button>

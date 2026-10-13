@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { CalendarPlus, Check, RefreshCcw, Save, Sparkles, Trash2, Youtube } from "lucide-react";
+import { PlayerAvatar } from "@/components/Avatar";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { generateSinglesAmericanoSchedule, generateTeamAmericanoSchedule } from "@/lib/americano-schedule";
 import { supabase } from "@/lib/supabase";
@@ -307,7 +308,7 @@ export function AmericanoAdminPanel({
             <div className="mt-3 max-h-[28rem] divide-y divide-slate-100 overflow-y-auto rounded-md border border-slate-200">
               {participantOptions.map((participant) => {
                 const label = isSingles ? (participant as Player).name : teamLabel(participant as Team);
-                return <label key={participant.id} className="flex cursor-pointer items-center gap-3 bg-white p-3 hover:bg-slate-50"><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={selectedIds.includes(participant.id)} onChange={() => toggleParticipant(participant.id)} /><span className="min-w-0 truncate font-bold">{label}</span></label>;
+                return <label key={participant.id} className="flex cursor-pointer items-center gap-3 bg-white p-3 hover:bg-slate-50"><input type="checkbox" className="h-4 w-4 accent-emerald-600" checked={selectedIds.includes(participant.id)} onChange={() => toggleParticipant(participant.id)} />{isSingles ? <PlayerAvatar player={participant as Player} size={36} /> : null}<span className="min-w-0 truncate font-bold">{label}</span></label>;
               })}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">

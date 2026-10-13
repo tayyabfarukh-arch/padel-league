@@ -8,6 +8,7 @@ import { courtStreamUrl } from "@/lib/format";
 import type { AmericanoMatch, CourtStream, Team, Tournament, TournamentPlayer, TournamentTeam } from "@/lib/types";
 import { AmericanoLeaderboard } from "./AmericanoLeaderboard";
 import { AmericanoMatchCard } from "./AmericanoMatchCard";
+import { PlayerPicker } from "./PlayerPicker";
 
 export function AmericanoDashboard({
   tournament,
@@ -66,13 +67,11 @@ export function AmericanoDashboard({
       </section>
 
       <section className="sport-card grid gap-3 p-3 sm:grid-cols-2">
-        <label>
-          <span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500"><Filter className="h-3.5 w-3.5" /> Participant</span>
-          <select className="field" value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)}>
-            <option value="all">All participants</option>
-            {participants.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
-        </label>
+        {tournament.tournament_format === "singles_americano" ? (
+          <div><span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500"><Filter className="h-3.5 w-3.5" /> Participant</span><PlayerPicker players={players} value={participantFilter === "all" ? "" : participantFilter} required={false} placeholder="All participants" onChange={(playerId) => setParticipantFilter(playerId || "all")} /></div>
+        ) : (
+          <label><span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500"><Filter className="h-3.5 w-3.5" /> Participant</span><select className="field" value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)}><option value="all">All participants</option>{participants.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+        )}
         <label>
           <span className="mb-1 flex items-center gap-1 text-xs font-black uppercase text-slate-500"><MapPin className="h-3.5 w-3.5" /> Court</span>
           <select className="field" value={courtFilter} onChange={(event) => setCourtFilter(event.target.value)}>
