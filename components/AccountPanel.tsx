@@ -8,11 +8,12 @@ import { StatsGrid } from "@/components/StatsGrid";
 import { calculatePlayerStats } from "@/lib/scoring";
 import { containsEmoji } from "@/lib/name-validation";
 import { supabase } from "@/lib/supabase";
-import type { AppUser, Match, Player, PlayerClaim, PlayerStats, Team, Tournament } from "@/lib/types";
+import type { AppUser, Match, Player, PlayerClaim, PlayerRegistrationDetails, PlayerStats, PlayingLevel, Team, Tournament } from "@/lib/types";
 
 export function AccountPanel() {
   const [session, setSession] = useState<Session | null>(null);
   const [account, setAccount] = useState<AppUser | null>(null);
+  const [registrationDetails, setRegistrationDetails] = useState<PlayerRegistrationDetails | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [claim, setClaim] = useState<PlayerClaim | null>(null);
@@ -30,6 +31,7 @@ export function AccountPanel() {
   const loadAccount = useCallback(async (nextSession: Session | null) => {
     setSession(nextSession);
     setAccount(null);
+    setRegistrationDetails(null);
     setPlayer(null);
     setStats(null);
     setClaim(null);
@@ -40,13 +42,15 @@ export function AccountPanel() {
 
     setLoading(true);
     const userId = nextSession.user.id;
-    const [{ data: accountData }, { data: playerData }, { data: claimData }, { data: playersData }] = await Promise.all([
+    const [{ data: accountData }, { data: registrationData }, { data: playerData }, { data: claimData }, { data: playersData }] = await Promise.all([
       supabase.from("app_users").select("*").eq("id", userId).maybeSingle(),
+      supabase.from("player_registration_details").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("players").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("player_claims").select("*, player:players(*)").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("players").select("*").is("user_id", null).eq("is_active", true).order("name")
     ]);
     setAccount((accountData as AppUser | null) ?? null);
+    setRegistrationDetails((registrationData as PlayerRegistrationDetails | null) ?? null);
     setPlayer((playerData as Player | null) ?? null);
     setClaim((claimData as PlayerClaim | null) ?? null);
     setAvailablePlayers((playersData as Player[] | null) ?? []);
@@ -106,6 +110,10 @@ export function AccountPanel() {
     if (!supabase) return;
     const form = new FormData(event.currentTarget);
     const username = String(form.get("username") ?? "").trim().toLowerCase();
+    const fullName = String(form.get("full_name") ?? "").trim();
+    const phoneNumber = String(form.get("phone_number") ?? "").trim();
+    const nationality = String(form.get("nationality") ?? "").trim();
+    const playingLevel = String(form.get("playing_level") ?? "") as PlayingLevel;
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
     setBusy(true);
@@ -114,6 +122,26 @@ export function AccountPanel() {
 
     if (!/^[a-z0-9_]{3,24}$/.test(username)) {
       setError("Username must be 3 to 24 letters, numbers, or underscores.");
+      setBusy(false);
+      return;
+    }
+    if (fullName.length < 2 || fullName.length > 100 || containsEmoji(fullName)) {
+      setError("Enter your full name without emojis.");
+      setBusy(false);
+      return;
+    }
+    if (!/^[+0-9()\-\s]{7,30}$/.test(phoneNumber)) {
+      setError("Enter a valid mobile number using numbers and an optional country code.");
+      setBusy(false);
+      return;
+    }
+    if (nationality.length < 2 || nationality.length > 80) {
+      setError("Enter your nationality.");
+      setBusy(false);
+      return;
+    }
+    if (!["beginner", "amateur", "intermediate", "advanced", "professional"].includes(playingLevel)) {
+      setError("Select your playing level.");
       setBusy(false);
       return;
     }
@@ -128,7 +156,7 @@ export function AccountPanel() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } }
+      options: { data: { username, full_name: fullName, phone_number: phoneNumber, nationality, playing_level: playingLevel } }
     });
     setBusy(false);
     if (signUpError) {
@@ -140,6 +168,44 @@ export function AccountPanel() {
       setMode("signin");
     } else {
       setMessage("Account created. Now claim your existing profile or create a new player profile below.");
+    }
+  }
+
+  async function updateRegistrationDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || !session) return;
+    const form = new FormData(event.currentTarget);
+    const fullName = String(form.get("full_name") ?? "").trim();
+    const phoneNumber = String(form.get("phone_number") ?? "").trim();
+    const nationality = String(form.get("nationality") ?? "").trim();
+    const playingLevel = String(form.get("playing_level") ?? "") as PlayingLevel;
+    setError("");
+    setMessage("");
+    if (fullName.length < 2 || fullName.length > 100 || containsEmoji(fullName)) {
+      setError("Enter your full name without emojis.");
+      return;
+    }
+    if (!/^[+0-9()\-\s]{7,30}$/.test(phoneNumber)) {
+      setError("Enter a valid mobile number using numbers and an optional country code.");
+      return;
+    }
+    if (nationality.length < 2 || nationality.length > 80) {
+      setError("Enter your nationality.");
+      return;
+    }
+    setBusy(true);
+    const { error: detailsError } = await supabase.from("player_registration_details").upsert({
+      user_id: session.user.id,
+      full_name: fullName,
+      phone_number: phoneNumber,
+      nationality,
+      playing_level: playingLevel
+    }, { onConflict: "user_id" });
+    setBusy(false);
+    if (detailsError) setError(detailsError.message);
+    else {
+      setMessage("Your registration details have been saved.");
+      await loadAccount(session);
     }
   }
 
@@ -322,7 +388,7 @@ export function AccountPanel() {
         <form onSubmit={mode === "signin" ? signIn : mode === "signup" ? signUp : requestPasswordReset} className="sport-card space-y-4 p-5">
           <h2 className="text-xl font-black text-slate-950">{mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your player account" : "Recover your password"}</h2>
           {mode === "recover" ? <p className="text-sm font-semibold text-slate-600">Enter the email used for your account. Supabase will send you a secure link for choosing a new password.</p> : null}
-          {mode === "signup" ? <label className="block"><span className="field-label">Username</span><input className="field" name="username" autoCapitalize="none" placeholder="example: tayyab_farukh" required /></label> : null}
+          {mode === "signup" ? <><label className="block"><span className="field-label">Username</span><input className="field" name="username" autoCapitalize="none" placeholder="example: tayyab_farukh" required /></label><label className="block"><span className="field-label">Full name</span><input className="field" name="full_name" autoComplete="name" placeholder="Your full name" minLength={2} maxLength={100} required /></label><label className="block"><span className="field-label">Mobile number</span><input className="field" name="phone_number" type="tel" autoComplete="tel" placeholder="Example: +965 1234 5678" required /></label><label className="block"><span className="field-label">Nationality</span><input className="field" name="nationality" autoComplete="country-name" placeholder="Your nationality" required /></label><label className="block"><span className="field-label">Playing level</span><select className="field" name="playing_level" defaultValue="" required><option value="" disabled>Select your level</option><option value="beginner">Beginner</option><option value="amateur">Amateur</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="professional">Professional</option></select></label></> : null}
           <label className="block"><span className="field-label">Email</span><input className="field" name="email" type="email" autoComplete="email" required /></label>
           {mode !== "recover" ? <label className="block"><span className="field-label">Password</span><input className="field" name="password" type="password" minLength={8} autoComplete={mode === "signin" ? "current-password" : "new-password"} required /></label> : null}
           <button className="btn-primary w-full" disabled={busy}>{mode === "signin" ? <LogIn className="h-4 w-4" /> : mode === "signup" ? <UserPlus className="h-4 w-4" /> : <Mail className="h-4 w-4" />}{busy ? "Please wait..." : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}</button>
@@ -345,6 +411,18 @@ export function AccountPanel() {
         <button className="btn-secondary" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</button>
       </section>
       <Status message={message} error={error} />
+
+      <form onSubmit={updateRegistrationDetails} className="sport-card space-y-4 p-5">
+        <div><p className="text-xs font-black uppercase text-court">Private account information</p><h2 className="text-xl font-black text-slate-950">Registration details</h2><p className="mt-1 text-sm font-semibold text-slate-500">Only you and Admin can view these details.</p></div>
+        {!registrationDetails ? <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">This account was created before registration details were introduced. Please complete them now.</p> : null}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block"><span className="field-label">Full name</span><input className="field" name="full_name" defaultValue={registrationDetails?.full_name ?? player?.name ?? ""} minLength={2} maxLength={100} required /></label>
+          <label className="block"><span className="field-label">Mobile number</span><input className="field" name="phone_number" type="tel" defaultValue={registrationDetails?.phone_number ?? ""} placeholder="Example: +965 1234 5678" required /></label>
+          <label className="block"><span className="field-label">Nationality</span><input className="field" name="nationality" defaultValue={registrationDetails?.nationality ?? ""} required /></label>
+          <label className="block"><span className="field-label">Playing level</span><select className="field" name="playing_level" defaultValue={registrationDetails?.playing_level ?? ""} required><option value="" disabled>Select your level</option><option value="beginner">Beginner</option><option value="amateur">Amateur</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option><option value="professional">Professional</option></select></label>
+        </div>
+        <button className="btn-primary" disabled={busy}><CheckCircle2 className="h-4 w-4" /> Save registration details</button>
+      </form>
 
       {player ? (
         <div className="space-y-5">

@@ -1,7 +1,15 @@
-WEEKLY AND MONTHLY PLAYER AWARDS
+PROTECTED SIGN-UP DETAILS AND ADMIN DASHBOARD
 Created: October 13, 2026
 
 This release adds:
+- Required full name, mobile number, nationality, and playing level during account creation.
+- Protected storage readable only by the individual player and Admin.
+- A private account form allowing existing players to complete or update their information.
+- A newest-first Admin sign-ups dashboard with account status and signup time.
+- Admin summary totals for all accounts, registrations in the last seven days, and pending claims.
+- No changes to the player rating mechanism.
+- Run SUPABASE_SIGNUP_DETAILS_UPDATE.sql before deploying this website version.
+- Previous release: Weekly and monthly player awards.
 - Admin-selected weekly awards: Player of the Week, Most Improved Player, and Moment of the Week.
 - Private verified-player voting for six monthly awards, including MVP of the Month.
 - Self-voting and duplicate category votes are blocked.

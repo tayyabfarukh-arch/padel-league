@@ -21,6 +21,19 @@ export type AppUser = {
   updated_at: string;
 };
 
+export type PlayingLevel = "beginner" | "amateur" | "intermediate" | "advanced" | "professional";
+
+export type PlayerRegistrationDetails = {
+  user_id: string;
+  full_name: string;
+  phone_number: string;
+  nationality: string;
+  playing_level: PlayingLevel;
+  created_at: string;
+  updated_at: string;
+  account?: AppUser;
+};
+
 export type PlayerClaim = {
   id: string;
   user_id: string;
