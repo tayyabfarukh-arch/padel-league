@@ -19,7 +19,8 @@ export default async function PlayersPage() {
   const rows = applyLatestPredictionOutcomes(
     applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings),
     predictions,
-    tournaments
+    tournaments,
+    tournamentTeams
   );
   if (!rows.length) return <EmptyState title="No players yet" body="Add players from the Admin panel." />;
   return (

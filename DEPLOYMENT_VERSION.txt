@@ -1,3 +1,14 @@
+PARTICIPATION-AWARE PREDICTION EMOJIS
+Created: October 13, 2026
+
+This release fixes:
+- Prediction emojis are now based on each player's most recent completed tournament participation.
+- Players who skipped the latest tournament keep the prediction outcome from the most recent tournament they actually played in.
+- A player receives the no-prediction rat only when they participated in their relevant tournament but did not vote.
+- Players with no completed tournament participation receive no prediction emoji.
+- Champion crowns remain based on the latest completed tournament and are unchanged.
+- No Supabase SQL changes and no new Netlify environment variables are required.
+
 PLAYER PHOTO PICKERS, ACCOUNT WORKSPACE, AND SIGN-UP TABLE
 Created: October 13, 2026
 

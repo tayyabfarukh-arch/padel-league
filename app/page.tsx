@@ -45,7 +45,8 @@ export default async function Home() {
   const playerStats = applyLatestPredictionOutcomes(
     applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings),
     predictions,
-    tournaments
+    tournaments,
+    tournamentTeams
   );
   const latestResults = matches.filter((match) => match.winner_team_id).slice(0, 3);
   const upcoming = matches.filter((match) => !match.winner_team_id).slice(0, 3);
