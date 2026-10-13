@@ -1,3 +1,14 @@
+PLAYER PROFILE PREDICTION RECORD
+Created: October 13, 2026
+
+This release adds:
+- Correct prediction count on every public player profile.
+- Wrong prediction count on every public player profile.
+- Lifetime prediction accuracy percentage.
+- Only submitted predictions for completed tournaments with a confirmed champion are counted.
+- Upcoming and active tournaments do not affect the totals until a champion is confirmed.
+- No Supabase SQL changes and no new Netlify environment variables are required.
+
 PARTICIPATION-AWARE PREDICTION EMOJIS
 Created: October 13, 2026
 

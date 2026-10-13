@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { Award, Trophy } from "lucide-react";
+import { Award, CheckCircle2, Target, Trophy, XCircle } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { StatsGrid } from "@/components/StatsGrid";
-import { getCourtStreams, getMatches, getPlayerAwardWinners, getPlayers, getTeams, getTournaments } from "@/lib/data";
+import { getCourtStreams, getMatches, getPlayerAwardWinners, getPlayers, getPredictions, getTeams, getTournaments } from "@/lib/data";
 import { calculatePlayerStats } from "@/lib/scoring";
 import { courtStreamUrl, teamLabel } from "@/lib/format";
 import { awardTone, formatAwardPeriod } from "@/lib/awards";
@@ -12,13 +12,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
-  const [players, teams, matches, tournaments, courtStreams, awards] = await Promise.all([
+  const [players, teams, matches, tournaments, courtStreams, awards, predictions] = await Promise.all([
     getPlayers(),
     getTeams(true),
     getMatches(),
     getTournaments(),
     getCourtStreams(),
-    getPlayerAwardWinners(params.id)
+    getPlayerAwardWinners(params.id),
+    getPredictions()
   ]);
   const player = players.find((item) => item.id === params.id);
   if (!player) notFound();
@@ -26,6 +27,21 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
   const playerTeams = teams.filter((team) => team.player_1_id === player.id || team.player_2_id === player.id);
   const teamIds = new Set(playerTeams.map((team) => team.id));
   const recentMatches = matches.filter((match) => teamIds.has(match.team_1_id) || teamIds.has(match.team_2_id)).slice(0, 8);
+  const completedChampions = new Map(
+    tournaments
+      .filter((tournament) => tournament.status === "completed" && tournament.champion_team_id)
+      .map((tournament) => [tournament.id, tournament.champion_team_id!])
+  );
+  const completedPredictions = player.user_id
+    ? predictions.filter((prediction) => prediction.voter_user_id === player.user_id && completedChampions.has(prediction.tournament_id))
+    : [];
+  const correctPredictions = completedPredictions.filter(
+    (prediction) => prediction.predicted_team_id === completedChampions.get(prediction.tournament_id)
+  ).length;
+  const wrongPredictions = completedPredictions.length - correctPredictions;
+  const predictionAccuracy = completedPredictions.length
+    ? Math.round((correctPredictions / completedPredictions.length) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -35,6 +51,15 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
         <h1 className="mt-1 text-3xl font-black">{player.name}</h1>
       </section>
       <StatsGrid stats={stats} />
+      <section>
+        <h2 className="section-title">Prediction record</h2>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <PredictionStat icon={CheckCircle2} label="Correct" value={String(correctPredictions)} tone="correct" />
+          <PredictionStat icon={XCircle} label="Wrong" value={String(wrongPredictions)} tone="wrong" />
+          <PredictionStat icon={Target} label="Accuracy" value={`${predictionAccuracy}%`} tone="accuracy" />
+        </div>
+        {!completedPredictions.length ? <p className="mt-2 text-xs font-semibold text-slate-500">No completed tournament predictions yet.</p> : null}
+      </section>
       <section>
         <h2 className="section-title">Awards cabinet</h2>
         {awards.length ? (
@@ -76,6 +101,20 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function PredictionStat({ icon: Icon, label, value, tone }: { icon: typeof Target; label: string; value: string; tone: "correct" | "wrong" | "accuracy" }) {
+  const colors = tone === "correct"
+    ? "bg-emerald-50 text-emerald-700"
+    : tone === "wrong"
+      ? "bg-red-50 text-red-700"
+      : "bg-limeball/30 text-ink";
+  return (
+    <div className="sport-card flex min-w-0 items-center gap-2 p-3 sm:gap-3 sm:p-4">
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md sm:h-11 sm:w-11 ${colors}`}><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0"><p className="text-[10px] font-black uppercase text-slate-500 sm:text-xs">{label}</p><p className="text-lg font-black text-slate-950 sm:text-2xl">{value}</p></div>
     </div>
   );
 }
