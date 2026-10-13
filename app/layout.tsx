@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleUserRound, ShieldCheck, Trophy } from "lucide-react";
+import { Award, CircleUserRound, ShieldCheck, Trophy } from "lucide-react";
 import { FriendCircleSelector } from "@/components/FriendCircleSelector";
 import { NavigationLink } from "@/components/NavigationLink";
 import type { NavigationIconName } from "@/components/NavigationLink";
@@ -44,6 +44,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavigationLink key={href} label={label} href={href} icon={icon} />
               ))}
             </nav>
+            <Link
+              href="/awards"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/15 bg-white/10 text-slate-200 transition hover:bg-limeball hover:text-ink md:hidden"
+              title="Player awards"
+              aria-label="Player awards"
+            >
+              <Award className="h-5 w-5" />
+            </Link>
             <Link
               href="/account"
               className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/15 bg-white/10 text-slate-200 transition hover:bg-limeball hover:text-ink"

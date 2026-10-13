@@ -173,6 +173,54 @@ export type Prediction = {
   predicted_team?: Team;
 };
 
+export type AwardPeriodType = "weekly" | "monthly";
+export type AwardCycleStatus = "draft" | "open" | "closed";
+export type AwardSelectionMethod = "admin" | "vote";
+
+export type AwardWinner = {
+  id: string;
+  category_id: string;
+  player_id: string;
+  awarded_at: string;
+  player?: Player;
+  category?: AwardCategory;
+};
+
+export type AwardCategory = {
+  id: string;
+  cycle_id: string;
+  award_key: string;
+  name: string;
+  description: string;
+  selection_method: AwardSelectionMethod;
+  display_order: number;
+  created_at: string;
+  winners?: AwardWinner[];
+  cycle?: AwardCycle;
+};
+
+export type AwardCycle = {
+  id: string;
+  title: string;
+  period_type: AwardPeriodType;
+  period_start: string;
+  period_end: string;
+  status: AwardCycleStatus;
+  created_at: string;
+  published_at: string | null;
+  categories?: AwardCategory[];
+};
+
+export type AwardVote = {
+  id: string;
+  category_id: string;
+  voter_user_id: string;
+  voter_player_id: string;
+  nominee_player_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Match = {
   id: string;
   tournament_id: string;

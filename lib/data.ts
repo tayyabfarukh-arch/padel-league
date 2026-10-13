@@ -1,7 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSelectedFriendCircle } from "./friend-circle-server";
 import { supabase } from "./supabase";
-import type { AmericanoMatch, CourtStream, Match, Player, PlayerRating, Prediction, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
+import type { AmericanoMatch, AwardCycle, AwardWinner, CourtStream, Match, Player, PlayerRating, Prediction, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
 const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), rating_events:rating_events!rating_events_match_id_fkey(player_id,rating_change)`;
@@ -187,6 +187,31 @@ export async function getPredictions(tournamentId?: string) {
   const { data, error } = await query;
   if (error) throw error;
   return data as Prediction[];
+}
+
+export async function getAwardCycles() {
+  noStore();
+  if (!supabase) return [] as AwardCycle[];
+  const { data, error } = await supabase
+    .from("award_cycles")
+    .select("*, categories:award_categories(*, winners:award_winners(*, player:players(*)))")
+    .order("period_end", { ascending: false });
+  if (error?.code === "42P01" || error?.code === "PGRST205") return [] as AwardCycle[];
+  if (error) throw error;
+  return data as AwardCycle[];
+}
+
+export async function getPlayerAwardWinners(playerId: string) {
+  noStore();
+  if (!supabase) return [] as AwardWinner[];
+  const { data, error } = await supabase
+    .from("award_winners")
+    .select("*, category:award_categories(*, cycle:award_cycles(*))")
+    .eq("player_id", playerId)
+    .order("awarded_at", { ascending: false });
+  if (error?.code === "42P01" || error?.code === "PGRST205") return [] as AwardWinner[];
+  if (error) throw error;
+  return data as AwardWinner[];
 }
 
 async function getSelectedTournamentIds() {

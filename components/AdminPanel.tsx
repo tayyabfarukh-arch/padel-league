@@ -6,6 +6,7 @@ import { ArrowLeftRight, Check, Eye, EyeOff, Filter, GripVertical, LogIn, LogOut
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
+import { AwardAdminPanel } from "@/components/AwardAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
 import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
@@ -29,7 +30,7 @@ type Props = {
   courtStreams: CourtStream[];
 };
 
-type AdminSection = "accounts" | "ratings" | "people" | "registrations" | "tournament" | "schedule" | "results";
+type AdminSection = "accounts" | "ratings" | "awards" | "people" | "registrations" | "tournament" | "schedule" | "results";
 
 export function AdminPanel({ configured, players, teams, tournaments: allTournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams }: Props) {
   const tournaments = allTournaments.filter((item) => item.tournament_format === "regular");
@@ -1512,6 +1513,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             {([
               ["accounts", "Accounts"],
               ["ratings", "Ratings"],
+              ["awards", "Awards"],
               ["people", "People"],
               ["registrations", "Registrations"],
               ["tournament", "Tournament"],
@@ -1535,6 +1537,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           <div className={adminWorkspace === "regular" ? "grid gap-5 lg:grid-cols-2" : "hidden"}>
         {adminSection === "accounts" ? <PlayerAccountAdmin /> : null}
         {adminSection === "ratings" ? <RatingCalibrationAdmin players={players} /> : null}
+        {adminSection === "awards" ? <AwardAdminPanel players={players} /> : null}
         {adminSection === "registrations" ? <RegistrationAdminPanel tournaments={allTournaments.filter((item) => item.tournament_format !== "singles_americano")} teams={teams} /> : null}
         {adminSection === "people" ? (
           <>
@@ -2363,7 +2366,7 @@ function messageClass(type: "info" | "success" | "error") {
 }
 
 function isAdminSection(value: string | null): value is AdminSection {
-  return value === "accounts" || value === "ratings" || value === "people" || value === "registrations" || value === "tournament" || value === "schedule" || value === "results";
+  return value === "accounts" || value === "ratings" || value === "awards" || value === "people" || value === "registrations" || value === "tournament" || value === "schedule" || value === "results";
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

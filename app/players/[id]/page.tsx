@@ -1,21 +1,24 @@
 import { notFound } from "next/navigation";
+import { Award, Trophy } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { StatsGrid } from "@/components/StatsGrid";
-import { getCourtStreams, getMatches, getPlayers, getTeams, getTournaments } from "@/lib/data";
+import { getCourtStreams, getMatches, getPlayerAwardWinners, getPlayers, getTeams, getTournaments } from "@/lib/data";
 import { calculatePlayerStats } from "@/lib/scoring";
 import { courtStreamUrl, teamLabel } from "@/lib/format";
+import { awardTone, formatAwardPeriod } from "@/lib/awards";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
-  const [players, teams, matches, tournaments, courtStreams] = await Promise.all([
+  const [players, teams, matches, tournaments, courtStreams, awards] = await Promise.all([
     getPlayers(),
     getTeams(true),
     getMatches(),
     getTournaments(),
-    getCourtStreams()
+    getCourtStreams(),
+    getPlayerAwardWinners(params.id)
   ]);
   const player = players.find((item) => item.id === params.id);
   if (!player) notFound();
@@ -32,6 +35,24 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
         <h1 className="mt-1 text-3xl font-black">{player.name}</h1>
       </section>
       <StatsGrid stats={stats} />
+      <section>
+        <h2 className="section-title">Awards cabinet</h2>
+        {awards.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {awards.map((winner) => {
+              const category = winner.category;
+              const cycle = category?.cycle;
+              if (!category || !cycle) return null;
+              return (
+                <div key={winner.id} className={`flex items-center gap-3 rounded-lg border p-4 ${awardTone(category.award_key)}`}>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-white/70"><Trophy className="h-6 w-6" /></span>
+                  <div className="min-w-0"><p className="truncate font-black">{category.name}</p><p className="text-xs font-bold opacity-70">{formatAwardPeriod(cycle)}</p><p className="mt-1 text-[10px] font-black uppercase opacity-60">{cycle.period_type} award</p></div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <div className="sport-card flex items-center gap-3 p-4 text-sm font-semibold text-slate-500"><Award className="h-5 w-5" /> No awards yet.</div>}
+      </section>
       <section className="grid gap-3 md:grid-cols-3">
         <PartnerCard label="Best partner" value={stats.bestPartner?.name} />
         <PartnerCard label="Most played partner" value={stats.mostPlayedPartner?.name} />
