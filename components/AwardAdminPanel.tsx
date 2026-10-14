@@ -109,27 +109,6 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
 
   const weeklyDraft = cycles.find((cycle) => cycle.period_type === "weekly" && cycle.status === "draft");
   const openMonthly = cycles.find((cycle) => cycle.period_type === "monthly" && cycle.status === "open");
-  const openMonthlyId = openMonthly?.id;
-  const monthlyParticipantCount = useMemo(() => {
-    if (!openMonthly) return 0;
-    const categoryIds = new Set((openMonthly.categories ?? []).map((category) => category.id));
-    return new Set(votes.filter((vote) => categoryIds.has(vote.category_id)).map((vote) => vote.voter_user_id)).size;
-  }, [openMonthly, votes]);
-  const monthlyVoteCount = useMemo(() => {
-    if (!openMonthly) return 0;
-    const categoryIds = new Set((openMonthly.categories ?? []).map((category) => category.id));
-    return votes.filter((vote) => categoryIds.has(vote.category_id)).length;
-  }, [openMonthly, votes]);
-  const liveMonthlyResults = useMemo(() => {
-    if (!openMonthly) return [];
-    return calculateAwardResults(openMonthly, votes, players);
-  }, [openMonthly, players, votes]);
-
-  useEffect(() => {
-    if (!openMonthlyId) return;
-    const timer = window.setInterval(() => { void load(true); }, 15000);
-    return () => window.clearInterval(timer);
-  }, [load, openMonthlyId]);
 
   async function createCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -236,20 +215,8 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
               <p className="text-sm font-black text-slate-950">{openMonthly.title}</p>
               <p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(openMonthly)}</p>
               <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-                Voting is open. {monthlyParticipantCount} player{monthlyParticipantCount === 1 ? " has" : "s have"} participated and {monthlyVoteCount} vote{monthlyVoteCount === 1 ? " has" : "s have"} been recorded.
+                Voting is open. Results remain hidden until voting is closed and published.
               </p>
-
-              <div className="mt-4">
-                <div className="mb-2 flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-black uppercase text-slate-700">Full live voting results</p>
-                    <p className="text-[11px] font-semibold text-slate-500">Scroll sideways to see every category. Individual votes remain private.</p>
-                  </div>
-                  <span className="shrink-0 text-[10px] font-bold text-slate-400">Updates every 15 sec</span>
-                </div>
-                <AwardResultsStrip results={liveMonthlyResults} />
-              </div>
-
               <button type="button" className="btn-secondary mt-3 text-red-700" disabled={busy} onClick={() => void finalizeMonthly()}><LockKeyhole className="h-4 w-4" /> Close voting and publish</button>
             </div>
           ) : null}

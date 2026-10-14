@@ -1,3 +1,15 @@
+PUBLIC PUBLISHED AWARD VOTING RESULTS
+Created: October 14, 2026
+
+This release changes monthly award result visibility:
+- Live vote totals and leaders are hidden while voting remains open, including from the Admin dashboard.
+- After Admin closes and publishes voting, the complete anonymous result appears publicly underneath Award winners.
+- Published results show participants, total votes, every recipient, vote counts, percentages, rankings, and ties.
+- Individual voter identities and selections remain private.
+- Published breakdowns remain available in Admin history as well.
+- Run SUPABASE_PUBLISHED_AWARD_RESULTS_UPDATE.sql once before deployment.
+- No new Netlify environment variables are required.
+
 PUBLISHED MONTHLY AWARD VOTE BREAKDOWN
 Created: October 14, 2026
 

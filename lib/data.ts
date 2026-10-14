@@ -1,7 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getSelectedFriendCircle } from "./friend-circle-server";
 import { supabase } from "./supabase";
-import type { AmericanoMatch, AwardCycle, AwardWinner, CourtStream, Match, Player, PlayerRating, Prediction, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
+import type { AmericanoMatch, AwardCycle, AwardWinner, CourtStream, Match, Player, PlayerRating, Prediction, PublishedAwardVoteTotal, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
 const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), rating_events:rating_events!rating_events_match_id_fkey(player_id,rating_change)`;
@@ -199,6 +199,15 @@ export async function getAwardCycles() {
   if (error?.code === "42P01" || error?.code === "PGRST205") return [] as AwardCycle[];
   if (error) throw error;
   return data as AwardCycle[];
+}
+
+export async function getPublishedAwardVoteTotals() {
+  noStore();
+  if (!supabase) return [] as PublishedAwardVoteTotal[];
+  const { data, error } = await supabase.rpc("get_published_award_vote_totals");
+  if (error?.code === "42883" || error?.code === "PGRST202") return [] as PublishedAwardVoteTotal[];
+  if (error) throw error;
+  return (data as PublishedAwardVoteTotal[] | null) ?? [];
 }
 
 export async function getPlayerAwardWinners(playerId: string) {

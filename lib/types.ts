@@ -234,6 +234,14 @@ export type AwardVote = {
   updated_at: string;
 };
 
+export type PublishedAwardVoteTotal = {
+  cycle_id: string;
+  category_id: string;
+  nominee_player_id: string;
+  vote_count: number;
+  participant_count: number;
+};
+
 export type Match = {
   id: string;
   tournament_id: string;
