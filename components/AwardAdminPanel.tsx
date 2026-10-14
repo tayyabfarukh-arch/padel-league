@@ -6,7 +6,72 @@ import { PlayerAvatar } from "@/components/Avatar";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { formatAwardPeriod } from "@/lib/awards";
 import { supabase } from "@/lib/supabase";
-import type { AwardCycle, AwardVote, Player } from "@/lib/types";
+import type { AwardCategory, AwardCycle, AwardVote, Player } from "@/lib/types";
+
+type AwardCategoryResult = {
+  category: AwardCategory;
+  results: { player: Player; total: number }[];
+  totalVotes: number;
+  topVotes: number;
+};
+
+function calculateAwardResults(cycle: AwardCycle, votes: AwardVote[], players: Player[]): AwardCategoryResult[] {
+  const playersById = new Map(players.map((player) => [player.id, player]));
+
+  return [...(cycle.categories ?? [])]
+    .filter((category) => category.selection_method === "vote")
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((category) => {
+      const totals = new Map<string, number>();
+      for (const vote of votes) {
+        if (vote.category_id !== category.id || !playersById.has(vote.nominee_player_id)) continue;
+        totals.set(vote.nominee_player_id, (totals.get(vote.nominee_player_id) ?? 0) + 1);
+      }
+      const results = [...totals.entries()]
+        .map(([playerId, total]) => ({ player: playersById.get(playerId), total }))
+        .filter((result): result is { player: Player; total: number } => Boolean(result.player))
+        .sort((a, b) => b.total - a.total || a.player.name.localeCompare(b.player.name));
+      const totalVotes = results.reduce((sum, result) => sum + result.total, 0);
+
+      return { category, results, totalVotes, topVotes: results[0]?.total ?? 0 };
+    });
+}
+
+function AwardResultsStrip({ results }: { results: AwardCategoryResult[] }) {
+  return (
+    <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+      {results.map(({ category, results: playerResults, totalVotes, topVotes }) => (
+        <div key={category.id} className="min-w-[290px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2.5">
+            <p className="truncate text-xs font-black uppercase text-slate-700" title={category.name}>{category.name}</p>
+            <span className="shrink-0 rounded bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
+              {totalVotes} vote{totalVotes === 1 ? "" : "s"}
+            </span>
+          </div>
+          {playerResults.length ? (
+            <div className="max-h-72 divide-y divide-slate-200 overflow-y-auto">
+              {playerResults.map(({ player, total }, index) => (
+                <div key={player.id} className={`flex items-center gap-2 px-3 py-2 ${total === topVotes ? "bg-emerald-50" : "bg-slate-50"}`}>
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-black ${total === topVotes ? "bg-court text-white" : "bg-white text-slate-500 ring-1 ring-slate-200"}`}>
+                    {index + 1}
+                  </span>
+                  <PlayerAvatar player={player} size={30} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-900">{player.name}</span>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-black text-slate-950">{total}</p>
+                    <p className="text-[10px] font-bold text-slate-500">{totalVotes ? Math.round((total / totalVotes) * 100) : 0}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="p-3 text-sm font-bold text-slate-400">No votes recorded</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function AwardAdminPanel({ players }: { players: Player[] }) {
   const [cycles, setCycles] = useState<AwardCycle[]>([]);
@@ -57,26 +122,8 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
   }, [openMonthly, votes]);
   const liveMonthlyResults = useMemo(() => {
     if (!openMonthly) return [];
-    const playersById = new Map(activePlayers.map((player) => [player.id, player]));
-
-    return [...(openMonthly.categories ?? [])]
-      .sort((a, b) => a.display_order - b.display_order)
-      .map((category) => {
-        const totals = new Map<string, number>();
-        for (const vote of votes) {
-          if (vote.category_id !== category.id || !playersById.has(vote.nominee_player_id)) continue;
-          totals.set(vote.nominee_player_id, (totals.get(vote.nominee_player_id) ?? 0) + 1);
-        }
-        const results = [...totals.entries()]
-          .map(([playerId, total]) => ({ player: playersById.get(playerId), total }))
-          .filter((result): result is { player: Player; total: number } => Boolean(result.player))
-          .sort((a, b) => b.total - a.total || a.player.name.localeCompare(b.player.name));
-        const totalVotes = results.reduce((sum, result) => sum + result.total, 0);
-        const topVotes = results[0]?.total ?? 0;
-
-        return { category, results, totalVotes, topVotes };
-      });
-  }, [activePlayers, openMonthly, votes]);
+    return calculateAwardResults(openMonthly, votes, players);
+  }, [openMonthly, players, votes]);
 
   useEffect(() => {
     if (!openMonthlyId) return;
@@ -200,37 +247,7 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
                   </div>
                   <span className="shrink-0 text-[10px] font-bold text-slate-400">Updates every 15 sec</span>
                 </div>
-                <div className="flex snap-x gap-3 overflow-x-auto pb-2">
-                  {liveMonthlyResults.map(({ category, results, totalVotes, topVotes }) => (
-                    <div key={category.id} className="min-w-[290px] snap-start overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2.5">
-                        <p className="truncate text-xs font-black uppercase text-slate-700" title={category.name}>{category.name}</p>
-                        <span className="shrink-0 rounded bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
-                          {totalVotes} vote{totalVotes === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                      {results.length ? (
-                        <div className="max-h-72 divide-y divide-slate-200 overflow-y-auto">
-                          {results.map(({ player, total }, index) => (
-                            <div key={player.id} className={`flex items-center gap-2 px-3 py-2 ${total === topVotes ? "bg-emerald-50" : "bg-slate-50"}`}>
-                              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-black ${total === topVotes ? "bg-court text-white" : "bg-white text-slate-500 ring-1 ring-slate-200"}`}>
-                                {index + 1}
-                              </span>
-                              <PlayerAvatar player={player} size={30} />
-                              <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-900">{player.name}</span>
-                              <div className="shrink-0 text-right">
-                                <p className="text-sm font-black text-slate-950">{total}</p>
-                                <p className="text-[10px] font-bold text-slate-500">{totalVotes ? Math.round((total / totalVotes) * 100) : 0}%</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="p-3 text-sm font-bold text-slate-400">No votes yet</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <AwardResultsStrip results={liveMonthlyResults} />
               </div>
 
               <button type="button" className="btn-secondary mt-3 text-red-700" disabled={busy} onClick={() => void finalizeMonthly()}><LockKeyhole className="h-4 w-4" /> Close voting and publish</button>
@@ -243,9 +260,34 @@ export function AwardAdminPanel({ players }: { players: Player[] }) {
       <div className="mt-5">
         <h3 className="text-sm font-black uppercase text-slate-500">Published history</h3>
         <div className="mt-2 grid gap-3 md:grid-cols-2">
-          {cycles.filter((cycle) => cycle.status === "closed").slice(0, 8).map((cycle) => (
-            <div key={cycle.id} className="rounded-lg border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-950">{cycle.title}</p><p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(cycle)}</p></div><span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">{cycle.period_type}</span></div><div className="mt-3 space-y-2">{(cycle.categories ?? []).flatMap((category) => (category.winners ?? []).map((winner) => <div key={winner.id} className="flex items-center gap-2 text-sm"><PlayerAvatar player={winner.player} size={30} /><span className="min-w-0 flex-1 truncate font-bold text-slate-700">{category.name}</span><span className="truncate font-black text-slate-950">{winner.player?.name}</span></div>))}</div></div>
-          ))}
+          {cycles.filter((cycle) => cycle.status === "closed").slice(0, 8).map((cycle) => {
+            const cycleCategoryIds = new Set((cycle.categories ?? []).map((category) => category.id));
+            const cycleVotes = votes.filter((vote) => cycleCategoryIds.has(vote.category_id));
+            const participants = new Set(cycleVotes.map((vote) => vote.voter_user_id)).size;
+            const publishedResults = cycle.period_type === "monthly" ? calculateAwardResults(cycle, votes, players) : [];
+
+            return (
+              <div key={cycle.id} className={`rounded-lg border border-slate-200 bg-white p-4 ${cycle.period_type === "monthly" ? "md:col-span-2" : ""}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div><p className="font-black text-slate-950">{cycle.title}</p><p className="text-xs font-semibold text-slate-500">{formatAwardPeriod(cycle)}</p></div>
+                  <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-black uppercase text-slate-600">{cycle.period_type}</span>
+                </div>
+                <div className="mt-3 space-y-2">{(cycle.categories ?? []).flatMap((category) => (category.winners ?? []).map((winner) => <div key={winner.id} className="flex items-center gap-2 text-sm"><PlayerAvatar player={winner.player} size={30} /><span className="min-w-0 flex-1 truncate font-bold text-slate-700">{category.name}</span><span className="truncate font-black text-slate-950">{winner.player?.name}</span></div>))}</div>
+                {cycle.period_type === "monthly" ? (
+                  <div className="mt-4 border-t border-slate-200 pt-4">
+                    <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-black uppercase text-slate-700">Published voting breakdown</p>
+                        <p className="text-[11px] font-semibold text-slate-500">{participants} participant{participants === 1 ? "" : "s"} · {cycleVotes.length} total vote{cycleVotes.length === 1 ? "" : "s"}</p>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">Scroll sideways for all categories</span>
+                    </div>
+                    <AwardResultsStrip results={publishedResults} />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
           {!cycles.some((cycle) => cycle.status === "closed") ? <p className="text-sm font-semibold text-slate-500">No awards have been published yet.</p> : null}
         </div>
       </div>

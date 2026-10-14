@@ -1,3 +1,14 @@
+PUBLISHED MONTHLY AWARD VOTE BREAKDOWN
+Created: October 14, 2026
+
+This release keeps monthly voting results visible after publication:
+- Published monthly awards retain the complete category-by-category vote breakdown in Admin > Awards.
+- Shows participant count, total votes, every vote recipient, exact vote count, and percentage.
+- Highlights winners and ties using the same presentation as the live results.
+- Published monthly results use the full Admin panel width for easier WhatsApp screenshots.
+- Historical weekly awards remain compact because they are selected by Admin rather than voted on.
+- No Supabase SQL changes and no new Netlify environment variables are required.
+
 FULL LIVE MONTHLY AWARD VOTING RESULTS
 Created: October 13, 2026
 
