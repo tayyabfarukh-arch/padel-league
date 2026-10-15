@@ -1,3 +1,19 @@
+ELO PLAYER RATING SYSTEM V2
+Created: October 15, 2026
+
+This release replaces the previous match-rating formula:
+- Uses each team's average player rating to calculate its expected chance of winning.
+- Expected victories produce small changes; upsets produce larger changes.
+- Every group, quarter-final, semifinal, final, and third-place match uses 75% weighting.
+- New players receive phased provisional movement across their first 10 rated matches.
+- Positive gains taper above 8.00 and become very small near 10.00.
+- Ratings remain between 1.00 and 10.00 and are stored to three decimal places.
+- Simultaneous score submissions are serialized to protect rating accuracy.
+- All completed regular-tournament matches played after rating publication are automatically rewound and replayed chronologically under Elo v2.
+- Existing players, teams, tournaments, match scores, rating votes, and award data are preserved.
+- Run SUPABASE_ELO_RATING_SYSTEM_UPDATE.sql once before deploying.
+- No new Netlify environment variables are required.
+
 PUBLIC PUBLISHED AWARD VOTING RESULTS
 Created: October 14, 2026
 
