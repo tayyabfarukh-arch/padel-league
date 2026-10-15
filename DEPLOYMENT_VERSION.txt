@@ -1,3 +1,18 @@
+INDIVIDUAL PLAYER ELO AND MATCH DISPLAY V2.1
+Created: October 15, 2026
+
+This release separates rating movement between partners:
+- Each player is compared using their own rating against the opposing team's average rating.
+- A weaker partner receives more credit for a difficult win and loses less against stronger opponents.
+- A stronger partner receives less credit for an expected win and loses more when expected to perform better.
+- The 75% match weighting, first-10-match provisional system, high-rating gain taper, and 1.00-10.00 limits remain unchanged.
+- Historical matches after rating publication are safely rewound and replayed again using individual Elo v2.1.
+- Match cards show two non-overlapping player photos per team.
+- Each photo has the player's first name and personal green/red rating change.
+- Existing match scores and tournament data are preserved.
+- Run the updated SUPABASE_ELO_RATING_SYSTEM_UPDATE.sql once before deploying.
+- No new Netlify environment variables are required.
+
 ELO PLAYER RATING SYSTEM V2
 Created: October 15, 2026
 

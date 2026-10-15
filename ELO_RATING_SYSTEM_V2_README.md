@@ -1,10 +1,11 @@
 # Elo Player Rating System V2
 
-This update introduces the agreed match-based rating system and recalculates completed regular-tournament matches played after the community ratings were published.
+This update introduces the individual Elo match-rating system and recalculates completed regular-tournament matches played after the community ratings were published.
 
 ## How ratings now work
 
-- A team's strength is the average rating of its two players.
+- Each player is compared separately against the opposing team's average rating.
+- Partners can receive different rating changes from the same result.
 - Beating a stronger team gives a larger increase.
 - Beating a weaker team gives a smaller increase.
 - Losing to a weaker team causes a larger deduction.

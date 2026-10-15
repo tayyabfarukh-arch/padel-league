@@ -1,7 +1,7 @@
 import { CalendarDays, MapPin, Youtube } from "lucide-react";
 import { stageLabel, teamLabel } from "@/lib/format";
 import type { Match, PointsScoringMode } from "@/lib/types";
-import { TeamAvatar } from "./Avatar";
+import { PlayerAvatar } from "./Avatar";
 import { InlineMatchScore } from "./InlineMatchScore";
 
 export function MatchCard({
@@ -28,8 +28,8 @@ export function MatchCard({
           : null)
     : null;
   const drawn = completed && !visualWinnerId;
-  const team1RatingChange = ratingChangeFromEvents(match, match.team_1_id, match.team_1_rating_change);
-  const team2RatingChange = ratingChangeFromEvents(match, match.team_2_id, match.team_2_rating_change);
+  const team1Result = drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : completed ? "loser" : null;
+  const team2Result = drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : completed ? "loser" : null;
 
   return (
     <article
@@ -82,39 +82,25 @@ export function MatchCard({
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         <div className="min-w-0">
-          <ResultAvatar
-            team={match.team_1}
-            result={drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : completed ? "loser" : null}
-          />
-          {completed ? (
-            <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_1_id ? "winner" : "loser"} />
-          ) : null}
-          <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm font-bold text-slate-900">
-            <span className="truncate">{teamLabel(match.team_1)}</span>
-            <RatingChange value={team1RatingChange} />
-          </p>
+          <PlayerRatingPair team={match.team_1} match={match} result={team1Result} />
+          {completed ? <ResultLabel result={team1Result as Result} /> : null}
+          <p className="mt-1 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_1)}</p>
         </div>
+
         <div className="min-w-14 rounded-md bg-slate-950 px-3 py-2 text-center text-lg font-black text-white shadow-sm">
           {completed ? `${match.team_1_games}-${match.team_2_games}` : "vs"}
         </div>
+
         <div className="min-w-0 text-right">
-          <div className="flex justify-end">
-            <ResultAvatar
-              team={match.team_2}
-              result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : completed ? "loser" : null}
-            />
-          </div>
-          {completed ? (
-            <ResultLabel result={drawn ? "draw" : visualWinnerId === match.team_2_id ? "winner" : "loser"} align="right" />
-          ) : null}
-          <p className="mt-2 flex min-w-0 items-center justify-end gap-1.5 text-sm font-bold text-slate-900">
-            <RatingChange value={team2RatingChange} />
-            <span className="truncate">{teamLabel(match.team_2)}</span>
-          </p>
+          <PlayerRatingPair team={match.team_2} match={match} result={team2Result} align="right" />
+          {completed ? <ResultLabel result={team2Result as Result} align="right" /> : null}
+          <p className="mt-1 truncate text-sm font-bold text-slate-900">{teamLabel(match.team_2)}</p>
         </div>
       </div>
+
       {completed && match.deciding_point_winner_team_id ? (
         <p className="mt-3 rounded-md bg-limeball/30 p-2 text-center text-xs font-black text-ink">
           Golden point won by{" "}
@@ -139,17 +125,37 @@ export function MatchCard({
 
 type Result = "winner" | "loser" | "draw";
 
-function ResultAvatar({ team, result }: { team: Match["team_1"]; result: Result | null }) {
+function PlayerRatingPair({
+  team,
+  match,
+  result,
+  align = "left"
+}: {
+  team: Match["team_1"];
+  match: Match;
+  result: Result | null;
+  align?: "left" | "right";
+}) {
+  const players = [team?.player_1, team?.player_2];
+
   return (
-    <div className="relative inline-flex">
-      <TeamAvatar team={team} size={38} />
+    <div className={`relative flex gap-2 sm:gap-3 ${align === "right" ? "justify-end" : "justify-start"}`}>
+      {players.map((player, index) => (
+        <div key={player?.id ?? index} className="flex w-12 min-w-0 flex-col items-center sm:w-14">
+          <PlayerAvatar player={player} size={38} />
+          <span className="mt-1 block w-full truncate text-center text-[10px] font-black text-slate-700" title={player?.name}>
+            {firstName(player?.name)}
+          </span>
+          <RatingChange value={playerRatingChange(match, player?.id)} />
+        </div>
+      ))}
       {result ? (
         <span
-          className="absolute -bottom-1 -right-2 text-xl drop-shadow-sm"
+          className={`absolute -top-2 text-lg drop-shadow-sm ${align === "right" ? "-right-1" : "-left-1"}`}
           role="img"
           aria-label={result === "winner" ? "Winner" : result === "loser" ? "Loser" : "Draw"}
         >
-          {result === "winner" ? "😎" : result === "loser" ? "😔" : "🤝"}
+          {result === "winner" ? "🙂" : result === "loser" ? "☹️" : "🤝"}
         </span>
       ) : null}
     </div>
@@ -175,22 +181,20 @@ function RatingChange({ value }: { value?: number | null }) {
   const change = Number(value);
   return (
     <span
-      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black ${change > 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
-      title="Team rating change from this match"
+      className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black ${change > 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+      title="Player rating change from this match"
     >
       {change > 0 ? "+" : ""}{change.toFixed(2)}
     </span>
   );
 }
 
-function ratingChangeFromEvents(match: Match, teamId: string, fallback?: number | null) {
-  if (!match.rating_events?.length) return fallback;
-  const team = teamId === match.team_1_id ? match.team_1 : match.team_2;
-  if (!team) return fallback;
-  const playerIds = new Set([team.player_1_id, team.player_2_id]);
-  const changes = match.rating_events
-    .filter((event) => playerIds.has(event.player_id))
-    .map((event) => Number(event.rating_change));
-  if (!changes.length) return fallback;
-  return changes.reduce((total, change) => total + change, 0) / changes.length;
+function playerRatingChange(match: Match, playerId?: string) {
+  if (!playerId) return null;
+  const event = match.rating_events?.find((item) => item.player_id === playerId);
+  return event ? Number(event.rating_change) : null;
+}
+
+function firstName(name?: string) {
+  return name?.trim().split(/\s+/)[0] || "Player";
 }
