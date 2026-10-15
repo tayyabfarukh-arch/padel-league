@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Award, Star } from "lucide-react";
+import { Activity, Award, Star } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard } from "@/components/Leaderboard";
 import { getMatches, getPlayerRatings, getPlayers, getPredictions, getTournamentTeams, getTournaments } from "@/lib/data";
@@ -28,7 +28,7 @@ export default async function PlayersPage() {
       <section className="court-panel rounded-lg p-5 text-white">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div><p className="text-sm font-bold uppercase text-limeball">Individual rankings</p><h1 className="mt-1 text-3xl font-black">Players leaderboard</h1></div>
-          <div className="flex flex-wrap gap-2 self-start"><Link href="/awards" className="btn-secondary"><Award className="h-4 w-4" /> Awards</Link><Link href="/ratings" className="btn-primary"><Star className="h-4 w-4" /> Rate players</Link></div>
+          <div className="flex flex-wrap gap-2 self-start"><Link href="/awards" className="btn-secondary"><Award className="h-4 w-4" /> Awards</Link><Link href="/performance" className="btn-secondary"><Activity className="h-4 w-4" /> Performance</Link><Link href="/ratings" className="btn-primary"><Star className="h-4 w-4" /> Rate players</Link></div>
         </div>
       </section>
       <PlayerLeaderboard rows={rows} showRating />

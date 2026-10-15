@@ -266,7 +266,13 @@ export type Match = {
   team_2?: Team;
   rating_events?: Array<{
     player_id: string;
+    rating_before: number;
     rating_change: number;
+    rating_after: number;
+    reason: string;
+    rated_matches_before?: number;
+    provisional_before?: boolean;
+    created_at: string;
   }>;
 };
 

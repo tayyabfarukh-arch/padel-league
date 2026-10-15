@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { Award, CheckCircle2, Target, Trophy, XCircle } from "lucide-react";
+import Link from "next/link";
+import { Activity, Award, CheckCircle2, Target, Trophy, XCircle } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { MatchCard } from "@/components/MatchCard";
 import { StatsGrid } from "@/components/StatsGrid";
@@ -48,7 +49,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
       <section className="court-panel rounded-lg p-5 text-white">
         <PlayerAvatar player={player} size={84} />
         <p className="mt-4 text-sm font-bold uppercase text-limeball">Player profile</p>
-        <h1 className="mt-1 text-3xl font-black">{player.name}</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3"><h1 className="mt-1 text-3xl font-black">{player.name}</h1><Link href={`/performance?player=${player.id}`} className="btn-primary"><Activity className="h-4 w-4" /> Performance analysis</Link></div>
       </section>
       <StatsGrid stats={stats} />
       <section>

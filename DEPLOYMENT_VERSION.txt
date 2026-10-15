@@ -356,3 +356,13 @@ This version includes:
 - Mobile team portraits use the improved compact size.
 - Player photo update control in Admin.
 - Tournament cover aspect-ratio correction.
+PLAYER TOURNAMENT PERFORMANCE DASHBOARD V25 - 2026-10-15
+
+- Added a Performance button beside Awards on the Players page.
+- Added a public player and tournament performance dashboard.
+- Shows starting rating, finishing rating, total rating movement, and W/D/L record.
+- Added a rating journey graph covering every rated match in the tournament.
+- Added a match-by-match explanation with opponent, score, stage, rating before, exact change, and rating after.
+- Every player profile now links directly to that player's performance analysis.
+- Uses existing rating_events data. No Supabase SQL update and no new environment variables are required.
+
