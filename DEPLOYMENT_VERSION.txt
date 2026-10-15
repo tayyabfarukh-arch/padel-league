@@ -356,6 +356,13 @@ This version includes:
 - Mobile team portraits use the improved compact size.
 - Player photo update control in Admin.
 - Tournament cover aspect-ratio correction.
+PLAYER PERFORMANCE MATCH ORDER FIX V26 - 2026-10-15
+
+- Performance matches are now ordered by the rating engine's stored player match sequence.
+- Ratings now flow correctly from one match to the next even when rounds or timestamps are out of order.
+- Tournament rating change is calculated as the sum of that tournament's individual match impacts.
+- No Supabase SQL update and no new environment variables are required.
+
 PLAYER TOURNAMENT PERFORMANCE DASHBOARD V25 - 2026-10-15
 
 - Added a Performance button beside Awards on the Players page.

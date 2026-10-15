@@ -34,7 +34,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   const ratingMatches = tournament ? buildRatingMatches(player, tournament, matches) : [];
   const startRating = ratingMatches[0]?.before;
   const endRating = ratingMatches.at(-1)?.after;
-  const totalChange = startRating != null && endRating != null ? endRating - startRating : 0;
+  const totalChange = ratingMatches.reduce((total, item) => total + item.change, 0);
   const wins = ratingMatches.filter((item) => item.result === "win").length;
   const losses = ratingMatches.filter((item) => item.result === "loss").length;
   const draws = ratingMatches.filter((item) => item.result === "draw").length;
@@ -84,7 +84,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
 function buildRatingMatches(player: Player, tournament: Tournament, matches: Match[]) {
   return matches
     .filter((match) => match.tournament_id === tournament.id && eventFor(match, player.id))
-    .sort((a, b) => matchTime(a) - matchTime(b))
+    .sort((a, b) => compareRatingSequence(a, b, player.id))
     .map((match): RatingMatch => {
       const event = eventFor(match, player.id)!;
       const onTeamOne = match.team_1?.player_1_id === player.id || match.team_1?.player_2_id === player.id;
@@ -123,8 +123,21 @@ function eventFor(match: Match, playerId: string) {
   return match.rating_events?.find((event) => event.player_id === playerId);
 }
 
-function matchTime(match: Match) {
-  return new Date(match.played_at ?? match.submitted_at ?? match.created_at).getTime();
+function compareRatingSequence(a: Match, b: Match, playerId: string) {
+  const firstEvent = eventFor(a, playerId);
+  const secondEvent = eventFor(b, playerId);
+  const firstSequence = firstEvent?.rated_matches_before;
+  const secondSequence = secondEvent?.rated_matches_before;
+
+  if (firstSequence != null && secondSequence != null && firstSequence !== secondSequence) {
+    return firstSequence - secondSequence;
+  }
+
+  const eventTimeDifference = new Date(firstEvent?.created_at ?? 0).getTime() - new Date(secondEvent?.created_at ?? 0).getTime();
+  if (eventTimeDifference) return eventTimeDifference;
+
+  return new Date(a.played_at ?? a.submitted_at ?? a.created_at).getTime()
+    - new Date(b.played_at ?? b.submitted_at ?? b.created_at).getTime();
 }
 
 function signed(value: number) {
