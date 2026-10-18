@@ -1,3 +1,15 @@
+PAKISTAN PADEL COMMUNITY DESIGN REFRESH V32
+Created: October 18, 2026
+
+- Rebrands the website as Pakistan Padel Community.
+- Uses PPC automatically in compact header space.
+- Adds a modern green, lime, charcoal, gold, coral and cyan visual system.
+- Adds subtle page, hero, ranking, navigation and expandable-section motion.
+- Improves interaction feedback for buttons, filters, cards and mobile navigation.
+- Preserves every tournament, scoring, registration, rating and Admin workflow.
+- Includes the V31 full-tournament player replacement behavior.
+- No new Supabase SQL is required specifically for this design refresh.
+
 FULL TOURNAMENT PLAYER REPLACEMENT V31
 Created: October 18, 2026
 

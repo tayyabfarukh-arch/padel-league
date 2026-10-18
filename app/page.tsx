@@ -67,10 +67,10 @@ export default async function Home() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase text-limeball">
-              {active ? "Active tournament" : "Padel League"}
+              {active ? "PPC active tournament" : "Pakistan Padel Community"}
             </p>
             <h1 className="mt-0.5 truncate text-xl font-black md:text-2xl">
-              {active?.name ?? "Padel night is waiting"}
+              {active?.name ?? "The community court is ready"}
             </h1>
             {active ? (
               <p className="mt-1.5 text-xs font-bold text-slate-300">

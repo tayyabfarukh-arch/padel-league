@@ -9,9 +9,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        court: "#1f8f73",
-        limeball: "#d8ff3e",
-        ink: "#14213d"
+        court: "#087f5b",
+        limeball: "#c8f135",
+        ink: "#111a17"
       }
     }
   },

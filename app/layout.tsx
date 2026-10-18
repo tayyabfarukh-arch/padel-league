@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, CircleUserRound, ShieldCheck, Trophy } from "lucide-react";
+import { Award, CircleUserRound, ShieldCheck } from "lucide-react";
 import { FriendCircleSelector } from "@/components/FriendCircleSelector";
 import { NavigationLink } from "@/components/NavigationLink";
+import { PpcBrand } from "@/components/PpcBrand";
 import type { NavigationIconName } from "@/components/NavigationLink";
 import { getSelectedFriendCircle } from "@/lib/friend-circle-server";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Padel League",
-  description: "Private doubles padel tournament dashboard"
+  title: {
+    default: "Pakistan Padel Community",
+    template: "%s | PPC"
+  },
+  description: "Pakistan Padel Community tournaments, rankings, matches and player profiles"
 };
 
 const nav: Array<[string, string, NavigationIconName]> = [
@@ -28,13 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-ink/95 text-white shadow-lg shadow-slate-950/10 backdrop-blur">
+        <header className="app-header sticky top-0 z-30 border-b border-white/10 bg-ink/95 text-white shadow-lg shadow-slate-950/10 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 font-black text-white">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-limeball text-ink shadow-sm ring-1 ring-white/20">
-                <Trophy className="h-5 w-5" />
-              </span>
-              <span className="hidden sm:inline">Padel League</span>
+            <Link href="/" className="shrink-0 text-white" aria-label="Pakistan Padel Community home">
+              <PpcBrand />
             </Link>
             <div className="ml-auto md:ml-2">
               <FriendCircleSelector selected={selectedCircle} />
@@ -70,8 +71,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-24 pt-5 md:py-8">{children}</main>
-        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-ink/95 px-2 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.2)] backdrop-blur md:hidden">
+        <main className="page-shell mx-auto max-w-6xl px-4 pb-24 pt-5 md:py-8">{children}</main>
+        <footer className="mx-auto hidden max-w-6xl items-center justify-between px-4 pb-8 text-xs font-bold text-slate-500 md:flex">
+          <span>Pakistan Padel Community</span>
+          <span>PPC</span>
+        </footer>
+        <nav className="mobile-dock fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-ink/95 px-2 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.2)] backdrop-blur md:hidden">
           <div className="mx-auto grid max-w-lg grid-cols-7 gap-1">
             {nav.map(([label, href, icon]) => (
               <NavigationLink key={href} label={label} href={href} icon={icon} mobile />

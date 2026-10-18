@@ -36,7 +36,7 @@ export function NavigationLink({
     return (
       <Link
         href={href}
-        className={`flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[11px] font-black transition ${
+        className={`nav-link nav-link--mobile flex min-w-0 flex-col items-center gap-1 rounded-md px-1 py-2 text-[11px] font-black transition ${
           active ? "bg-limeball text-ink" : "text-slate-300 hover:bg-white/10 hover:text-white"
         }`}
       >
@@ -49,7 +49,7 @@ export function NavigationLink({
   return (
     <Link
       href={href}
-      className={`inline-flex items-center gap-2 rounded-md px-3 py-2 font-black transition ${
+      className={`nav-link inline-flex items-center gap-2 rounded-md px-3 py-2 font-black transition ${
         active
           ? "bg-limeball text-ink shadow-sm"
           : "text-slate-300 hover:bg-white/10 hover:text-white"
