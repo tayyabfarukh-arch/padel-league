@@ -38,7 +38,7 @@ export function TournamentDashboard({
 
       {!registrationOnly ? (
         <>
-          <TournamentJourney tournament={tournament} matches={matches} />
+          <TournamentJourney tournament={tournament} tournamentTeams={tournamentTeams} matches={matches} />
 
           <TournamentGroups
             tournament={tournament}

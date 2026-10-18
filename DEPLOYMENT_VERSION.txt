@@ -1,3 +1,13 @@
+GROUP-TO-KNOCKOUT JOURNEY SWITCH V35
+Created: October 18, 2026
+
+- Shows live Group A and Group B standings while Road to the title is collapsed.
+- Displays wins, net points and qualifying positions in the compact group overview.
+- Hides the group overview when expanded and switches to the full knockout explanation and bracket.
+- Uses actual tournament group assignments and submitted match results.
+- Works for one-group, two-group, quarter-final and direct-semifinal tournaments.
+- No new Supabase SQL is required.
+
 EXPANDABLE ROAD TO THE TITLE BRACKET V34
 Created: October 18, 2026
 

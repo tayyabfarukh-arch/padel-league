@@ -66,7 +66,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         ))}
       </section>
 
-      <TournamentJourney tournament={tournament} matches={matches} />
+      <TournamentJourney tournament={tournament} tournamentTeams={tournamentTeams} matches={matches} />
 
       <TournamentGroups
         tournament={tournament}

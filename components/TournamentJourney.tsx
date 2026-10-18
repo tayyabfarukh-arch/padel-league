@@ -1,13 +1,14 @@
 import { CheckCircle2, ChevronDown, Circle, Crown, MapPin, Trophy } from "lucide-react";
 import { teamLabel } from "@/lib/format";
-import type { Match, Stage, Team, Tournament } from "@/lib/types";
+import { calculateGroupStandings } from "@/lib/scoring";
+import type { Match, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
 
 type BracketFixture = {
   label: string;
   match?: Match;
 };
 
-export function TournamentJourney({ tournament, matches }: { tournament: Tournament; matches: Match[] }) {
+export function TournamentJourney({ tournament, tournamentTeams, matches }: { tournament: Tournament; tournamentTeams: TournamentTeam[]; matches: Match[] }) {
   const hasQuarterfinals = tournament.knockout_format === "quarterfinal" || matches.some((match) => match.stage === "quarterfinal");
   const groupMatches = matches.filter((match) => match.stage === "group");
   const completedMatches = matches.filter(isComplete).length;
@@ -18,24 +19,36 @@ export function TournamentJourney({ tournament, matches }: { tournament: Tournam
   const final = fixtures(matches, "final", 1, "Final");
   const finalMatch = final[0].match;
   const champion = tournament.champion ?? winner(finalMatch);
+  const groups = (tournament.group_count === 2 ? ["A", "B"] : ["A"]).map((groupName) => ({
+    groupName,
+    standings: standingsForGroup(groupName, tournamentTeams, groupMatches)
+  }));
 
   return (
     <details className="tournament-bracket sport-card group overflow-hidden" aria-label="Road to the title">
       <summary className="bracket-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-limeball"><Trophy className="h-5 w-5" /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-black uppercase text-court">Tournament journey</span>
-          <span className="block truncate text-base font-black text-slate-950">Road to the title</span>
-        </span>
-        <span className="hidden min-w-[150px] sm:block">
-          <span className="block text-right text-[10px] font-black uppercase text-slate-500">{completedMatches}/{matches.length} matches</span>
-          <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <span className="block h-full rounded-full bg-court transition-all duration-500" style={{ width: `${progress}%` }} />
+        <span className="bracket-summary__top">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-limeball"><Trophy className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase text-court">Tournament journey</span>
+            <span className="block truncate text-base font-black text-slate-950">Road to the title</span>
+          </span>
+          <span className="hidden min-w-[150px] sm:block">
+            <span className="block text-right text-[10px] font-black uppercase text-slate-500">{completedMatches}/{matches.length} matches</span>
+            <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <span className="block h-full rounded-full bg-court transition-all duration-500" style={{ width: `${progress}%` }} />
+            </span>
+          </span>
+          <span className="bracket-summary__action">
+            <span className="bracket-action-open hidden sm:inline">View knockout bracket</span>
+            <span className="bracket-action-close hidden sm:inline">Hide knockout bracket</span>
+            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
           </span>
         </span>
-        <span className="bracket-summary__action">
-          <span className="hidden sm:inline">View bracket</span>
-          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+        <span className={`bracket-collapsed-groups ${groups.length === 2 ? "sm:grid-cols-2" : ""}`}>
+          {groups.map(({ groupName, standings }) => (
+            <GroupSnapshot key={groupName} groupName={groupName} standings={standings} qualifierCount={hasQuarterfinals ? 4 : tournament.group_count === 2 ? 2 : 4} />
+          ))}
         </span>
       </summary>
 
@@ -69,6 +82,23 @@ export function TournamentJourney({ tournament, matches }: { tournament: Tournam
         </div>
       </div>
     </details>
+  );
+}
+
+function GroupSnapshot({ groupName, standings, qualifierCount }: { groupName: string; standings: ReturnType<typeof calculateGroupStandings>; qualifierCount: number }) {
+  return (
+    <span className="group-snapshot">
+      <span className="group-snapshot__heading"><span>Group {groupName}</span><small>{standings.length} teams</small></span>
+      <span className="group-snapshot__labels"><span>Team</span><span>W</span><span>PTS</span></span>
+      {standings.map((row, index) => (
+        <span key={row.team.id} className={`group-snapshot__row ${index < qualifierCount ? "is-qualifying" : ""}`}>
+          <span className="group-snapshot__rank">{index + 1}</span>
+          <span className="min-w-0 truncate font-black text-slate-900">{teamLabel(row.team)}</span>
+          <strong>{row.wins}</strong>
+          <strong>{signed(row.points)}</strong>
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -174,6 +204,20 @@ function winner(match?: Match) {
 
 function qualificationCopy(tournament: Tournament) {
   return tournament.group_count === 2 ? "Top two from each group" : "Top four in the standings";
+}
+
+function standingsForGroup(groupName: string, tournamentTeams: TournamentTeam[], groupMatches: Match[]) {
+  const assignedTeams = tournamentTeams
+    .filter((entry) => entry.group_name === groupName)
+    .map((entry) => entry.team)
+    .filter((team): team is Team => Boolean(team));
+  const teamIds = new Set(assignedTeams.map((team) => team.id));
+  const relevantMatches = groupMatches.filter((match) => teamIds.has(match.team_1_id) && teamIds.has(match.team_2_id));
+  return calculateGroupStandings(assignedTeams, relevantMatches);
+}
+
+function signed(value: number) {
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function isComplete(match?: Match) {
