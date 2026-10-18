@@ -1,3 +1,15 @@
+GOOGLE-STYLE TOURNAMENT JOURNEY V38
+Created: October 18, 2026
+
+- Replaces the Group-to-Knockout Next button with persistent Group Stage and Knockout Stage tabs.
+- Adds a horizontally scrollable knockout stage selector matching the focused World Cup bracket pattern.
+- Shows the selected knockout round and the round it feeds into, with accurate connector lines.
+- Animates forward and backward round changes with directional bracket transitions.
+- Supports direct semifinals, quarter-finals, and the new pre-quarter-final format.
+- Keeps PPC styling and displays match labels, dates, courts, scores, winners, third place, and champion details.
+- Keeps Road to the Title minimized by default on Active and History tournament pages.
+- Includes all V37 pre-quarter-final tournament features and its required Supabase migration.
+
 PRE-QUARTER-FINAL TOURNAMENT FORMAT V37
 Created: October 18, 2026
 
