@@ -5,6 +5,7 @@ import { getTargetGamesForStage } from "@/lib/scoring";
 import type { CourtStream, Match, Tournament, TournamentTeam } from "@/lib/types";
 import { MatchCard } from "./MatchCard";
 import { TournamentGroups } from "./TournamentGroups";
+import { TournamentJourney } from "./TournamentJourney";
 
 export function TournamentDashboard({
   tournament,
@@ -37,6 +38,8 @@ export function TournamentDashboard({
 
       {!registrationOnly ? (
         <>
+          <TournamentJourney tournament={tournament} matches={matches} />
+
           <TournamentGroups
             tournament={tournament}
             tournamentTeams={tournamentTeams}

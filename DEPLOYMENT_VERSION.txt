@@ -1,3 +1,14 @@
+PPC PHASE 2 EXPERIENCE REFRESH V33
+Created: October 18, 2026
+
+- Adds a visual tournament journey from group stage to champion on Active and History pages.
+- Shows tournament completion progress without changing match or scoring logic.
+- Upgrades player profiles with published rating, recent form and visual team history.
+- Adds an animated rating journey chart with PPC branding.
+- Reorganizes Admin navigation into a responsive icon-led control deck.
+- Preserves all tournament, scoring, registration, rating and Admin workflows.
+- No new Supabase SQL is required for this Phase 2 design update.
+
 PAKISTAN PADEL COMMUNITY DESIGN REFRESH V32
 Created: October 18, 2026
 

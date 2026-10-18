@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowLeftRight, Check, Eye, EyeOff, Filter, GripVertical, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Trash2, Upload, Youtube } from "lucide-react";
+import { ArrowLeftRight, Award, CalendarRange, Check, ClipboardCheck, Eye, EyeOff, Filter, GripVertical, ListChecks, LogIn, LogOut, Plus, RotateCcw, Save, Sparkles, Star, Trash2, Trophy, Upload, UserCog, UsersRound, Youtube } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
@@ -32,6 +32,17 @@ type Props = {
 };
 
 type AdminSection = "accounts" | "ratings" | "awards" | "people" | "registrations" | "tournament" | "schedule" | "results";
+
+const ADMIN_SECTIONS = [
+  ["accounts", "Accounts", UserCog],
+  ["ratings", "Ratings", Star],
+  ["awards", "Awards", Award],
+  ["people", "People", UsersRound],
+  ["registrations", "Registrations", ClipboardCheck],
+  ["tournament", "Tournament", Trophy],
+  ["schedule", "Schedule", CalendarRange],
+  ["results", "Results", ListChecks]
+] as const;
 
 export function AdminPanel({ configured, players, teams, tournaments: allTournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams }: Props) {
   const tournaments = allTournaments.filter((item) => item.tournament_format === "regular");
@@ -1512,9 +1523,10 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
   return (
     <div className="space-y-5">
-      <section className="court-panel rounded-lg p-5 text-white">
-        <h1 className="text-3xl font-black">Admin panel</h1>
-        <p className="mt-2 text-sm text-slate-300">Fast entry for players, teams, tournaments, matches, and results.</p>
+      <section className="court-panel rounded-lg px-5 py-4 text-white">
+        <p className="text-[10px] font-black uppercase text-limeball">PPC operations</p>
+        <h1 className="mt-0.5 text-2xl font-black">Admin control room</h1>
+        <p className="mt-1 text-xs font-semibold text-slate-300">Manage people, competitions, schedules and results from one workspace.</p>
       </section>
 
       {signedInEmail ? (
@@ -1559,27 +1571,19 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <button type="button" className={adminWorkspace === "americano" ? "btn-primary" : "btn-secondary border-transparent bg-white/10 text-white hover:bg-white/20"} onClick={() => { setAdminWorkspace("americano"); window.sessionStorage.setItem("padel_admin_workspace", "americano"); }}>Americano</button>
           </div>
 
-          <div className={adminWorkspace === "regular" ? "flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm" : "hidden"}>
-            {([
-              ["accounts", "Accounts"],
-              ["ratings", "Ratings"],
-              ["awards", "Awards"],
-              ["people", "People"],
-              ["registrations", "Registrations"],
-              ["tournament", "Tournament"],
-              ["schedule", "Schedule"],
-              ["results", "Results"]
-            ] as const).map(([value, label]) => (
+          <div className={adminWorkspace === "regular" ? "admin-section-nav" : "hidden"}>
+            {ADMIN_SECTIONS.map(([value, label, Icon]) => (
               <button
                 key={value}
                 type="button"
-                className={adminSection === value ? "btn-primary whitespace-nowrap" : "btn-secondary whitespace-nowrap"}
+                className={`admin-section-tab ${adminSection === value ? "is-active" : ""}`}
                 onClick={() => {
                   setAdminSection(value);
                   window.sessionStorage.setItem("padel_admin_section", value);
                 }}
               >
-                {label}
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
               </button>
             ))}
           </div>
@@ -2449,8 +2453,8 @@ function isAdminSection(value: string | null): value is AdminSection {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="sport-card p-4">
-      <h2 className="mb-4 text-lg font-black text-slate-950">{title}</h2>
+    <section className="admin-panel-card sport-card p-4">
+      <h2 className="admin-panel-title mb-4 text-base font-black text-slate-950">{title}</h2>
       {children}
     </section>
   );

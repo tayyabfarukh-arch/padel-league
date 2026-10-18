@@ -4,6 +4,7 @@ import { TournamentExperience } from "@/components/TournamentExperience";
 import { MatchCard } from "@/components/MatchCard";
 import { TeamAvatar } from "@/components/Avatar";
 import { TournamentGroups } from "@/components/TournamentGroups";
+import { TournamentJourney } from "@/components/TournamentJourney";
 import { getCourtStreams, getMatches, getTournament, getTournamentTeams } from "@/lib/data";
 import { courtStreamUrl, stageLabel, teamLabel } from "@/lib/format";
 import type { Team } from "@/lib/types";
@@ -64,6 +65,8 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
           </div>
         ))}
       </section>
+
+      <TournamentJourney tournament={tournament} matches={matches} />
 
       <TournamentGroups
         tournament={tournament}
