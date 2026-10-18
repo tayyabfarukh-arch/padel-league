@@ -1,3 +1,14 @@
+TWO-STEP TOURNAMENT JOURNEY V36
+Created: October 18, 2026
+
+- Keeps Road to the title minimized by default.
+- Opens on a dedicated Group Stage screen with live standings and qualifiers.
+- Adds a Next button that transitions from the groups to the existing FIFA-style knockout bracket.
+- Adds Back navigation from the knockout bracket to the group stage.
+- Resets to the Group Stage whenever the journey is closed and reopened.
+- Supports quarter-final and direct-semifinal tournament formats.
+- No new Supabase SQL is required.
+
 GROUP-TO-KNOCKOUT JOURNEY SWITCH V35
 Created: October 18, 2026
 

@@ -1,4 +1,7 @@
-import { CheckCircle2, ChevronDown, Circle, Crown, MapPin, Trophy } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, Circle, Crown, MapPin, Trophy } from "lucide-react";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings } from "@/lib/scoring";
 import type { Match, Stage, Team, Tournament, TournamentTeam } from "@/lib/types";
@@ -9,6 +12,7 @@ type BracketFixture = {
 };
 
 export function TournamentJourney({ tournament, tournamentTeams, matches }: { tournament: Tournament; tournamentTeams: TournamentTeam[]; matches: Match[] }) {
+  const [view, setView] = useState<"groups" | "knockout">("groups");
   const hasQuarterfinals = tournament.knockout_format === "quarterfinal" || matches.some((match) => match.stage === "quarterfinal");
   const groupMatches = matches.filter((match) => match.stage === "group");
   const completedMatches = matches.filter(isComplete).length;
@@ -25,7 +29,7 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   }));
 
   return (
-    <details className="tournament-bracket sport-card group overflow-hidden" aria-label="Road to the title">
+    <details className="tournament-bracket sport-card group overflow-hidden" aria-label="Road to the title" onToggle={(event) => { if (!event.currentTarget.open) setView("groups"); }}>
       <summary className="bracket-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         <span className="bracket-summary__top">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-limeball"><Trophy className="h-5 w-5" /></span>
@@ -40,49 +44,64 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
             </span>
           </span>
           <span className="bracket-summary__action">
-            <span className="bracket-action-open hidden sm:inline">View knockout bracket</span>
-            <span className="bracket-action-close hidden sm:inline">Hide knockout bracket</span>
+            <span className="bracket-action-open hidden sm:inline">Open journey</span>
+            <span className="bracket-action-close hidden sm:inline">Close journey</span>
             <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
           </span>
-        </span>
-        <span className={`bracket-collapsed-groups ${groups.length === 2 ? "sm:grid-cols-2" : ""}`}>
-          {groups.map(({ groupName, standings }) => (
-            <GroupSnapshot key={groupName} groupName={groupName} standings={standings} qualifierCount={hasQuarterfinals ? 4 : tournament.group_count === 2 ? 2 : 4} />
-          ))}
         </span>
       </summary>
 
       <div className="border-t border-slate-200">
-        <JourneyRules tournament={tournament} groupMatches={groupMatches} hasQuarterfinals={hasQuarterfinals} />
-
-        <div className="border-t border-slate-200 bg-slate-50/70 px-3 py-5 sm:px-5">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div><p className="text-[10px] font-black uppercase text-court">Knockout bracket</p><h3 className="text-lg font-black text-slate-950">Every step to the championship</h3></div>
-            <p className="text-xs font-semibold text-slate-500">Scroll sideways to see the complete bracket</p>
-          </div>
-          <div className="bracket-scroll overflow-x-auto pb-3">
-            <div className={`bracket-board ${hasQuarterfinals ? "bracket-board--quarters" : "bracket-board--semis"}`}>
-              <BracketConnectors hasQuarterfinals={hasQuarterfinals} />
-
-              {hasQuarterfinals ? (
-                <BracketColumn title="Quarter-finals" subtitle="Top four from each group" className="bracket-column--quarterfinals" fixtures={orderedQuarterfinals} />
-              ) : null}
-              <BracketColumn title="Semi-finals" subtitle={hasQuarterfinals ? "Q1 vs Q3 · Q2 vs Q4" : qualificationCopy(tournament)} className="bracket-column--semifinals" fixtures={semifinals} />
-              <BracketColumn title="Final" subtitle="Semi-final winners" className="bracket-column--final" fixtures={final} />
-
-              <section className="bracket-column bracket-column--champion">
-                <StageHeading title="Champion" subtitle="Tournament winner" />
-                <div className={`champion-card ${champion ? "is-decided" : ""}`}>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700"><Crown className="h-6 w-6" /></span>
-                  <div className="min-w-0"><p className="text-[10px] font-black uppercase text-amber-700">PPC champion</p><p className="truncate text-sm font-black text-slate-950">{champion ? teamLabel(champion) : "To be decided"}</p></div>
-                </div>
-              </section>
+        {view === "groups" ? (
+          <div key="groups" className="journey-stage-view px-4 py-5 sm:px-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div><p className="text-[10px] font-black uppercase text-court">Stage 1 of 2</p><h3 className="text-lg font-black text-slate-950">Group stage</h3><p className="mt-1 text-xs font-semibold text-slate-500">Review the group standings and qualifying positions before entering the knockout bracket.</p></div>
+              <JourneyDots active="groups" />
+            </div>
+            <div className={`grid gap-3 ${groups.length === 2 ? "md:grid-cols-2" : ""}`}>
+              {groups.map(({ groupName, standings }) => (
+                <GroupSnapshot key={groupName} groupName={groupName} standings={standings} qualifierCount={hasQuarterfinals ? 4 : tournament.group_count === 2 ? 2 : 4} />
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+              <p className="text-xs font-semibold text-slate-500">Highlighted teams advance to the {hasQuarterfinals ? "quarter-finals" : "semi-finals"}.</p>
+              <button type="button" className="btn-primary" onClick={() => setView("knockout")}>Next: Knockout bracket <ArrowRight className="h-4 w-4" /></button>
             </div>
           </div>
-        </div>
+        ) : (
+          <div key="knockout" className="journey-stage-view bg-slate-50/70 px-3 py-5 sm:px-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div className="flex items-center gap-3"><button type="button" className="btn-secondary h-10 w-10 px-0" onClick={() => setView("groups")} aria-label="Back to group stage"><ArrowLeft className="h-4 w-4" /></button><div><p className="text-[10px] font-black uppercase text-court">Stage 2 of 2 · Knockout bracket</p><h3 className="text-lg font-black text-slate-950">Every step to the championship</h3></div></div>
+              <div className="flex items-center gap-4"><JourneyDots active="knockout" /><p className="hidden text-xs font-semibold text-slate-500 sm:block">Scroll sideways to see the complete bracket</p></div>
+            </div>
+            <div className="bracket-scroll overflow-x-auto pb-3">
+              <div className={`bracket-board ${hasQuarterfinals ? "bracket-board--quarters" : "bracket-board--semis"}`}>
+                <BracketConnectors hasQuarterfinals={hasQuarterfinals} />
+
+                {hasQuarterfinals ? (
+                  <BracketColumn title="Quarter-finals" subtitle="Top four from each group" className="bracket-column--quarterfinals" fixtures={orderedQuarterfinals} />
+                ) : null}
+                <BracketColumn title="Semi-finals" subtitle={hasQuarterfinals ? "Q1 vs Q3 · Q2 vs Q4" : qualificationCopy(tournament)} className="bracket-column--semifinals" fixtures={semifinals} />
+                <BracketColumn title="Final" subtitle="Semi-final winners" className="bracket-column--final" fixtures={final} />
+
+                <section className="bracket-column bracket-column--champion">
+                  <StageHeading title="Champion" subtitle="Tournament winner" />
+                  <div className={`champion-card ${champion ? "is-decided" : ""}`}>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700"><Crown className="h-6 w-6" /></span>
+                    <div className="min-w-0"><p className="text-[10px] font-black uppercase text-amber-700">PPC champion</p><p className="truncate text-sm font-black text-slate-950">{champion ? teamLabel(champion) : "To be decided"}</p></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </details>
   );
+}
+
+function JourneyDots({ active }: { active: "groups" | "knockout" }) {
+  return <span className="journey-dots" aria-label={`Showing ${active === "groups" ? "group stage" : "knockout bracket"}`}><span className={active === "groups" ? "is-active" : ""}>1</span><i /><span className={active === "knockout" ? "is-active" : ""}>2</span></span>;
 }
 
 function GroupSnapshot({ groupName, standings, qualifierCount }: { groupName: string; standings: ReturnType<typeof calculateGroupStandings>; qualifierCount: number }) {
