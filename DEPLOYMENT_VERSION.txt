@@ -1,3 +1,15 @@
+ALWAYS-OPEN SCROLL-SYNC TOURNAMENT MAP V39
+Created: October 18, 2026
+
+- Keeps Road to the Title permanently open on Active and History tournament pages.
+- Keeps Group Stage and Knockout Stage as the fixed primary view choices.
+- Shows the complete knockout route as one continuously connected horizontal map.
+- Clicking a knockout stage tab smoothly scrolls the map to that stage.
+- Swiping the map on mobile automatically updates the active stage tab and heading.
+- Adds horizontal scroll snapping and preserves PPC courts, dates, scores, winners, third place, and champion details.
+- Supports direct semifinals, quarter-finals, and pre-quarter-finals without changing scoring or tournament data.
+- No additional Supabase SQL is required beyond the V37 pre-quarter-final migration.
+
 GOOGLE-STYLE TOURNAMENT JOURNEY V38
 Created: October 18, 2026
 

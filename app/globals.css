@@ -584,6 +584,14 @@ details[open] > :not(summary) {
   scrollbar-color: rgba(8, 127, 91, 0.42) transparent;
 }
 
+.knockout-map-scroll {
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
+}
+
+.knockout-map-scroll .bracket-column { scroll-snap-align: start; }
+
 .journey-primary-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

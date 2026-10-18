@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, Circle, Crown, MapPin, Trophy } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Circle, Crown, MapPin, Trophy } from "lucide-react";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings } from "@/lib/scoring";
 import { groupNamesForCount } from "@/lib/tournament-format";
@@ -22,7 +22,8 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   ], [hasPrequarters, hasQuarterfinals]);
   const [view, setView] = useState<JourneyView>("groups");
   const [selectedStage, setSelectedStage] = useState<KnockoutStage>(knockoutStages[0]);
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const bracketScrollRef = useRef<HTMLDivElement>(null);
+  const stageTabsRef = useRef<HTMLElement>(null);
   const groupMatches = matches.filter((match) => match.stage === "group");
   const completedMatchCount = matches.filter(isComplete).length;
   const progress = matches.length ? Math.round((completedMatchCount / matches.length) * 100) : 0;
@@ -32,21 +33,34 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   }));
   const qualifierCount = hasPrequarters || hasQuarterfinals ? 4 : tournament.group_count === 2 ? 2 : 4;
 
+  useEffect(() => {
+    const selectedTab = stageTabsRef.current?.querySelector<HTMLElement>(`[data-stage="${selectedStage}"]`);
+    selectedTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [selectedStage]);
+
   function selectKnockoutStage(stage: KnockoutStage) {
-    setDirection(knockoutStages.indexOf(stage) >= knockoutStages.indexOf(selectedStage) ? "forward" : "backward");
     setSelectedStage(stage);
+    const index = knockoutStages.indexOf(stage);
+    bracketScrollRef.current?.scrollTo({ left: index * 280, behavior: "smooth" });
+  }
+
+  function syncStageToScroll() {
+    const scroller = bracketScrollRef.current;
+    if (!scroller || scroller.clientWidth > 700) return;
+    const stageIndex = Math.min(knockoutStages.length - 1, Math.max(0, Math.round(scroller.scrollLeft / 280)));
+    const stage = knockoutStages[stageIndex];
+    if (stage && stage !== selectedStage) setSelectedStage(stage);
   }
 
   return (
-    <details className="tournament-bracket sport-card group overflow-hidden" aria-label="Road to the title">
-      <summary className="bracket-summary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+    <section className="tournament-bracket sport-card overflow-hidden" aria-label="Road to the title">
+      <header className="bracket-summary">
         <span className="bracket-summary__top">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-limeball"><Trophy className="h-5 w-5" /></span>
           <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase text-court">Tournament journey</span><span className="block truncate text-base font-black text-slate-950">Road to the title</span></span>
           <span className="hidden min-w-[150px] sm:block"><span className="block text-right text-[10px] font-black uppercase text-slate-500">{completedMatchCount}/{matches.length} matches</span><span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-100"><span className="block h-full rounded-full bg-court transition-all duration-500" style={{ width: `${progress}%` }} /></span></span>
-          <span className="bracket-summary__action"><span className="bracket-action-open hidden sm:inline">Open journey</span><span className="bracket-action-close hidden sm:inline">Close journey</span><ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" /></span>
         </span>
-      </summary>
+      </header>
 
       <div className="border-t border-slate-200">
         <nav className="journey-primary-tabs" aria-label="Tournament stage">
@@ -63,71 +77,52 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
           </section>
         ) : (
           <section className="journey-panel journey-panel--knockout bg-slate-50/70">
-            <nav className="knockout-stage-tabs" aria-label="Knockout round">
+            <nav ref={stageTabsRef} className="knockout-stage-tabs" aria-label="Knockout round">
               {knockoutStages.map((stage) => (
-                <button key={stage} type="button" className={selectedStage === stage ? "is-active" : ""} onClick={() => selectKnockoutStage(stage)}>
+                <button key={stage} data-stage={stage} type="button" className={selectedStage === stage ? "is-active" : ""} onClick={() => selectKnockoutStage(stage)}>
                   {stage === "prequarterfinal" ? "Pre-quarter-finals" : stage === "quarterfinal" ? "Quarter-finals" : stage === "semifinal" ? "Semi-finals" : "Final"}
                 </button>
               ))}
             </nav>
             <div className="px-3 py-5 sm:px-5">
               <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-court">Knockout bracket</p><h3 className="text-lg font-black text-slate-950">{stageTitle(selectedStage)}</h3></div><p className="hidden text-xs font-semibold text-slate-500 sm:block">Scroll sideways to follow the route</p></div>
-              <div className="bracket-scroll overflow-x-auto pb-3">
-                <FocusedBracket key={`${selectedStage}-${direction}`} stage={selectedStage} direction={direction} hasPrequarters={hasPrequarters} matches={matches} champion={tournament.champion ?? winner(fixtures(matches, "final", 1, "Final")[0].match)} />
+              <div ref={bracketScrollRef} className="bracket-scroll knockout-map-scroll overflow-x-auto pb-3" onScroll={syncStageToScroll}>
+                <CompleteBracket hasPrequarters={hasPrequarters} hasQuarterfinals={hasQuarterfinals} matches={matches} champion={tournament.champion ?? winner(fixtures(matches, "final", 1, "Final")[0].match)} />
               </div>
               {(selectedStage === "semifinal" || selectedStage === "final") ? <ThirdPlaceMatch match={fixtures(matches, "third_place", 1, "Third place")[0].match} /> : null}
             </div>
           </section>
         )}
       </div>
-    </details>
+    </section>
   );
 }
 
-function FocusedBracket({ stage, direction, hasPrequarters, matches, champion }: { stage: KnockoutStage; direction: "forward" | "backward"; hasPrequarters: boolean; matches: Match[]; champion: Team | null | undefined }) {
+function CompleteBracket({ hasPrequarters, hasQuarterfinals, matches, champion }: { hasPrequarters: boolean; hasQuarterfinals: boolean; matches: Match[]; champion: Team | null | undefined }) {
   const prequarters = fixtures(matches, "prequarterfinal", 8, "PQF");
   const quarterfinals = fixtures(matches, "quarterfinal", 4, "QF");
   const semifinals = fixtures(matches, "semifinal", 2, "SF");
   const final = fixtures(matches, "final", 1, "Final");
   const orderedPrequarters = [prequarters[0], prequarters[5], prequarters[1], prequarters[4], prequarters[2], prequarters[7], prequarters[3], prequarters[6]];
   const orderedQuarterfinals = hasPrequarters ? quarterfinals : [quarterfinals[0], quarterfinals[2], quarterfinals[1], quarterfinals[3]];
-  const animationClass = direction === "forward" ? "is-moving-forward" : "is-moving-backward";
+  const boardClass = hasPrequarters ? "bracket-board--prequarters" : hasQuarterfinals ? "bracket-board--quarters" : "bracket-board--semis";
 
-  if (stage === "prequarterfinal") return (
-    <div className={`focused-bracket focused-bracket--prequarters ${animationClass}`}>
-      <FocusedConnectors stage={stage} />
-      <BracketColumn title="Pre-quarter-finals" subtitle="Top four from Groups A-D" className="focused-column--current" fixtures={orderedPrequarters} />
-      <BracketColumn title="Quarter-finals" subtitle="Pre-quarter-final winners" className="focused-column--next" fixtures={quarterfinals} />
-    </div>
-  );
-  if (stage === "quarterfinal") return (
-    <div className={`focused-bracket focused-bracket--quarters ${animationClass}`}>
-      <FocusedConnectors stage={stage} />
-      <BracketColumn title="Quarter-finals" subtitle={hasPrequarters ? "Pre-quarter-final winners" : "Top four from each group"} className="focused-column--current" fixtures={orderedQuarterfinals} />
-      <BracketColumn title="Semi-finals" subtitle={hasPrequarters ? "Q1 vs Q2 · Q3 vs Q4" : "Q1 vs Q3 · Q2 vs Q4"} className="focused-column--next" fixtures={semifinals} />
-    </div>
-  );
-  if (stage === "semifinal") return (
-    <div className={`focused-bracket focused-bracket--semis ${animationClass}`}>
-      <FocusedConnectors stage={stage} />
-      <BracketColumn title="Semi-finals" subtitle="Four teams remain" className="focused-column--current" fixtures={semifinals} />
-      <BracketColumn title="Final" subtitle="Semi-final winners" className="focused-column--next" fixtures={final} />
-    </div>
-  );
   return (
-    <div className={`focused-bracket focused-bracket--final ${animationClass}`}>
-      <FocusedConnectors stage={stage} />
-      <BracketColumn title="Final" subtitle="Championship match" className="focused-column--current" fixtures={final} />
-      <section className="bracket-column focused-column--next"><StageHeading title="Champion" subtitle="Tournament winner" /><ChampionCard champion={champion} /></section>
+    <div className={`bracket-board ${boardClass}`}>
+      <CompleteConnectors format={hasPrequarters ? "prequarters" : hasQuarterfinals ? "quarters" : "semis"} />
+      {hasPrequarters ? <BracketColumn title="Pre-quarter-finals" subtitle="Top four from Groups A-D" className="bracket-column--prequarterfinals" fixtures={orderedPrequarters} /> : null}
+      {hasQuarterfinals ? <BracketColumn title="Quarter-finals" subtitle={hasPrequarters ? "Pre-quarter-final winners" : "Top four from each group"} className="bracket-column--quarterfinals" fixtures={orderedQuarterfinals} /> : null}
+      <BracketColumn title="Semi-finals" subtitle={hasPrequarters ? "Q1 vs Q2 · Q3 vs Q4" : hasQuarterfinals ? "Q1 vs Q3 · Q2 vs Q4" : "Four teams remain"} className="bracket-column--semifinals" fixtures={semifinals} />
+      <BracketColumn title="Final" subtitle="Semi-final winners" className="bracket-column--final" fixtures={final} />
+      <section className="bracket-column bracket-column--champion"><StageHeading title="Champion" subtitle="Tournament winner" /><ChampionCard champion={champion} /></section>
     </div>
   );
 }
 
-function FocusedConnectors({ stage }: { stage: KnockoutStage }) {
-  if (stage === "prequarterfinal") return <svg className="focused-connectors" viewBox="0 0 500 1120" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191 M220 386 H250 V451 H280 M220 516 H250 V451 M220 646 H250 V711 H280 M220 776 H250 V711 M220 906 H250 V971 H280 M220 1036 H250 V971" /></svg>;
-  if (stage === "quarterfinal") return <svg className="focused-connectors" viewBox="0 0 500 580" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191 M220 386 H250 V451 H280 M220 516 H250 V451" /></svg>;
-  if (stage === "semifinal") return <svg className="focused-connectors" viewBox="0 0 500 580" aria-hidden="true"><path d="M220 191 H250 V321 H280 M220 451 H250 V321" /></svg>;
-  return <svg className="focused-connectors" viewBox="0 0 500 580" aria-hidden="true"><path d="M220 321 H280" /></svg>;
+function CompleteConnectors({ format }: { format: "prequarters" | "quarters" | "semis" }) {
+  if (format === "prequarters") return <svg className="bracket-connectors" viewBox="0 0 1340 1120" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191 M220 386 H250 V451 H280 M220 516 H250 V451 M220 646 H250 V711 H280 M220 776 H250 V711 M220 906 H250 V971 H280 M220 1036 H250 V971" /><path d="M500 191 H530 V321 H560 M500 451 H530 V321 M500 711 H530 V841 H560 M500 971 H530 V841" /><path d="M780 321 H810 V581 H840 M780 841 H810 V581" /><path d="M1060 581 H1120" /></svg>;
+  if (format === "quarters") return <svg className="bracket-connectors" viewBox="0 0 1060 580" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191" /><path d="M220 386 H250 V451 H280 M220 516 H250 V451" /><path d="M500 191 H530 V321 H560 M500 451 H530 V321" /><path d="M780 321 H840" /></svg>;
+  return <svg className="bracket-connectors" viewBox="0 0 780 580" aria-hidden="true"><path d="M220 191 H250 V321 H280 M220 451 H250 V321" /><path d="M500 321 H560" /></svg>;
 }
 
 function GroupSnapshot({ groupName, standings, qualifierCount }: { groupName: string; standings: ReturnType<typeof calculateGroupStandings>; qualifierCount: number }) {
