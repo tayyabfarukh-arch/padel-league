@@ -1,3 +1,14 @@
+STAGE-RESPONSIVE TOURNAMENT MAP V40
+Created: October 18, 2026
+
+- Dynamically changes the tournament map height as the selected knockout round changes.
+- Keeps the full tall layout for eight pre-quarter-finals.
+- Compresses the map for four quarter-finals, two semifinals, and the single final.
+- Repositions the remaining match cards and redraws connector lines for every compact stage.
+- Animates height, card position, connector, and earlier-round visibility changes.
+- Preserves the always-open V39 map, synchronized mobile scrolling, stage tabs, courts, scores, and tournament logic.
+- No Supabase SQL changes are required.
+
 ALWAYS-OPEN SCROLL-SYNC TOURNAMENT MAP V39
 Created: October 18, 2026
 

@@ -87,7 +87,7 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
             <div className="px-3 py-5 sm:px-5">
               <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-[10px] font-black uppercase text-court">Knockout bracket</p><h3 className="text-lg font-black text-slate-950">{stageTitle(selectedStage)}</h3></div><p className="hidden text-xs font-semibold text-slate-500 sm:block">Scroll sideways to follow the route</p></div>
               <div ref={bracketScrollRef} className="bracket-scroll knockout-map-scroll overflow-x-auto pb-3" onScroll={syncStageToScroll}>
-                <CompleteBracket hasPrequarters={hasPrequarters} hasQuarterfinals={hasQuarterfinals} matches={matches} champion={tournament.champion ?? winner(fixtures(matches, "final", 1, "Final")[0].match)} />
+                <CompleteBracket selectedStage={selectedStage} hasPrequarters={hasPrequarters} hasQuarterfinals={hasQuarterfinals} matches={matches} champion={tournament.champion ?? winner(fixtures(matches, "final", 1, "Final")[0].match)} />
               </div>
               {(selectedStage === "semifinal" || selectedStage === "final") ? <ThirdPlaceMatch match={fixtures(matches, "third_place", 1, "Third place")[0].match} /> : null}
             </div>
@@ -98,7 +98,7 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   );
 }
 
-function CompleteBracket({ hasPrequarters, hasQuarterfinals, matches, champion }: { hasPrequarters: boolean; hasQuarterfinals: boolean; matches: Match[]; champion: Team | null | undefined }) {
+function CompleteBracket({ selectedStage, hasPrequarters, hasQuarterfinals, matches, champion }: { selectedStage: KnockoutStage; hasPrequarters: boolean; hasQuarterfinals: boolean; matches: Match[]; champion: Team | null | undefined }) {
   const prequarters = fixtures(matches, "prequarterfinal", 8, "PQF");
   const quarterfinals = fixtures(matches, "quarterfinal", 4, "QF");
   const semifinals = fixtures(matches, "semifinal", 2, "SF");
@@ -108,8 +108,8 @@ function CompleteBracket({ hasPrequarters, hasQuarterfinals, matches, champion }
   const boardClass = hasPrequarters ? "bracket-board--prequarters" : hasQuarterfinals ? "bracket-board--quarters" : "bracket-board--semis";
 
   return (
-    <div className={`bracket-board ${boardClass}`}>
-      <CompleteConnectors format={hasPrequarters ? "prequarters" : hasQuarterfinals ? "quarters" : "semis"} />
+    <div className={`bracket-board ${boardClass} bracket-view--${selectedStage}`}>
+      <CompleteConnectors selectedStage={selectedStage} format={hasPrequarters ? "prequarters" : hasQuarterfinals ? "quarters" : "semis"} />
       {hasPrequarters ? <BracketColumn title="Pre-quarter-finals" subtitle="Top four from Groups A-D" className="bracket-column--prequarterfinals" fixtures={orderedPrequarters} /> : null}
       {hasQuarterfinals ? <BracketColumn title="Quarter-finals" subtitle={hasPrequarters ? "Pre-quarter-final winners" : "Top four from each group"} className="bracket-column--quarterfinals" fixtures={orderedQuarterfinals} /> : null}
       <BracketColumn title="Semi-finals" subtitle={hasPrequarters ? "Q1 vs Q2 · Q3 vs Q4" : hasQuarterfinals ? "Q1 vs Q3 · Q2 vs Q4" : "Four teams remain"} className="bracket-column--semifinals" fixtures={semifinals} />
@@ -119,7 +119,14 @@ function CompleteBracket({ hasPrequarters, hasQuarterfinals, matches, champion }
   );
 }
 
-function CompleteConnectors({ format }: { format: "prequarters" | "quarters" | "semis" }) {
+function CompleteConnectors({ selectedStage, format }: { selectedStage: KnockoutStage; format: "prequarters" | "quarters" | "semis" }) {
+  const semifinalX = format === "prequarters" ? 560 : format === "quarters" ? 280 : 0;
+  const finalX = semifinalX + 280;
+  const championX = finalX + 280;
+  const boardWidth = format === "prequarters" ? 1340 : format === "quarters" ? 1060 : 780;
+  if (selectedStage === "final") return <svg className="bracket-connectors" viewBox={`0 0 ${boardWidth} 300`} aria-hidden="true"><path d={`M${finalX + 220} 141 H${championX}`} /></svg>;
+  if (selectedStage === "semifinal") return <svg className="bracket-connectors" viewBox={`0 0 ${boardWidth} 420`} aria-hidden="true"><path d={`M${semifinalX + 220} 126 H${semifinalX + 250} V211 H${finalX} M${semifinalX + 220} 296 H${semifinalX + 250} V211`} /><path d={`M${finalX + 220} 211 H${championX}`} /></svg>;
+  if (selectedStage === "quarterfinal" && format === "prequarters") return <svg className="bracket-connectors" viewBox="0 0 1340 580" aria-hidden="true"><path d="M500 126 H530 V191 H560 M500 256 H530 V191 M500 386 H530 V451 H560 M500 516 H530 V451" /><path d="M780 191 H810 V321 H840 M780 451 H810 V321" /><path d="M1060 321 H1120" /></svg>;
   if (format === "prequarters") return <svg className="bracket-connectors" viewBox="0 0 1340 1120" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191 M220 386 H250 V451 H280 M220 516 H250 V451 M220 646 H250 V711 H280 M220 776 H250 V711 M220 906 H250 V971 H280 M220 1036 H250 V971" /><path d="M500 191 H530 V321 H560 M500 451 H530 V321 M500 711 H530 V841 H560 M500 971 H530 V841" /><path d="M780 321 H810 V581 H840 M780 841 H810 V581" /><path d="M1060 581 H1120" /></svg>;
   if (format === "quarters") return <svg className="bracket-connectors" viewBox="0 0 1060 580" aria-hidden="true"><path d="M220 126 H250 V191 H280 M220 256 H250 V191" /><path d="M220 386 H250 V451 H280 M220 516 H250 V451" /><path d="M500 191 H530 V321 H560 M500 451 H530 V321" /><path d="M780 321 H840" /></svg>;
   return <svg className="bracket-connectors" viewBox="0 0 780 580" aria-hidden="true"><path d="M220 191 H250 V321 H280 M220 451 H250 V321" /><path d="M500 321 H560" /></svg>;
