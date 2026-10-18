@@ -1,3 +1,13 @@
+PLAYER REPLACEMENT MATCH SYNC FIX V29
+Created: October 18, 2026
+
+- Player replacements now update every unplayed group and knockout match for that team.
+- Already-generated quarter-finals, semifinals, finals and third-place matches are included.
+- The repair SQL also corrects replacements performed before this update.
+- Completed match lineups, scores, statistics and rating history remain unchanged.
+- Run SUPABASE_PLAYER_REPLACEMENT_MATCH_SYNC_FIX.sql once in Supabase.
+- Includes V28 approved-only public registration visibility.
+
 APPROVED REGISTRATIONS ONLY V28
 Created: October 18, 2026
 

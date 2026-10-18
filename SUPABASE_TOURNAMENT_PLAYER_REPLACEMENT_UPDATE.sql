@@ -529,13 +529,14 @@ begin
   update public.tournament_teams
   set player_1_id = case when player_1_id = p_outgoing_player_id then p_replacement_player_id else player_1_id end,
       player_2_id = case when player_2_id = p_outgoing_player_id then p_replacement_player_id else player_2_id end
-  where id = selected_assignment.id;
+  where id = selected_assignment.id
+  returning * into selected_assignment;
 
   update public.matches
-  set team_1_player_1_id = case when team_1_id = p_team_id and team_1_player_1_id = p_outgoing_player_id then p_replacement_player_id else team_1_player_1_id end,
-      team_1_player_2_id = case when team_1_id = p_team_id and team_1_player_2_id = p_outgoing_player_id then p_replacement_player_id else team_1_player_2_id end,
-      team_2_player_1_id = case when team_2_id = p_team_id and team_2_player_1_id = p_outgoing_player_id then p_replacement_player_id else team_2_player_1_id end,
-      team_2_player_2_id = case when team_2_id = p_team_id and team_2_player_2_id = p_outgoing_player_id then p_replacement_player_id else team_2_player_2_id end
+  set team_1_player_1_id = case when team_1_id = p_team_id then selected_assignment.player_1_id else team_1_player_1_id end,
+      team_1_player_2_id = case when team_1_id = p_team_id then selected_assignment.player_2_id else team_1_player_2_id end,
+      team_2_player_1_id = case when team_2_id = p_team_id then selected_assignment.player_1_id else team_2_player_1_id end,
+      team_2_player_2_id = case when team_2_id = p_team_id then selected_assignment.player_2_id else team_2_player_2_id end
   where tournament_id = p_tournament_id
     and (team_1_id = p_team_id or team_2_id = p_team_id)
     and team_1_games is null and team_2_games is null and winner_team_id is null;
