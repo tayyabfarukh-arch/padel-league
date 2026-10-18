@@ -1,3 +1,14 @@
+EXPANDABLE ROAD TO THE TITLE BRACKET V34
+Created: October 18, 2026
+
+- Makes Road to the title compact and collapsed by default.
+- Expands into a FIFA-style knockout bracket with connecting progression lines.
+- Explains group qualification, quarter-final pairings, semifinal paths and the final.
+- Shows real teams, scores, courts, winners and the champion as results become available.
+- Supports both quarter-final tournaments and direct-semifinal tournaments.
+- Works on Active and History tournament pages with horizontal mobile scrolling.
+- No new Supabase SQL is required for this visual update.
+
 PPC PHASE 2 EXPERIENCE REFRESH V33
 Created: October 18, 2026
 
