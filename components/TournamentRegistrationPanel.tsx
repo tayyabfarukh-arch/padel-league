@@ -120,7 +120,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
     <section className="space-y-4">
       <div className="section-bar mb-0">
         <span className="flex items-center gap-2"><UserPlus className="h-5 w-5 text-limeball" /> Team registration</span>
-        <span className="text-xs text-slate-300">{visibleRegistrations.length} approved</span>
+        <span className="text-xs text-slate-300">{visibleRegistrations.length} registered</span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -204,7 +204,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
         </div>
 
         <div className="sport-card overflow-hidden">
-          <div className="border-b border-slate-200 px-4 py-3"><h2 className="font-black text-slate-950">Approved teams</h2><p className="text-sm text-slate-500">Teams appear here after Admin approval. Payment amounts remain private.</p></div>
+          <div className="border-b border-slate-200 px-4 py-3"><h2 className="font-black text-slate-950">Registered teams</h2></div>
           {visibleRegistrations.length ? <div className="divide-y divide-slate-100">{visibleRegistrations.map((item, index) => {
             const team = teams.find((entry) => entry.id === item.team_id);
             if (!team) return null;

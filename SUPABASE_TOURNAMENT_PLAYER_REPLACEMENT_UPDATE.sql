@@ -498,8 +498,8 @@ as $$
 declare
   selected_tournament public.tournaments%rowtype;
   selected_assignment public.tournament_teams%rowtype;
-  updated_unplayed integer := 0;
-  preserved_completed integer := 0;
+  updated_matches integer := 0;
+  recalculated_completed integer := 0;
 begin
   if not public.is_admin() then raise exception 'Only an Admin can replace a tournament player.'; end if;
   if p_outgoing_player_id = p_replacement_player_id then raise exception 'Choose a different replacement player.'; end if;
@@ -532,20 +532,21 @@ begin
   where id = selected_assignment.id
   returning * into selected_assignment;
 
+  select count(*) into recalculated_completed from public.matches
+  where tournament_id = p_tournament_id
+    and (team_1_id = p_team_id or team_2_id = p_team_id)
+    and team_1_games is not null and team_2_games is not null;
+
   update public.matches
   set team_1_player_1_id = case when team_1_id = p_team_id then selected_assignment.player_1_id else team_1_player_1_id end,
       team_1_player_2_id = case when team_1_id = p_team_id then selected_assignment.player_2_id else team_1_player_2_id end,
       team_2_player_1_id = case when team_2_id = p_team_id then selected_assignment.player_1_id else team_2_player_1_id end,
       team_2_player_2_id = case when team_2_id = p_team_id then selected_assignment.player_2_id else team_2_player_2_id end
   where tournament_id = p_tournament_id
-    and (team_1_id = p_team_id or team_2_id = p_team_id)
-    and team_1_games is null and team_2_games is null and winner_team_id is null;
-  get diagnostics updated_unplayed = row_count;
+    and (team_1_id = p_team_id or team_2_id = p_team_id);
+  get diagnostics updated_matches = row_count;
 
-  select count(*) into preserved_completed from public.matches
-  where tournament_id = p_tournament_id
-    and (team_1_id = p_team_id or team_2_id = p_team_id)
-    and team_1_games is not null and team_2_games is not null;
+  perform public.rebuild_regular_match_ratings_after_publication();
 
   insert into public.tournament_player_replacements (
     tournament_id, team_id, outgoing_player_id, replacement_player_id
@@ -554,8 +555,8 @@ begin
   );
 
   return jsonb_build_object(
-    'updated_unplayed_matches', updated_unplayed,
-    'preserved_completed_matches', preserved_completed
+    'updated_matches', updated_matches,
+    'recalculated_completed_matches', recalculated_completed
   );
 end;
 $$;

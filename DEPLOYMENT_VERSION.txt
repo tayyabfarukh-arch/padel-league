@@ -1,3 +1,22 @@
+FULL TOURNAMENT PLAYER REPLACEMENT V31
+Created: October 18, 2026
+
+- Player replacement applies to every match in the active tournament.
+- Submitted and upcoming group/knockout matches use the replacement player.
+- Scores, rounds, courts, opponents and schedule remain unchanged.
+- Player statistics and Elo history are recalculated from the corrected lineups.
+- The SQL repairs replacements performed before this release.
+- Run SUPABASE_FULL_TOURNAMENT_PLAYER_REPLACEMENT_UPDATE.sql once in Supabase.
+- Includes V30 Registered teams wording and approved-only public visibility.
+
+REGISTERED TEAMS LABEL V30
+Created: October 18, 2026
+
+- The public list heading now reads Registered teams.
+- The extra explanatory description was removed.
+- Only Admin-approved registrations are still shown publicly.
+- Includes the V29 player replacement match sync fix.
+
 PLAYER REPLACEMENT MATCH SYNC FIX V29
 Created: October 18, 2026
 

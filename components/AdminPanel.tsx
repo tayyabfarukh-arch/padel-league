@@ -522,7 +522,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       setMessage("Select the team, injured player, and replacement player.");
       return;
     }
-    if (!window.confirm(`Replace ${outgoingPlayer.name} with ${replacementPlayer.name} for ${teamLabel(assignment.team)}? Completed matches and scores will remain unchanged.`)) return;
+    if (!window.confirm(`Replace ${outgoingPlayer.name} with ${replacementPlayer.name} for the entire ${teamTournament?.name ?? "tournament"}? Every submitted and upcoming match will use ${replacementPlayer.name}. Scores stay unchanged, while player statistics and ratings are recalculated.`)) return;
 
     await run(async () => {
       const { data, error } = await supabase!.rpc("replace_tournament_player", {
@@ -532,9 +532,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         p_replacement_player_id: replacementId
       });
       if (error) throw error;
-      const result = data as { updated_unplayed_matches?: number; preserved_completed_matches?: number } | null;
-      setMessage(`${replacementPlayer.name} was added to ${teamLabel(assignment.team)}. ${result?.updated_unplayed_matches ?? 0} unplayed matches were updated and ${result?.preserved_completed_matches ?? 0} completed matches were preserved.`);
-    }, "Player replaced. The schedule, completed scores, and historical player stats are preserved.");
+      const result = data as { updated_matches?: number; recalculated_completed_matches?: number } | null;
+      setMessage(`${replacementPlayer.name} replaced ${outgoingPlayer.name} across ${result?.updated_matches ?? 0} tournament matches. ${result?.recalculated_completed_matches ?? 0} submitted matches were included in the statistics and rating rebuild.`);
+    }, "Player replaced across the entire tournament. Scores and schedule were preserved; statistics and ratings were recalculated.");
   }
 
   async function updateTournamentSetup(event: FormEvent<HTMLFormElement>) {
@@ -1806,7 +1806,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             <form onSubmit={replaceTournamentPlayer} className="mt-5 space-y-3 border-t border-slate-200 pt-4">
               <div>
                 <h3 className="text-sm font-black text-slate-950">Replace one player during a tournament</h3>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Completed matches stay with the original player. Only unplayed matches use the replacement, while the team, group, rounds, courts, scores and standings remain intact.</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">The replacement applies to every match in this active tournament, including submitted results. Scores and schedule remain intact; player statistics and ratings are recalculated.</p>
               </div>
               <Select
                 name="roster_team_id"
@@ -1825,7 +1825,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 <PlayerPicker name="replacement_player_id" label="Replacement player" players={availableReplacementPlayers} value={effectiveReplacementPlayerId} onChange={setReplacementPlayerId} placeholder="Choose replacement" />
               </div>
               <button className="btn-secondary" disabled={busy || teamTournament?.status === "completed" || !availableReplacementPlayers.length}>
-                <ArrowLeftRight className="h-4 w-4" /> Replace player in remaining matches
+                <ArrowLeftRight className="h-4 w-4" /> Replace player in entire tournament
               </button>
               {teamTournament?.status === "completed" ? <p className="text-xs font-bold text-amber-700">Completed tournaments are locked.</p> : null}
             </form>
