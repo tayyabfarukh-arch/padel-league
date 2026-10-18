@@ -1,9 +1,9 @@
-export type Stage = "group" | "quarterfinal" | "semifinal" | "final" | "third_place";
+export type Stage = "group" | "prequarterfinal" | "quarterfinal" | "semifinal" | "final" | "third_place";
 export type TournamentStatus = "upcoming" | "active" | "completed";
-export type GroupName = "A" | "B";
+export type GroupName = "A" | "B" | "C" | "D";
 export type TournamentFormat = "regular" | "singles_americano" | "team_americano";
 export type PointsScoringMode = "fixed_total" | "race_to";
-export type KnockoutFormat = "direct_semifinal" | "quarterfinal";
+export type KnockoutFormat = "direct_semifinal" | "quarterfinal" | "prequarterfinal";
 
 export type Player = {
   id: string;
@@ -97,10 +97,11 @@ export type Tournament = {
   tournament_format: TournamentFormat;
   points_scoring_mode: PointsScoringMode;
   friend_circle: string;
-  group_count: 1 | 2;
+  group_count: 1 | 2 | 4;
   court_count: number;
   group_target_points: number;
   knockout_format: KnockoutFormat;
+  prequarterfinal_target_games: number;
   quarterfinal_target_games: number;
   semifinal_target_games: number;
   final_target_games: number;

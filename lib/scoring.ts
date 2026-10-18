@@ -4,6 +4,7 @@ export function getTargetGamesForStage(tournament: Tournament | undefined, stage
   if (!tournament) return 3;
   const targets: Record<Stage, number> = {
     group: tournament.group_target_points,
+    prequarterfinal: tournament.prequarterfinal_target_games,
     quarterfinal: tournament.quarterfinal_target_games,
     semifinal: tournament.semifinal_target_games,
     final: tournament.final_target_games,
@@ -149,6 +150,11 @@ export function calculateTeamStats(teams: Team[], matches: Match[], tournaments:
       team2.bestFinish = betterFinish(team2.bestFinish, "Quarter-final");
     }
 
+    if (match.stage === "prequarterfinal" && winner) {
+      team1.bestFinish = betterFinish(team1.bestFinish, "Pre-quarter-final");
+      team2.bestFinish = betterFinish(team2.bestFinish, "Pre-quarter-final");
+    }
+
     if (match.stage === "final" && winner) {
       team1.finalsPlayed += 1;
       team2.finalsPlayed += 1;
@@ -266,6 +272,7 @@ export function calculatePlayerStats(
         playerStat.gameDiff = playerStat.gamesWon - playerStat.gamesLost;
         playerStat.points = playerStat.gameDiff;
 
+        if (match.stage === "prequarterfinal") playerStat.bestFinish = betterFinish(playerStat.bestFinish, "Pre-quarter-final");
         if (match.stage === "quarterfinal") playerStat.bestFinish = betterFinish(playerStat.bestFinish, "Quarter-final");
         if (match.stage === "semifinal") {
           playerStat.semifinalsPlayed += 1;
@@ -350,6 +357,6 @@ function playersForTournamentTeam(tournamentId: string, teamId: string, matches:
 }
 
 function betterFinish(current: string, candidate: string) {
-  const order = ["Group", "Quarter-final", "Semifinal", "Third place", "Runner-up", "Champion"];
+  const order = ["Group", "Pre-quarter-final", "Quarter-final", "Semifinal", "Third place", "Runner-up", "Champion"];
   return order.indexOf(candidate) > order.indexOf(current) ? candidate : current;
 }

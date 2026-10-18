@@ -1,3 +1,16 @@
+PRE-QUARTER-FINAL TOURNAMENT FORMAT V37
+Created: October 18, 2026
+
+- Adds a four-group tournament setup with Groups A, B, C and D.
+- Adds a Pre-quarter-finals knockout format and its own configurable games target.
+- Qualifies the top four teams from every group into eight pre-quarter-finals.
+- Generates PQF1 A1-B4, PQF2 A2-B3, PQF3 A3-B2, PQF4 A4-B1, PQF5 C1-D4, PQF6 C2-D3, PQF7 C3-D2 and PQF8 C4-D1.
+- Generates QF1 PQF1-PQF6, QF2 PQF2-PQF5, QF3 PQF3-PQF8 and QF4 PQF4-PQF7.
+- Generates SF1 QF1-QF2 and SF2 QF3-QF4, followed by the existing final and third-place flows.
+- Extends group scheduling, filters, standings, score entry, history and Road to the Title to the new format.
+- Existing tournaments remain unchanged unless their setup is explicitly changed.
+- Run SUPABASE_PREQUARTERFINAL_UPDATE.sql once before deploying this website version.
+
 TWO-STEP TOURNAMENT JOURNEY V36
 Created: October 18, 2026
 

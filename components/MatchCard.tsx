@@ -46,6 +46,8 @@ export function MatchCard({
           <span className="rounded-full bg-limeball px-3 py-1 text-xs font-black text-ink">
             {match.stage === "group" && match.group_name
               ? `Group ${match.group_name}`
+              : match.stage === "prequarterfinal" && match.round_number
+                ? `Pre-quarter-final PQF${match.round_number}`
               : match.stage === "quarterfinal" && match.round_number
                 ? `Quarter-final Q${match.round_number}`
                 : match.stage === "semifinal" && match.round_number

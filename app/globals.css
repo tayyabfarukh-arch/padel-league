@@ -592,6 +592,7 @@ details[open] > :not(summary) {
 
 .bracket-board--quarters { width: 1060px; }
 .bracket-board--semis { width: 780px; }
+.bracket-board--prequarters { width: 1340px; height: 1120px; }
 
 .bracket-connectors {
   position: absolute;
@@ -602,6 +603,8 @@ details[open] > :not(summary) {
   overflow: visible;
   pointer-events: none;
 }
+
+.bracket-board--prequarters .bracket-connectors { height: 1120px; }
 
 .bracket-connectors path {
   fill: none;
@@ -617,6 +620,13 @@ details[open] > :not(summary) {
   width: 220px;
   height: 580px;
 }
+
+.bracket-board--prequarters .bracket-column { height: 1120px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals { left: 0; }
+.bracket-board--prequarters .bracket-column--quarterfinals { left: 280px; }
+.bracket-board--prequarters .bracket-column--semifinals { left: 560px; }
+.bracket-board--prequarters .bracket-column--final { left: 840px; }
+.bracket-board--prequarters .bracket-column--champion { left: 1120px; }
 
 .bracket-board--quarters .bracket-column--quarterfinals { left: 0; }
 .bracket-board--quarters .bracket-column--semifinals { left: 280px; }
@@ -671,6 +681,23 @@ details[open] > :not(summary) {
 .bracket-column--semifinals > .bracket-match:nth-of-type(1) { top: 140px; }
 .bracket-column--semifinals > .bracket-match:nth-of-type(2) { top: 400px; }
 .bracket-column--final > .bracket-match:nth-of-type(1) { top: 270px; }
+
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(1) { top: 75px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(2) { top: 205px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(3) { top: 335px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(4) { top: 465px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(5) { top: 595px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(6) { top: 725px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(7) { top: 855px; }
+.bracket-board--prequarters .bracket-column--prequarterfinals > .bracket-match:nth-of-type(8) { top: 985px; }
+.bracket-board--prequarters .bracket-column--quarterfinals > .bracket-match:nth-of-type(1) { top: 140px; }
+.bracket-board--prequarters .bracket-column--quarterfinals > .bracket-match:nth-of-type(2) { top: 400px; }
+.bracket-board--prequarters .bracket-column--quarterfinals > .bracket-match:nth-of-type(3) { top: 660px; }
+.bracket-board--prequarters .bracket-column--quarterfinals > .bracket-match:nth-of-type(4) { top: 920px; }
+.bracket-board--prequarters .bracket-column--semifinals > .bracket-match:nth-of-type(1) { top: 270px; }
+.bracket-board--prequarters .bracket-column--semifinals > .bracket-match:nth-of-type(2) { top: 790px; }
+.bracket-board--prequarters .bracket-column--final > .bracket-match:nth-of-type(1) { top: 530px; }
+.bracket-board--prequarters .champion-card { top: 530px; }
 
 .bracket-match__meta {
   display: flex;

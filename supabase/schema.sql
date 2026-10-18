@@ -27,10 +27,11 @@ create table if not exists tournaments (
   tournament_format text not null default 'regular' check (tournament_format in ('regular', 'singles_americano', 'team_americano')),
   points_scoring_mode text not null default 'fixed_total' check (points_scoring_mode in ('fixed_total', 'race_to')),
   friend_circle text not null default 'circle_1' check (friend_circle in ('circle_1', 'circle_2', 'circle_3')),
-  group_count integer not null default 1 check (group_count in (1, 2)),
+  group_count integer not null default 1 check (group_count in (1, 2, 4)),
   court_count integer not null default 4 check (court_count between 1 and 20),
   group_target_points integer not null default 15 check (group_target_points between 1 and 100),
-  knockout_format text not null default 'direct_semifinal' check (knockout_format in ('direct_semifinal', 'quarterfinal')),
+  knockout_format text not null default 'direct_semifinal' check (knockout_format in ('direct_semifinal', 'quarterfinal', 'prequarterfinal')),
+  prequarterfinal_target_games integer not null default 6 check (prequarterfinal_target_games between 1 and 10),
   quarterfinal_target_games integer not null default 6 check (quarterfinal_target_games between 1 and 10),
   semifinal_target_games integer not null default 6 check (semifinal_target_games between 1 and 10),
   final_target_games integer not null default 6 check (final_target_games between 1 and 10),
@@ -64,6 +65,9 @@ add column if not exists group_target_points integer not null default 15;
 
 alter table tournaments
 add column if not exists knockout_format text not null default 'direct_semifinal';
+
+alter table tournaments
+add column if not exists prequarterfinal_target_games integer not null default 6;
 
 alter table tournaments
 add column if not exists quarterfinal_target_games integer not null default 6;
@@ -106,7 +110,7 @@ begin
   end if;
   if not exists (select 1 from pg_constraint where conname = 'tournaments_knockout_format_check') then
     alter table tournaments add constraint tournaments_knockout_format_check
-    check (knockout_format in ('direct_semifinal', 'quarterfinal'));
+    check (knockout_format in ('direct_semifinal', 'quarterfinal', 'prequarterfinal'));
   end if;
   if not exists (select 1 from pg_constraint where conname = 'tournaments_quarterfinal_target_check') then
     alter table tournaments add constraint tournaments_quarterfinal_target_check
@@ -121,7 +125,7 @@ create table if not exists tournament_teams (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references tournaments(id) on delete cascade,
   team_id uuid not null references teams(id) on delete cascade,
-  group_name text not null default 'A' check (group_name in ('A', 'B')),
+  group_name text not null default 'A' check (group_name in ('A', 'B', 'C', 'D')),
   created_at timestamp with time zone default now(),
   unique (tournament_id, team_id)
 );
@@ -148,8 +152,8 @@ create table if not exists matches (
   winner_team_id uuid references teams(id),
   deciding_point_winner_team_id uuid references teams(id),
   ended_due_to_time boolean not null default false,
-  stage text not null check (stage in ('group', 'quarterfinal', 'semifinal', 'final', 'third_place')),
-  group_name text check (group_name in ('A', 'B')),
+  stage text not null check (stage in ('group', 'prequarterfinal', 'quarterfinal', 'semifinal', 'final', 'third_place')),
+  group_name text check (group_name in ('A', 'B', 'C', 'D')),
   round_number integer check (round_number between 1 and 200),
   court_number integer check (court_number between 1 and 20),
   submitted_by uuid references auth.users(id),
@@ -191,7 +195,7 @@ create table if not exists matches (
 
 alter table matches drop constraint if exists matches_stage_check;
 alter table matches add constraint matches_stage_check
-check (stage in ('group', 'quarterfinal', 'semifinal', 'final', 'third_place'));
+check (stage in ('group', 'prequarterfinal', 'quarterfinal', 'semifinal', 'final', 'third_place'));
 
 alter table matches
 add column if not exists group_name text;
@@ -394,6 +398,7 @@ begin
   end if;
   target_score := case selected_match.stage
     when 'group' then selected_tournament.group_target_points
+    when 'prequarterfinal' then selected_tournament.prequarterfinal_target_games
     when 'quarterfinal' then selected_tournament.quarterfinal_target_games
     when 'semifinal' then selected_tournament.semifinal_target_games
     when 'final' then selected_tournament.final_target_games

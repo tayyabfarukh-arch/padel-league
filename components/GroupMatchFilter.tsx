@@ -46,6 +46,10 @@ export function GroupMatchFilter({
     [matches]
   );
   const hasUnscheduledRound = matches.some((match) => !match.round_number);
+  const groupNames = useMemo(
+    () => Array.from(new Set(matches.map((match) => match.group_name).filter((group): group is NonNullable<Match["group_name"]> => group !== null))).sort(),
+    [matches]
+  );
 
   const filteredMatches = useMemo(() => {
     const orderedMatches = [...matches].sort(
@@ -129,8 +133,7 @@ export function GroupMatchFilter({
                 </span>
                 <select className="field" value={selectedGroup} onChange={(event) => setSelectedGroup(event.target.value)}>
                   <option value="all">All groups</option>
-                  <option value="A">Group A</option>
-                  <option value="B">Group B</option>
+                  {groupNames.map((groupName) => <option key={groupName} value={groupName}>Group {groupName}</option>)}
                 </select>
               </label>
             ) : null}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { courtStreamUrl } from "@/lib/format";
 import { calculateGroupStandings } from "@/lib/scoring";
+import { groupNamesForCount } from "@/lib/tournament-format";
 import type { CourtStream, GroupName, Match, Team, Tournament, TournamentTeam } from "@/lib/types";
 import { GroupMatchFilter } from "./GroupMatchFilter";
 import { TeamLeaderboard } from "./Leaderboard";
@@ -20,21 +21,22 @@ export function TournamentGroups({
   courtStreams?: CourtStream[];
   allowScoreEntry?: boolean;
 }) {
-  const groupNames: GroupName[] = tournament.group_count === 2 ? ["A", "B"] : ["A"];
+  const groupNames = groupNamesForCount(tournament.group_count);
+  const hasMultipleGroups = groupNames.length > 1;
   const [selectedGroup, setSelectedGroup] = useState<GroupName>("A");
-  const visibleGroups = tournament.group_count === 2 ? [selectedGroup] : groupNames;
+  const visibleGroups = hasMultipleGroups ? [selectedGroup] : groupNames;
   const allGroupTeams = tournamentTeams.map((entry) => entry.team).filter((team): team is Team => Boolean(team));
   const allGroupMatches = matches.filter((match) => match.stage === "group");
 
   return (
     <div className="space-y-6">
-      {tournament.group_count === 2 ? (
+      {hasMultipleGroups ? (
         <section className="sport-card flex flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-black uppercase text-slate-500">Group standings</p>
             <p className="text-sm font-semibold text-slate-700">Choose a group to see its table and matches.</p>
           </div>
-          <div className="flex w-full shrink-0 rounded-md border border-slate-200 bg-slate-50 p-1 md:w-auto">
+          <div className="grid w-full shrink-0 grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-1 sm:grid-cols-4 md:w-auto">
             {groupNames.map((groupName) => (
               <button
                 key={groupName}
@@ -62,7 +64,7 @@ export function TournamentGroups({
             )
         );
         const standings = calculateGroupStandings(groupTeams, groupMatches, [tournament]);
-        const groupLabel = tournament.group_count === 2 ? `Group ${groupName}` : "Group";
+        const groupLabel = hasMultipleGroups ? `Group ${groupName}` : "Group";
 
         return (
           <div key={groupName} className="space-y-6">
@@ -83,7 +85,7 @@ export function TournamentGroups({
           allowScoreEntry={allowScoreEntry}
           scoreTarget={tournament.group_target_points}
           pointsScoringMode={tournament.points_scoring_mode}
-          showGroupFilter={tournament.group_count === 2}
+          showGroupFilter={hasMultipleGroups}
           youtubeUrls={Object.fromEntries(
             allGroupMatches.map((match) => [match.id, courtStreamUrl(match, courtStreams)])
           )}

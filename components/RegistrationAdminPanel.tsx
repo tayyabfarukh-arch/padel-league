@@ -191,7 +191,7 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
       </div>
 
       <section className="sport-card overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><WalletCards className="h-5 w-5 text-court" /><div><h2 className="font-black text-slate-950">Team registrations</h2><p className="text-sm text-slate-500">After confirming a team, use the Tournament tab to add it and choose Group A or Group B manually.</p></div></div>
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><WalletCards className="h-5 w-5 text-court" /><div><h2 className="font-black text-slate-950">Team registrations</h2><p className="text-sm text-slate-500">After confirming a team, use the Tournament tab to add it and choose its group manually.</p></div></div>
         {loading ? <p className="p-5 text-sm font-bold text-slate-500">Loading registrations...</p> : registrations.length ? <div className="divide-y divide-slate-200">{registrations.map((row) => {
           const team = teams.find((item) => item.id === row.team_id);
           const draft = drafts[row.id];

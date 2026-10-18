@@ -1,4 +1,5 @@
 import type { GroupName, TournamentTeam } from "./types";
+import { groupNamesForCount } from "./tournament-format";
 
 export type GeneratedGroupMatch = {
   group_name: GroupName;
@@ -18,11 +19,11 @@ type Pairing = Omit<GeneratedGroupMatch, "round_number" | "court_number">;
 
 export function generateRegularGroupSchedule(
   assignments: TournamentTeam[],
-  groupCount: 1 | 2,
+  groupCount: 1 | 2 | 4,
   courtCount: number,
   courtRules?: CourtScheduleRule[]
 ) {
-  const groups: GroupName[] = groupCount === 2 ? ["A", "B"] : ["A"];
+  const groups = groupNamesForCount(groupCount);
   const groupRounds = groups.map((groupName) =>
     generateGroupRounds(
       assignments.filter((entry) => entry.group_name === groupName).map((entry) => entry.team_id),
@@ -31,7 +32,7 @@ export function generateRegularGroupSchedule(
   );
   const logicalRoundCount = Math.max(0, ...groupRounds.map((rounds) => rounds.length));
   const courts = Math.max(1, courtCount);
-  const activeGroups: GroupName[] = groupCount === 2 ? ["A", "B"] : ["A"];
+  const activeGroups = groupNamesForCount(groupCount);
   const rules = Array.from({ length: courts }, (_, index) => {
     const courtNumber = index + 1;
     const configured = courtRules?.find((rule) => rule.court_number === courtNumber);
