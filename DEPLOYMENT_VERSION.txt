@@ -1,3 +1,13 @@
+COLLAPSIBLE ROAD TO THE TITLE V41
+Created: October 18, 2026
+
+- Restores the maximize and minimize control for Road to the Title.
+- Keeps the journey minimized by default whenever the page is opened.
+- Expands the complete Group Stage and Knockout Stage journey only when selected.
+- Keeps tournament progress visible while the journey is minimized.
+- Preserves the responsive V40 bracket, stage navigation, scoring, courts, and tournament logic.
+- No Supabase SQL changes are required.
+
 STAGE-RESPONSIVE TOURNAMENT MAP V40
 Created: October 18, 2026
 

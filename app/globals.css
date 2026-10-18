@@ -391,10 +391,19 @@ details[open] > :not(summary) {
 
 .bracket-summary__top {
   display: flex;
+  width: 100%;
   min-height: 72px;
   align-items: center;
   gap: 0.8rem;
+  border: 0;
+  background: transparent;
   padding: 0.8rem 1rem;
+  cursor: pointer;
+}
+
+.bracket-summary__top:focus-visible {
+  outline: 3px solid rgba(8, 127, 91, 0.28);
+  outline-offset: -3px;
 }
 
 .bracket-summary__action {
@@ -411,7 +420,7 @@ details[open] > :not(summary) {
   font-weight: 900;
 }
 
-.tournament-bracket[open] .bracket-summary__action {
+.bracket-summary__action.is-expanded {
   border-color: rgba(8, 127, 91, 0.35);
   background: #ecfdf5;
   color: var(--court);

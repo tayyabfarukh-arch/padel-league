@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Circle, Crown, MapPin, Trophy } from "lucide-react";
+import { CheckCircle2, Circle, Crown, MapPin, Maximize2, Minimize2, Trophy } from "lucide-react";
 import { teamLabel } from "@/lib/format";
 import { calculateGroupStandings } from "@/lib/scoring";
 import { groupNamesForCount } from "@/lib/tournament-format";
@@ -22,6 +22,7 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   ], [hasPrequarters, hasQuarterfinals]);
   const [view, setView] = useState<JourneyView>("groups");
   const [selectedStage, setSelectedStage] = useState<KnockoutStage>(knockoutStages[0]);
+  const [isExpanded, setIsExpanded] = useState(false);
   const bracketScrollRef = useRef<HTMLDivElement>(null);
   const stageTabsRef = useRef<HTMLElement>(null);
   const groupMatches = matches.filter((match) => match.stage === "group");
@@ -55,14 +56,25 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
   return (
     <section className="tournament-bracket sport-card overflow-hidden" aria-label="Road to the title">
       <header className="bracket-summary">
-        <span className="bracket-summary__top">
+        <button
+          type="button"
+          className="bracket-summary__top w-full text-left"
+          aria-expanded={isExpanded}
+          aria-controls={`tournament-journey-${tournament.id}`}
+          onClick={() => setIsExpanded((current) => !current)}
+          title={isExpanded ? "Minimize tournament journey" : "Expand tournament journey"}
+        >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-ink text-limeball"><Trophy className="h-5 w-5" /></span>
-          <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase text-court">Tournament journey</span><span className="block truncate text-base font-black text-slate-950">Road to the title</span></span>
+          <span className="min-w-0 flex-1"><span className="block text-[10px] font-black uppercase text-court">Tournament journey</span><span className="block truncate text-base font-black text-slate-950">Road to the title</span><span className="mt-0.5 block text-[11px] font-bold text-slate-500">{isExpanded ? "Select a stage to follow the tournament route" : "Select to view groups and the knockout bracket"}</span></span>
           <span className="hidden min-w-[150px] sm:block"><span className="block text-right text-[10px] font-black uppercase text-slate-500">{completedMatchCount}/{matches.length} matches</span><span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-100"><span className="block h-full rounded-full bg-court transition-all duration-500" style={{ width: `${progress}%` }} /></span></span>
-        </span>
+          <span className={`bracket-summary__action ${isExpanded ? "is-expanded" : ""}`}>
+            {isExpanded ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
+            <span className="hidden sm:inline">{isExpanded ? "Minimize" : "Expand"}</span>
+          </span>
+        </button>
       </header>
 
-      <div className="border-t border-slate-200">
+      <div id={`tournament-journey-${tournament.id}`} className="border-t border-slate-200" hidden={!isExpanded}>
         <nav className="journey-primary-tabs" aria-label="Tournament stage">
           <button type="button" className={view === "groups" ? "is-active" : ""} onClick={() => setView("groups")}>Group stage</button>
           <button type="button" className={view === "knockout" ? "is-active" : ""} onClick={() => setView("knockout")}>Knockout stage</button>
