@@ -72,7 +72,9 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
       || (team.player_2_id === player.id && team.player_1_id === selectedPartnerId)
     ) ?? null;
   }, [player, selectedPartnerId, teams]);
-  const visibleRegistrations = registrations.filter((item) => teams.some((team) => team.id === item.team_id));
+  const visibleRegistrations = registrations.filter(
+    (item) => item.status === "confirmed" && teams.some((team) => team.id === item.team_id)
+  );
   const registrationOpen = tournament.status === "upcoming" && tournament.registration_open !== false;
 
   async function register() {
@@ -118,7 +120,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
     <section className="space-y-4">
       <div className="section-bar mb-0">
         <span className="flex items-center gap-2"><UserPlus className="h-5 w-5 text-limeball" /> Team registration</span>
-        <span className="text-xs text-slate-300">{visibleRegistrations.length} registered</span>
+        <span className="text-xs text-slate-300">{visibleRegistrations.length} approved</span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -202,7 +204,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
         </div>
 
         <div className="sport-card overflow-hidden">
-          <div className="border-b border-slate-200 px-4 py-3"><h2 className="font-black text-slate-950">Registered teams</h2><p className="text-sm text-slate-500">Payment amounts remain private; only progress is shown.</p></div>
+          <div className="border-b border-slate-200 px-4 py-3"><h2 className="font-black text-slate-950">Approved teams</h2><p className="text-sm text-slate-500">Teams appear here after Admin approval. Payment amounts remain private.</p></div>
           {visibleRegistrations.length ? <div className="divide-y divide-slate-100">{visibleRegistrations.map((item, index) => {
             const team = teams.find((entry) => entry.id === item.team_id);
             if (!team) return null;
@@ -217,7 +219,7 @@ export function TournamentRegistrationPanel({ tournament, teams, players }: { to
                 </div>
               </div>
             );
-          })}</div> : <p className="p-6 text-center text-sm font-semibold text-slate-500">No teams have registered yet.</p>}
+          })}</div> : <p className="p-6 text-center text-sm font-semibold text-slate-500">No teams have been approved yet.</p>}
         </div>
       </div>
     </section>

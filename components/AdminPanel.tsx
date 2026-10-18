@@ -51,6 +51,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
   const [resultTeamFilterId, setResultTeamFilterId] = useState("all");
   const [selectedResultMatchId, setSelectedResultMatchId] = useState("");
   const [teamTournamentId, setTeamTournamentId] = useState(activeTournament?.id ?? "");
+  const [playerReplacementTeamId, setPlayerReplacementTeamId] = useState("");
+  const [outgoingPlayerId, setOutgoingPlayerId] = useState("");
+  const [replacementPlayerId, setReplacementPlayerId] = useState("");
   const [matchTournamentId, setMatchTournamentId] = useState(activeTournament?.id ?? "");
   const [matchStage, setMatchStage] = useState<Stage>("group");
   const [matchGroup, setMatchGroup] = useState("A");
@@ -117,6 +120,23 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       ? selectedResultTarget
       : selectedResultTarget + 1;
   const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
+  const effectivePlayerReplacementTeamId = selectedTournamentAssignments.some((item) => item.team_id === playerReplacementTeamId)
+    ? playerReplacementTeamId
+    : selectedTournamentAssignments[0]?.team_id ?? "";
+  const playerReplacementAssignment = selectedTournamentAssignments.find((item) => item.team_id === effectivePlayerReplacementTeamId);
+  const rosterPlayers = [playerReplacementAssignment?.team?.player_1, playerReplacementAssignment?.team?.player_2].filter((player): player is Player => Boolean(player));
+  const effectiveOutgoingPlayerId = rosterPlayers.some((player) => player.id === outgoingPlayerId)
+    ? outgoingPlayerId
+    : rosterPlayers[0]?.id ?? "";
+  const tournamentRosterPlayerIds = new Set(selectedTournamentAssignments.flatMap((entry) => [entry.player_1_id, entry.player_2_id]));
+  const availableReplacementPlayers = players.filter((player) =>
+    player.is_active !== false &&
+    !tournamentRosterPlayerIds.has(player.id) &&
+    !rosterPlayers.some((rosterPlayer) => rosterPlayer.id === player.id)
+  );
+  const effectiveReplacementPlayerId = availableReplacementPlayers.some((player) => player.id === replacementPlayerId)
+    ? replacementPlayerId
+    : availableReplacementPlayers[0]?.id ?? "";
   const selectedTournamentMatches = matches
     .filter((item) => item.tournament_id === matchTournamentId)
     .sort(
@@ -486,6 +506,35 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       const result = data as { updated_matches?: number; cleared_predictions?: number } | null;
       setMessage(`Team replaced in ${result?.updated_matches ?? 0} matches. ${result?.cleared_predictions ?? 0} withdrawn-team predictions were cleared.`);
     }, "Team and scheduled matches replaced successfully. Refreshing data...");
+  }
+
+  async function replaceTournamentPlayer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const teamId = String(form.get("roster_team_id") ?? "");
+    const outgoingId = String(form.get("outgoing_player_id") ?? "");
+    const replacementId = String(form.get("replacement_player_id") ?? "");
+    const assignment = selectedTournamentAssignments.find((item) => item.team_id === teamId);
+    const outgoingPlayer = players.find((player) => player.id === outgoingId);
+    const replacementPlayer = players.find((player) => player.id === replacementId);
+    if (!assignment || !outgoingPlayer || !replacementPlayer) {
+      setMessageType("error");
+      setMessage("Select the team, injured player, and replacement player.");
+      return;
+    }
+    if (!window.confirm(`Replace ${outgoingPlayer.name} with ${replacementPlayer.name} for ${teamLabel(assignment.team)}? Completed matches and scores will remain unchanged.`)) return;
+
+    await run(async () => {
+      const { data, error } = await supabase!.rpc("replace_tournament_player", {
+        p_tournament_id: teamTournamentId,
+        p_team_id: teamId,
+        p_outgoing_player_id: outgoingId,
+        p_replacement_player_id: replacementId
+      });
+      if (error) throw error;
+      const result = data as { updated_unplayed_matches?: number; preserved_completed_matches?: number } | null;
+      setMessage(`${replacementPlayer.name} was added to ${teamLabel(assignment.team)}. ${result?.updated_unplayed_matches ?? 0} unplayed matches were updated and ${result?.preserved_completed_matches ?? 0} completed matches were preserved.`);
+    }, "Player replaced. The schedule, completed scores, and historical player stats are preserved.");
   }
 
   async function updateTournamentSetup(event: FormEvent<HTMLFormElement>) {
@@ -1753,12 +1802,40 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               </button>
             </form>
           ) : null}
+          {selectedTournamentAssignments.length ? (
+            <form onSubmit={replaceTournamentPlayer} className="mt-5 space-y-3 border-t border-slate-200 pt-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-950">Replace one player during a tournament</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Completed matches stay with the original player. Only unplayed matches use the replacement, while the team, group, rounds, courts, scores and standings remain intact.</p>
+              </div>
+              <Select
+                name="roster_team_id"
+                label="Tournament team"
+                value={effectivePlayerReplacementTeamId}
+                onChange={(teamId) => {
+                  const nextAssignment = selectedTournamentAssignments.find((item) => item.team_id === teamId);
+                  setPlayerReplacementTeamId(teamId);
+                  setOutgoingPlayerId(nextAssignment?.player_1_id ?? "");
+                  setReplacementPlayerId("");
+                }}
+                options={selectedTournamentAssignments.map((entry) => [entry.team_id, teamLabel(entry.team)])}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <PlayerPicker name="outgoing_player_id" label="Player leaving" players={rosterPlayers} value={effectiveOutgoingPlayerId} onChange={setOutgoingPlayerId} />
+                <PlayerPicker name="replacement_player_id" label="Replacement player" players={availableReplacementPlayers} value={effectiveReplacementPlayerId} onChange={setReplacementPlayerId} placeholder="Choose replacement" />
+              </div>
+              <button className="btn-secondary" disabled={busy || teamTournament?.status === "completed" || !availableReplacementPlayers.length}>
+                <ArrowLeftRight className="h-4 w-4" /> Replace player in remaining matches
+              </button>
+              {teamTournament?.status === "completed" ? <p className="text-xs font-bold text-amber-700">Completed tournaments are locked.</p> : null}
+            </form>
+          ) : null}
           <div className="mt-5 border-t border-slate-200 pt-4">
             <h3 className="text-sm font-black text-slate-950">Teams already added</h3>
             <div className="mt-2 divide-y divide-slate-100 rounded-md border border-slate-200">
               {selectedTournamentAssignments.length ? selectedTournamentAssignments.map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between gap-3 p-3 text-sm">
-                  <span className="min-w-0 truncate font-bold text-slate-900">{teamLabel(entry.team)}</span>
+                  <span className="min-w-0"><span className="block truncate font-bold text-slate-900">{teamLabel(entry.team)}</span><span className="block truncate text-xs font-semibold text-slate-500">{entry.team?.player_1?.name ?? "Player"} / {entry.team?.player_2?.name ?? "Player"}</span></span>
                   {teamTournament?.group_count === 2 ? (
                     <select
                       className="shrink-0 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-700"

@@ -229,54 +229,90 @@ export function calculatePlayerStats(
   matches: Match[],
   tournaments: Tournament[] = []
 ): PlayerStats[] {
-  const teamStats = calculateTeamStats(teams, matches, tournaments);
   const stats = new Map<string, PlayerStats>(
     players.map((player) => [player.id, basePlayerStats(player)])
   );
+  const partnerships = new Map<string, Map<string, { played: number; wins: number; points: number }>>();
 
-  for (const teamStat of teamStats) {
-    for (const playerId of [teamStat.team.player_1_id, teamStat.team.player_2_id]) {
-      const playerStat = stats.get(playerId);
-      if (!playerStat) continue;
-      playerStat.played += teamStat.played;
-      playerStat.wins += teamStat.wins;
-      playerStat.draws += teamStat.draws;
-      playerStat.losses += teamStat.losses;
-      playerStat.gamesWon += teamStat.gamesWon;
-      playerStat.gamesLost += teamStat.gamesLost;
-      playerStat.gameDiff += teamStat.gameDiff;
-      playerStat.points += teamStat.points;
-      playerStat.semifinalsPlayed += teamStat.semifinalsPlayed;
-      playerStat.semifinalsWon += teamStat.semifinalsWon;
-      playerStat.finalsPlayed += teamStat.finalsPlayed;
-      playerStat.finalsWon += teamStat.finalsWon;
-      playerStat.titles += teamStat.titles;
-      playerStat.bestFinish = betterFinish(playerStat.bestFinish, teamStat.bestFinish);
+  for (const match of completedMatches(matches)) {
+    if (!match.team_1 || !match.team_2 || match.team_1_games === null || match.team_2_games === null) continue;
+    const sides = [
+      {
+        teamId: match.team_1_id,
+        playerIds: [match.team_1.player_1_id, match.team_1.player_2_id],
+        gamesWon: match.team_1_games,
+        gamesLost: match.team_2_games
+      },
+      {
+        teamId: match.team_2_id,
+        playerIds: [match.team_2.player_1_id, match.team_2.player_2_id],
+        gamesWon: match.team_2_games,
+        gamesLost: match.team_1_games
+      }
+    ];
+
+    for (const side of sides) {
+      const won = match.winner_team_id === side.teamId;
+      const drawn = match.winner_team_id === null;
+      for (const playerId of side.playerIds) {
+        const playerStat = stats.get(playerId);
+        if (!playerStat) continue;
+        playerStat.played += 1;
+        playerStat.wins += won ? 1 : 0;
+        playerStat.draws += drawn ? 1 : 0;
+        playerStat.losses += !won && !drawn ? 1 : 0;
+        playerStat.gamesWon += side.gamesWon;
+        playerStat.gamesLost += side.gamesLost;
+        playerStat.gameDiff = playerStat.gamesWon - playerStat.gamesLost;
+        playerStat.points = playerStat.gameDiff;
+
+        if (match.stage === "quarterfinal") playerStat.bestFinish = betterFinish(playerStat.bestFinish, "Quarter-final");
+        if (match.stage === "semifinal") {
+          playerStat.semifinalsPlayed += 1;
+          playerStat.semifinalsWon += won ? 1 : 0;
+          playerStat.bestFinish = betterFinish(playerStat.bestFinish, "Semifinal");
+        }
+        if (match.stage === "final") {
+          playerStat.finalsPlayed += 1;
+          playerStat.finalsWon += won ? 1 : 0;
+          playerStat.bestFinish = betterFinish(playerStat.bestFinish, won ? "Champion" : "Runner-up");
+        }
+        if (match.stage === "third_place") {
+          playerStat.bestFinish = betterFinish(playerStat.bestFinish, won ? "Third place" : "Semifinal");
+        }
+
+        const partnerId = side.playerIds.find((id) => id !== playerId);
+        if (partnerId) {
+          const playerPartners = partnerships.get(playerId) ?? new Map();
+          const partner = playerPartners.get(partnerId) ?? { played: 0, wins: 0, points: 0 };
+          partner.played += 1;
+          partner.wins += won ? 1 : 0;
+          partner.points += side.gamesWon - side.gamesLost;
+          playerPartners.set(partnerId, partner);
+          partnerships.set(playerId, playerPartners);
+        }
+      }
     }
   }
 
-  for (const stat of stats.values()) {
-    const partnerships = teams.filter(
-      (team) => team.player_1_id === stat.player.id || team.player_2_id === stat.player.id
-    );
-    const partnerScores = partnerships
-      .map((team) => {
-        const partnerId = team.player_1_id === stat.player.id ? team.player_2_id : team.player_1_id;
-        const partner = players.find((player) => player.id === partnerId);
-        const aggregate = teamStats.find((teamStat) => teamStat.team.id === team.id);
-        return { partner, aggregate };
-      })
-      .filter((item) => item.partner && item.aggregate);
+  for (const tournament of tournaments) {
+    if (!tournament.champion_team_id) continue;
+    const championPlayers = playersForTournamentTeam(tournament.id, tournament.champion_team_id, matches, teams);
+    championPlayers.forEach((playerId) => {
+      const playerStat = stats.get(playerId);
+      if (!playerStat) return;
+      playerStat.titles += 1;
+      playerStat.bestFinish = "Champion";
+    });
+  }
 
-    stat.bestPartner = [...partnerScores].sort(
-      (a, b) => b.aggregate!.points - a.aggregate!.points
-    )[0]?.partner;
-    stat.mostPlayedPartner = [...partnerScores].sort(
-      (a, b) => b.aggregate!.played - a.aggregate!.played
-    )[0]?.partner;
-    stat.mostSuccessfulPartner = [...partnerScores].sort(
-      (a, b) => b.aggregate!.wins - a.aggregate!.wins
-    )[0]?.partner;
+  for (const stat of stats.values()) {
+    const partnerScores = [...(partnerships.get(stat.player.id) ?? new Map()).entries()]
+      .map(([partnerId, aggregate]) => ({ partner: players.find((player) => player.id === partnerId), aggregate }))
+      .filter((item): item is { partner: Player; aggregate: { played: number; wins: number; points: number } } => Boolean(item.partner));
+    stat.bestPartner = [...partnerScores].sort((a, b) => b.aggregate.points - a.aggregate.points)[0]?.partner;
+    stat.mostPlayedPartner = [...partnerScores].sort((a, b) => b.aggregate.played - a.aggregate.played)[0]?.partner;
+    stat.mostSuccessfulPartner = [...partnerScores].sort((a, b) => b.aggregate.wins - a.aggregate.wins)[0]?.partner;
   }
 
   return [...stats.values()].sort(
@@ -288,6 +324,29 @@ export function calculatePlayerStats(
       b.gamesWon - a.gamesWon ||
       a.player.name.localeCompare(b.player.name)
   );
+}
+
+function playersForTournamentTeam(tournamentId: string, teamId: string, matches: Match[], teams: Team[]) {
+  const playerIds = new Set<string>();
+  for (const match of completedMatches(matches)) {
+    if (match.tournament_id !== tournamentId) continue;
+    if (match.team_1_id === teamId && match.team_1) {
+      playerIds.add(match.team_1.player_1_id);
+      playerIds.add(match.team_1.player_2_id);
+    }
+    if (match.team_2_id === teamId && match.team_2) {
+      playerIds.add(match.team_2.player_1_id);
+      playerIds.add(match.team_2.player_2_id);
+    }
+  }
+  if (!playerIds.size) {
+    const team = teams.find((item) => item.id === teamId);
+    if (team) {
+      playerIds.add(team.player_1_id);
+      playerIds.add(team.player_2_id);
+    }
+  }
+  return playerIds;
 }
 
 function betterFinish(current: string, candidate: string) {

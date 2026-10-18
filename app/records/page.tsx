@@ -12,7 +12,7 @@ export default async function RecordsPage() {
   const [players, tournamentTeams, matches, tournaments] = await Promise.all([getPlayers(), getTournamentTeams(), getMatches(), getTournaments()]);
   const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
   const teams = teamsFromTournamentTeams(tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id)));
-  const scopedPlayers = playersFromTeams(players, teams);
+  const scopedPlayers = playersFromTeams(players, teams, matches);
   const teamStats = calculateTeamStats(teams, matches, tournaments);
   const playerStats = calculatePlayerStats(scopedPlayers, teams, matches, tournaments);
   if (!teamStats.length && !playerStats.length) return <EmptyState title="No records yet" body="Records appear after results are entered." />;

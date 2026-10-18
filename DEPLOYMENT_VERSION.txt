@@ -1,3 +1,13 @@
+APPROVED REGISTRATIONS ONLY V28
+Created: October 18, 2026
+
+- Public tournament pages show only teams confirmed by an Admin.
+- Pending and waitlisted teams remain visible to Admin in the registration dashboard.
+- The submitting player can still see their own pending registration status.
+- Run SUPABASE_APPROVED_REGISTRATIONS_ONLY_UPDATE.sql once before deploying.
+- No existing registrations, teams, players, schedules, scores, or ratings are deleted.
+- Includes the V27 tournament player replacement feature.
+
 INDIVIDUAL PLAYER ELO AND MATCH DISPLAY V2.1
 Created: October 15, 2026
 
@@ -356,6 +366,18 @@ This version includes:
 - Mobile team portraits use the improved compact size.
 - Player photo update control in Admin.
 - Tournament cover aspect-ratio correction.
+TOURNAMENT PLAYER REPLACEMENT V27 - 2026-10-18
+
+- Admin can replace one injured/unavailable player without replacing the team.
+- The team identity, group, schedule, courts, opponents, scores and standings stay intact.
+- Completed matches remain attached to the original player and are never rewritten.
+- Only unplayed matches receive the replacement player.
+- Match cards show the actual lineup that played or will play each match.
+- Elo ratings use the player lineup saved on each individual match.
+- Player statistics and partner records now use match-specific lineups.
+- Replacement history is stored for auditing.
+- Run SUPABASE_TOURNAMENT_PLAYER_REPLACEMENT_UPDATE.sql before deploying this folder.
+
 PLAYER PERFORMANCE MATCH ORDER FIX V26 - 2026-10-15
 
 - Performance matches are now ordered by the rating engine's stored player match sequence.

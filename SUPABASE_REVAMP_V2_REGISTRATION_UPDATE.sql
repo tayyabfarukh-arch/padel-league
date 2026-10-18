@@ -130,7 +130,7 @@ as $$
   select r.id, r.tournament_id, r.team_id, r.status, r.payment_status, r.created_at
   from public.tournament_registrations r
   where r.tournament_id = p_tournament_id
-    and r.status not in ('withdrawn', 'rejected')
+    and r.status = 'confirmed'
   order by r.created_at asc;
 $$;
 

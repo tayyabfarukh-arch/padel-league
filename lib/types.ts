@@ -163,8 +163,12 @@ export type TournamentTeam = {
   id: string;
   tournament_id: string;
   team_id: string;
+  player_1_id: string;
+  player_2_id: string;
   group_name: GroupName;
   created_at: string;
+  player_1?: Player;
+  player_2?: Player;
   team?: Team;
 };
 
@@ -247,6 +251,10 @@ export type Match = {
   tournament_id: string;
   team_1_id: string;
   team_2_id: string;
+  team_1_player_1_id: string;
+  team_1_player_2_id: string;
+  team_2_player_1_id: string;
+  team_2_player_2_id: string;
   team_1_games: number | null;
   team_2_games: number | null;
   winner_team_id: string | null;

@@ -15,7 +15,7 @@ export default async function PlayersPage() {
   const [players, tournamentTeams, matches, tournaments, ratings, predictions] = await Promise.all([getPlayers(), getTournamentTeams(), getMatches(), getTournaments(), getPlayerRatings(), getPredictions()]);
   const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
   const teams = teamsFromTournamentTeams(tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id)));
-  const scopedPlayers = playersFromTeams(players, teams);
+  const scopedPlayers = playersFromTeams(players, teams, matches);
   const rows = applyLatestPredictionOutcomes(
     applyPlayerRatings(calculatePlayerStats(scopedPlayers, teams, matches, tournaments), ratings),
     predictions,

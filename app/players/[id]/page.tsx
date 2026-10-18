@@ -25,9 +25,19 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
   const player = players.find((item) => item.id === params.id);
   if (!player) notFound();
   const stats = calculatePlayerStats(players, teams, matches, tournaments).find((item) => item.player.id === player.id)!;
-  const playerTeams = teams.filter((team) => team.player_1_id === player.id || team.player_2_id === player.id);
-  const teamIds = new Set(playerTeams.map((team) => team.id));
-  const recentMatches = matches.filter((match) => teamIds.has(match.team_1_id) || teamIds.has(match.team_2_id)).slice(0, 8);
+  const playerTeamMap = new Map(
+    teams
+      .filter((team) => team.player_1_id === player.id || team.player_2_id === player.id)
+      .map((team) => [team.id, team])
+  );
+  const recentMatches = matches.filter((match) => {
+    const playedForTeamOne = match.team_1?.player_1_id === player.id || match.team_1?.player_2_id === player.id;
+    const playedForTeamTwo = match.team_2?.player_1_id === player.id || match.team_2?.player_2_id === player.id;
+    if (playedForTeamOne && match.team_1) playerTeamMap.set(match.team_1.id, match.team_1);
+    if (playedForTeamTwo && match.team_2) playerTeamMap.set(match.team_2.id, match.team_2);
+    return playedForTeamOne || playedForTeamTwo;
+  }).slice(0, 8);
+  const playerTeams = [...playerTeamMap.values()];
   const completedChampions = new Map(
     tournaments
       .filter((tournament) => tournament.status === "completed" && tournament.champion_team_id)

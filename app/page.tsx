@@ -29,13 +29,13 @@ export default async function Home() {
   const regularTournamentIds = new Set(tournaments.filter((item) => item.tournament_format === "regular").map((item) => item.id));
   const regularTournamentTeams = tournamentTeams.filter((item) => regularTournamentIds.has(item.tournament_id));
   const teams = teamsFromTournamentTeams(regularTournamentTeams);
-  const scopedPlayers = playersFromTeams(players, teams);
+  const scopedPlayers = playersFromTeams(players, teams, matches);
   const active = tournaments.find((tournament) => tournament.status === "active");
   const heroTournamentTeams = active
     ? tournamentTeams.filter((entry) => entry.tournament_id === active.id)
     : tournamentTeams;
   const heroTeams = teamsFromTournamentTeams(heroTournamentTeams);
-  const heroPlayers = playersFromTeams(players, heroTeams);
+  const heroPlayers = playersFromTeams(players, heroTeams, active ? matches.filter((match) => match.tournament_id === active.id) : matches);
   const heroMatches = active
     ? matches.filter((match) => match.tournament_id === active.id)
     : matches;

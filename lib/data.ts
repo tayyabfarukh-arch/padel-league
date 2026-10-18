@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import type { AmericanoMatch, AwardCycle, AwardWinner, CourtStream, Match, Player, PlayerRating, Prediction, PublishedAwardVoteTotal, Team, Tournament, TournamentPlayer, TournamentTeam } from "./types";
 
 const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
-const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), rating_events:rating_events!rating_events_match_id_fkey(player_id,rating_before,rating_change,rating_after,reason,rated_matches_before,provisional_before,created_at)`;
+const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), team_1_player_1:players!matches_team_1_player_1_id_fkey(*), team_1_player_2:players!matches_team_1_player_2_id_fkey(*), team_2_player_1:players!matches_team_2_player_1_id_fkey(*), team_2_player_2:players!matches_team_2_player_2_id_fkey(*), rating_events:rating_events!rating_events_match_id_fkey(player_id,rating_before,rating_change,rating_after,reason,rated_matches_before,provisional_before,created_at)`;
 const americanoMatchSelect = `*, side_1_team:teams!americano_matches_side_1_team_id_fkey(${teamSelect}), side_2_team:teams!americano_matches_side_2_team_id_fkey(${teamSelect}), side_1_player_1:players!americano_matches_side_1_player_1_id_fkey(*), side_1_player_2:players!americano_matches_side_1_player_2_id_fkey(*), side_2_player_1:players!americano_matches_side_2_player_1_id_fkey(*), side_2_player_2:players!americano_matches_side_2_player_2_id_fkey(*)`;
 const tournamentSelect =
   "*, champion:teams!tournaments_champion_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), runner_up:teams!tournaments_runner_up_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)), third_place:teams!tournaments_third_place_team_id_fkey(*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*))";
@@ -68,7 +68,7 @@ export async function getMatches(tournamentId?: string) {
   }
   const { data, error } = await query;
   if (error) throw error;
-  return data as Match[];
+  return (data ?? []).map((row) => normalizeMatchRoster(row as Match & MatchRosterRelations));
 }
 
 export async function getTournamentTeams(tournamentId?: string) {
@@ -76,7 +76,7 @@ export async function getTournamentTeams(tournamentId?: string) {
   if (!supabase) return [] as TournamentTeam[];
   let query = supabase
     .from("tournament_teams")
-    .select(`*, team:teams(${teamSelect})`)
+    .select(`*, team:teams(${teamSelect}), player_1:players!tournament_teams_player_1_id_fkey(*), player_2:players!tournament_teams_player_2_id_fkey(*)`)
     .order("created_at", { ascending: true });
   if (tournamentId) query = query.eq("tournament_id", tournamentId);
   if (!tournamentId) {
@@ -88,7 +88,47 @@ export async function getTournamentTeams(tournamentId?: string) {
   }
   const { data, error } = await query;
   if (error) throw error;
-  return data as TournamentTeam[];
+  return (data ?? []).map((entry) => normalizeTournamentTeamRoster(entry as TournamentTeam));
+}
+
+type MatchRosterRelations = {
+  team_1_player_1?: Player;
+  team_1_player_2?: Player;
+  team_2_player_1?: Player;
+  team_2_player_2?: Player;
+};
+
+function normalizeMatchRoster(match: Match & MatchRosterRelations): Match {
+  return {
+    ...match,
+    team_1: match.team_1 ? {
+      ...match.team_1,
+      player_1_id: match.team_1_player_1_id,
+      player_2_id: match.team_1_player_2_id,
+      player_1: match.team_1_player_1,
+      player_2: match.team_1_player_2
+    } : match.team_1,
+    team_2: match.team_2 ? {
+      ...match.team_2,
+      player_1_id: match.team_2_player_1_id,
+      player_2_id: match.team_2_player_2_id,
+      player_1: match.team_2_player_1,
+      player_2: match.team_2_player_2
+    } : match.team_2
+  };
+}
+
+function normalizeTournamentTeamRoster(entry: TournamentTeam): TournamentTeam {
+  return {
+    ...entry,
+    team: entry.team ? {
+      ...entry.team,
+      player_1_id: entry.player_1_id,
+      player_2_id: entry.player_2_id,
+      player_1: entry.player_1,
+      player_2: entry.player_2
+    } : entry.team
+  };
 }
 
 export async function getTournamentPlayers(tournamentId?: string) {
