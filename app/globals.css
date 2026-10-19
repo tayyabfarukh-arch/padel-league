@@ -275,6 +275,53 @@ summary.section-bar {
   border-color: rgba(216, 255, 62, 0.32);
 }
 
+.partner-hero {
+  background-image:
+    linear-gradient(100deg, rgba(8, 23, 17, 0.98), rgba(8, 58, 40, 0.82)),
+    url("/images/padel-court-hero.webp");
+  background-position: center;
+  background-size: cover;
+}
+
+.partner-card {
+  display: grid;
+  grid-template-rows: 190px auto;
+}
+
+.partner-logo {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.partner-logo--top-juice {
+  background: #ffffff;
+}
+
+.partner-logo--rulo {
+  background: #050505;
+}
+
+.partner-logo img {
+  transition: transform 220ms ease;
+}
+
+.partner-card:hover .partner-logo img {
+  transform: scale(1.025);
+}
+
+@media (max-width: 640px) {
+  .partner-card {
+    grid-template-rows: 160px auto;
+  }
+
+  .partner-logo {
+    padding: 1.1rem;
+  }
+}
+
 .stat-card {
   position: relative;
   overflow: hidden;

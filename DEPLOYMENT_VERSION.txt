@@ -1,3 +1,12 @@
+PPC PARTNERSHIPS PAGE V42
+Created: October 19, 2026
+
+- Adds a Partnerships button to the homepage community banner.
+- Adds a responsive Partnerships page featuring Top Juice and Rulo Padel.
+- Uses the supplied partner logos and concise descriptions of each business.
+- Preserves the existing PPC homepage flow, tournament statistics, and primary View action.
+- No Supabase SQL changes are required.
+
 COLLAPSIBLE ROAD TO THE TITLE V41
 Created: October 18, 2026
 

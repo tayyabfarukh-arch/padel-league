@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, Trophy } from "lucide-react";
+import { Crown, Handshake, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PlayerLeaderboard, TeamLeaderboard } from "@/components/Leaderboard";
 import { MatchCard } from "@/components/MatchCard";
@@ -80,21 +80,24 @@ export default async function Home() {
               </p>
             ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-[64px_64px_64px_auto]">
-            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+          <div className="grid grid-cols-6 gap-2 md:grid-cols-[64px_64px_64px_auto_auto]">
+            <div className="col-span-2 rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10 md:col-span-1">
               <p className="text-lg font-black leading-none text-limeball">{heroTeamCount}</p>
               <p className="mt-1 text-[10px] font-bold text-slate-300">Teams</p>
             </div>
-            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+            <div className="col-span-2 rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10 md:col-span-1">
               <p className="text-lg font-black leading-none text-limeball">{heroPlayerCount}</p>
               <p className="mt-1 text-[10px] font-bold text-slate-300">Players</p>
             </div>
-            <div className="rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10">
+            <div className="col-span-2 rounded-md bg-white/10 px-2 py-1.5 text-center ring-1 ring-white/10 md:col-span-1">
               <p className="text-lg font-black leading-none text-limeball">{heroMatchCount}</p>
               <p className="mt-1 text-[10px] font-bold text-slate-300">Matches</p>
             </div>
             <Link href="/current" className="btn-primary col-span-3 bg-limeball text-ink hover:bg-lime-300 md:col-span-1">
               View
+            </Link>
+            <Link href="/partnerships" className="col-span-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-white/25 bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:border-limeball hover:bg-white/15 hover:text-limeball md:col-span-1">
+              <Handshake className="h-4 w-4" /> Partnerships
             </Link>
           </div>
         </div>
