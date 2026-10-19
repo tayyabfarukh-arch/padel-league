@@ -1,3 +1,11 @@
+ACCOUNT PROFILE STATISTICS FIX V44
+Created: October 19, 2026
+
+- Fixes career statistics incorrectly showing zero inside a signed-in player's account.
+- Loads the same complete match and team roster information used by public player profiles.
+- Preserves historical tournament rosters when a player has subsequently been replaced on a team.
+- No Supabase SQL changes are required.
+
 PARTNER LOGO ALIGNMENT FIX V43
 Created: October 19, 2026
 

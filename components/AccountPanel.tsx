@@ -11,6 +11,13 @@ import { containsEmoji } from "@/lib/name-validation";
 import { supabase } from "@/lib/supabase";
 import type { AppUser, Match, Player, PlayerClaim, PlayerRegistrationDetails, PlayerStats, PlayingLevel, Team, Tournament } from "@/lib/types";
 
+type AccountMatchRow = Match & {
+  team_1_player_1?: Player;
+  team_1_player_2?: Player;
+  team_2_player_1?: Player;
+  team_2_player_2?: Player;
+};
+
 export function AccountPanel() {
   const [session, setSession] = useState<Session | null>(null);
   const [account, setAccount] = useState<AppUser | null>(null);
@@ -58,16 +65,18 @@ export function AccountPanel() {
     setAvailablePlayers((playersData as Player[] | null) ?? []);
     if (playerData) {
       const teamSelect = "*, player_1:players!teams_player_1_id_fkey(*), player_2:players!teams_player_2_id_fkey(*)";
+      const matchSelect = `*, team_1:teams!matches_team_1_id_fkey(${teamSelect}), team_2:teams!matches_team_2_id_fkey(${teamSelect}), team_1_player_1:players!matches_team_1_player_1_id_fkey(*), team_1_player_2:players!matches_team_1_player_2_id_fkey(*), team_2_player_1:players!matches_team_2_player_1_id_fkey(*), team_2_player_2:players!matches_team_2_player_2_id_fkey(*)`;
       const [{ data: allPlayers }, { data: allTeams }, { data: allMatches }, { data: allTournaments }] = await Promise.all([
         supabase.from("players").select("*").eq("is_active", true).order("name"),
         supabase.from("teams").select(teamSelect),
-        supabase.from("matches").select("*"),
+        supabase.from("matches").select(matchSelect),
         supabase.from("tournaments").select("*")
       ]);
+      const normalizedMatches = ((allMatches as AccountMatchRow[] | null) ?? []).map(normalizeAccountMatchRoster);
       const calculated = calculatePlayerStats(
         (allPlayers as Player[] | null) ?? [],
         (allTeams as Team[] | null) ?? [],
-        (allMatches as Match[] | null) ?? [],
+        normalizedMatches,
         (allTournaments as Tournament[] | null) ?? []
       ).find((item) => item.player.id === playerData.id) ?? null;
       setStats(calculated);
@@ -542,6 +551,26 @@ export function AccountPanel() {
 function Status({ message, error }: { message: string; error: string }) {
   if (!message && !error) return null;
   return <p className={`rounded-md border p-3 text-sm font-bold ${error ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{error || message}</p>;
+}
+
+function normalizeAccountMatchRoster(match: AccountMatchRow): Match {
+  return {
+    ...match,
+    team_1: match.team_1 ? {
+      ...match.team_1,
+      player_1_id: match.team_1_player_1_id,
+      player_2_id: match.team_1_player_2_id,
+      player_1: match.team_1_player_1,
+      player_2: match.team_1_player_2
+    } : match.team_1,
+    team_2: match.team_2 ? {
+      ...match.team_2,
+      player_1_id: match.team_2_player_1_id,
+      player_2_id: match.team_2_player_2_id,
+      player_1: match.team_2_player_1,
+      player_2: match.team_2_player_2
+    } : match.team_2
+  };
 }
 
 function PartnerSummary({ label, value }: { label: string; value?: string }) {
