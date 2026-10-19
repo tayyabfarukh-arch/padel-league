@@ -15,6 +15,8 @@ const partners = [
     description: "A local favourite for fresh juices and refreshing drinks, helping our players and supporters recharge on and off the court.",
     logo: "/images/partners/top-juice.png",
     logoAlt: "Top Juice logo",
+    logoWidth: 720,
+    logoHeight: 680,
     icon: GlassWater,
     logoClassName: "partner-logo--top-juice"
   },
@@ -24,6 +26,8 @@ const partners = [
     description: "A dedicated padel equipment shop offering rackets, accessories and court essentials for players who want to enjoy and improve their game.",
     logo: "/images/partners/rulo-padel.png",
     logoAlt: "Rulo Padel logo",
+    logoWidth: 771,
+    logoHeight: 245,
     icon: ShoppingBag,
     logoClassName: "partner-logo--rulo"
   }
@@ -55,7 +59,7 @@ export default function PartnershipsPage() {
             return (
               <article key={partner.name} className="partner-card sport-card overflow-hidden">
                 <div className={`partner-logo ${partner.logoClassName}`}>
-                  <Image src={partner.logo} alt={partner.logoAlt} width={720} height={420} className="h-full w-full object-contain" priority />
+                  <Image src={partner.logo} alt={partner.logoAlt} width={partner.logoWidth} height={partner.logoHeight} className="partner-logo__image" priority />
                 </div>
                 <div className="p-5 sm:p-6">
                   <p className="flex items-center gap-2 text-[10px] font-black uppercase text-court"><Icon className="h-4 w-4" /> {partner.type}</p>

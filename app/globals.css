@@ -304,11 +304,26 @@ summary.section-bar {
   background: #050505;
 }
 
-.partner-logo img {
+.partner-logo__image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
   transition: transform 220ms ease;
 }
 
-.partner-card:hover .partner-logo img {
+.partner-logo--top-juice .partner-logo__image {
+  max-width: min(100%, 155px);
+}
+
+.partner-logo--rulo .partner-logo__image {
+  max-width: min(100%, 460px);
+}
+
+.partner-card:hover .partner-logo__image {
   transform: scale(1.025);
 }
 

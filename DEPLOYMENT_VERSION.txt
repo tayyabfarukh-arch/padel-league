@@ -1,3 +1,11 @@
+PARTNER LOGO ALIGNMENT FIX V43
+Created: October 19, 2026
+
+- Corrects the intrinsic dimensions used for the Top Juice and Rulo Padel logos.
+- Centres both logos without stretching or cropping their original artwork.
+- Gives the square Top Juice logo and wide Rulo Padel logo independent responsive sizing.
+- No Supabase SQL changes are required.
+
 PPC PARTNERSHIPS PAGE V42
 Created: October 19, 2026
 
