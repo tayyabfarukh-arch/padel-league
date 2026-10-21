@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { CheckCircle2, Plus, RefreshCw, Save, Trash2, WalletCards } from "lucide-react";
+import { CheckCircle2, ChevronDown, Plus, RefreshCw, Save, Trash2, WalletCards } from "lucide-react";
 import { TeamAvatar } from "@/components/Avatar";
 import { teamLabel } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -32,7 +32,7 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
     setLoading(true);
     setError("");
     const [{ data: registrationData, error: registrationError }, { data: expenseData, error: expenseError }] = await Promise.all([
-      supabase.from("tournament_registrations").select("*").eq("tournament_id", tournamentId).order("created_at"),
+      supabase.from("tournament_registrations").select("*").eq("tournament_id", tournamentId).order("created_at", { ascending: true }),
       supabase.from("tournament_expenses").select("*").eq("tournament_id", tournamentId).order("created_at")
     ]);
     const rows = (registrationData as TournamentRegistration[] | null) ?? [];
@@ -52,6 +52,10 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
   useEffect(() => { void load(); }, [tournamentId]);
 
   const activeRows = registrations.filter((row) => !["withdrawn", "rejected"].includes(row.status));
+  const sortedRegistrations = [...registrations].sort((first, second) =>
+    new Date(first.created_at).getTime() - new Date(second.created_at).getTime()
+    || first.id.localeCompare(second.id)
+  );
   const expectedIncome = activeRows.reduce((total, row) => total + Number(drafts[row.id]?.fee_amount ?? row.fee_amount ?? 0), 0);
   const receivedIncome = activeRows.reduce((total, row) => total + Number(drafts[row.id]?.amount_paid ?? row.amount_paid ?? 0), 0);
   const expenseTotal = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
@@ -192,22 +196,44 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
 
       <section className="sport-card overflow-hidden">
         <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><WalletCards className="h-5 w-5 text-court" /><div><h2 className="font-black text-slate-950">Team registrations</h2><p className="text-sm text-slate-500">After confirming a team, use the Tournament tab to add it and choose its group manually.</p></div></div>
-        {loading ? <p className="p-5 text-sm font-bold text-slate-500">Loading registrations...</p> : registrations.length ? <div className="divide-y divide-slate-200">{registrations.map((row) => {
+        {loading ? <p className="p-5 text-sm font-bold text-slate-500">Loading registrations...</p> : sortedRegistrations.length ? <div className="divide-y divide-slate-200">{sortedRegistrations.map((row, index) => {
           const team = teams.find((item) => item.id === row.team_id);
           const draft = drafts[row.id];
           if (!team || !draft) return null;
           return (
-            <div key={row.id} className="p-4">
-              <div className="mb-3 flex items-center gap-3"><TeamAvatar team={team} size={44} /><div className="min-w-0 flex-1"><p className="truncate font-black text-slate-950">{teamLabel(team)}</p><p className="text-xs font-semibold text-slate-500">Submitted {new Date(row.created_at).toLocaleDateString()}</p></div>{row.status === "confirmed" ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : null}</div>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <label><span className="field-label">Registration</span><select className="field" value={draft.status} onChange={(event) => updateDraft(row.id, { status: event.target.value as RegistrationStatus })}><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="waitlisted">Waitlisted</option><option value="withdrawn">Withdrawn</option><option value="rejected">Rejected</option></select></label>
-                <label><span className="field-label">Payment</span><select className="field" value={draft.payment_status} onChange={(event) => updateDraft(row.id, { payment_status: event.target.value as PaymentStatus })}><option value="unpaid">Unpaid</option><option value="advance_paid">Advance paid</option><option value="fully_paid">Paid in full</option><option value="refunded">Refunded</option></select></label>
-                <label><span className="field-label">Fee (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.fee_amount} onChange={(event) => updateDraft(row.id, { fee_amount: Number(event.target.value) })} /></label>
-                <label><span className="field-label">Received (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.amount_paid} onChange={(event) => updateDraft(row.id, { amount_paid: Number(event.target.value) })} /></label>
-                <label><span className="field-label">Admin note</span><input className="field" value={draft.admin_notes} onChange={(event) => updateDraft(row.id, { admin_notes: event.target.value })} placeholder="Private note" /></label>
+            <details key={row.id} className="group bg-white">
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 transition hover:bg-slate-50 sm:px-4 [&::-webkit-details-marker]:hidden">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-ink text-sm font-black text-limeball">#{index + 1}</span>
+                <TeamAvatar team={team} size={42} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-black text-slate-950">{teamLabel(team)}</span>
+                  <span className="block truncate text-xs font-semibold text-slate-500">{team.player_1?.name ?? "Player 1"} &amp; {team.player_2?.name ?? "Player 2"}</span>
+                </span>
+                <span className="hidden text-right sm:block">
+                  <span className="block text-[10px] font-black uppercase text-slate-400">Registered</span>
+                  <span className="block text-xs font-bold text-slate-600">{formatRegistrationTime(row.created_at)}</span>
+                </span>
+                <span className={`hidden rounded px-2 py-1 text-[10px] font-black uppercase md:inline-flex ${registrationTone(row.status)}`}>{registrationLabel(row.status)}</span>
+                <span className={`hidden rounded px-2 py-1 text-[10px] font-black uppercase lg:inline-flex ${paymentTone(row.payment_status)}`}>{paymentLabel(row.payment_status)}</span>
+                {row.status === "confirmed" ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" /> : null}
+                <ChevronDown className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-180" />
+              </summary>
+              <div className="border-t border-slate-100 bg-slate-50/70 p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-2 sm:hidden">
+                  <span className="text-xs font-bold text-slate-600">Registered {formatRegistrationTime(row.created_at)}</span>
+                  <span className={`rounded px-2 py-1 text-[10px] font-black uppercase ${registrationTone(row.status)}`}>{registrationLabel(row.status)}</span>
+                  <span className={`rounded px-2 py-1 text-[10px] font-black uppercase ${paymentTone(row.payment_status)}`}>{paymentLabel(row.payment_status)}</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <label><span className="field-label">Registration</span><select className="field" value={draft.status} onChange={(event) => updateDraft(row.id, { status: event.target.value as RegistrationStatus })}><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="waitlisted">Waitlisted</option><option value="withdrawn">Withdrawn</option><option value="rejected">Rejected</option></select></label>
+                  <label><span className="field-label">Payment</span><select className="field" value={draft.payment_status} onChange={(event) => updateDraft(row.id, { payment_status: event.target.value as PaymentStatus })}><option value="unpaid">Unpaid</option><option value="advance_paid">Advance paid</option><option value="fully_paid">Paid in full</option><option value="refunded">Refunded</option></select></label>
+                  <label><span className="field-label">Fee (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.fee_amount} onChange={(event) => updateDraft(row.id, { fee_amount: Number(event.target.value) })} /></label>
+                  <label><span className="field-label">Received (KWD)</span><input className="field" type="number" min="0" step="0.001" value={draft.amount_paid} onChange={(event) => updateDraft(row.id, { amount_paid: Number(event.target.value) })} /></label>
+                  <label><span className="field-label">Admin note</span><input className="field" value={draft.admin_notes} onChange={(event) => updateDraft(row.id, { admin_notes: event.target.value })} placeholder="Private note" /></label>
+                </div>
+                <button className="btn-primary mt-3" disabled={busy} onClick={() => void saveRegistration(row)}><Save className="h-4 w-4" /> Save registration</button>
               </div>
-              <button className="btn-primary mt-3" disabled={busy} onClick={() => void saveRegistration(row)}><Save className="h-4 w-4" /> Save registration</button>
-            </div>
+            </details>
           );
         })}</div> : <p className="p-6 text-center text-sm font-semibold text-slate-500">No registration requests yet.</p>}
       </section>
@@ -217,4 +243,30 @@ export function RegistrationAdminPanel({ tournaments, teams }: { tournaments: To
 
 function money(value: number) {
   return `KWD ${Number(value).toFixed(3)}`;
+}
+
+function formatRegistrationTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function registrationLabel(status: RegistrationStatus) {
+  return status === "confirmed" ? "Confirmed" : status === "waitlisted" ? "Waitlisted" : status === "withdrawn" ? "Withdrawn" : status === "rejected" ? "Rejected" : "Pending";
+}
+
+function registrationTone(status: RegistrationStatus) {
+  return status === "confirmed" ? "bg-emerald-100 text-emerald-800" : status === "waitlisted" ? "bg-blue-100 text-blue-800" : status === "withdrawn" || status === "rejected" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800";
+}
+
+function paymentLabel(status: PaymentStatus) {
+  return status === "fully_paid" ? "Paid in full" : status === "advance_paid" ? "Advance paid" : status === "refunded" ? "Refunded" : "Unpaid";
+}
+
+function paymentTone(status: PaymentStatus) {
+  return status === "fully_paid" ? "bg-emerald-100 text-emerald-800" : status === "advance_paid" ? "bg-cyan-100 text-cyan-800" : status === "refunded" ? "bg-slate-200 text-slate-700" : "bg-slate-100 text-slate-600";
 }

@@ -1,3 +1,12 @@
+CHRONOLOGICAL REGISTRATION LIST V45
+Created: October 21, 2026
+
+- Orders Admin team registrations by their original submission timestamp, oldest first.
+- Numbers teams as #1, #2, #3 and onward according to registration order.
+- Presents every team as one compact list row with player names, submission time, registration status, and payment status.
+- Expands an individual row to reveal the existing approval, payment, fee, notes, and save controls.
+- No Supabase SQL changes are required.
+
 ACCOUNT PROFILE STATISTICS FIX V44
 Created: October 19, 2026
 
