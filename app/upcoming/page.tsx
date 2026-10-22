@@ -1,15 +1,17 @@
 import { EmptyState } from "@/components/EmptyState";
 import { TournamentExperience } from "@/components/TournamentExperience";
+import { TournamentSwitcher } from "@/components/TournamentSwitcher";
 import { getTournaments } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function UpcomingTournamentPage() {
+export default async function UpcomingTournamentPage({ searchParams }: { searchParams?: { tournament?: string } }) {
   const tournaments = await getTournaments();
-  const tournament = tournaments
+  const upcoming = tournaments
     .filter((item) => item.status === "upcoming")
-    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+    .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.created_at.localeCompare(b.created_at));
+  const tournament = upcoming.find((item) => item.id === searchParams?.tournament) ?? upcoming[0];
 
   if (!tournament) {
     return (
@@ -20,5 +22,10 @@ export default async function UpcomingTournamentPage() {
     );
   }
 
-  return <TournamentExperience tournament={tournament} allowScoreEntry={false} showRegistration />;
+  return (
+    <div className="space-y-5">
+      {upcoming.length > 1 ? <TournamentSwitcher tournaments={upcoming} selectedId={tournament.id} basePath="/upcoming" status="upcoming" /> : null}
+      <TournamentExperience tournament={tournament} allowScoreEntry={false} showRegistration />
+    </div>
+  );
 }

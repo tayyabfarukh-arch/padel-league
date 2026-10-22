@@ -1,3 +1,13 @@
+MULTI-TOURNAMENT UPCOMING AND ACTIVE V46
+Created: October 22, 2026
+
+- Supports multiple Upcoming tournaments and multiple Active tournaments at the same time.
+- Adds a compact chronological tournament selector to the top of each relevant page.
+- Clicking a tournament loads its complete registration, standings, schedule, bracket, and scoring experience underneath.
+- Preserves score entry only on Active tournaments and registration only on Upcoming tournaments.
+- Avoids extra tournament cover downloads in the selector to keep Supabase cached egress low.
+- No Supabase SQL changes are required.
+
 CHRONOLOGICAL REGISTRATION LIST V45
 Created: October 21, 2026
 
