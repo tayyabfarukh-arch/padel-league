@@ -8,18 +8,21 @@ export function PerformanceFilters({
   players,
   tournaments,
   playerId,
-  tournamentId
+  tournamentId,
+  view
 }: {
   players: Player[];
   tournaments: Tournament[];
   playerId: string;
   tournamentId: string;
+  view?: string;
 }) {
   const router = useRouter();
 
   function navigate(nextPlayerId: string, nextTournamentId: string) {
     const query = new URLSearchParams({ player: nextPlayerId });
     if (nextTournamentId) query.set("tournament", nextTournamentId);
+    if (view) query.set("view", view);
     router.push(`/performance?${query.toString()}`);
   }
 

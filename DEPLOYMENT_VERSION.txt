@@ -1,3 +1,12 @@
+TOURNAMENT WRAPPED AND RIVALRY HUB V47
+Created: October 27, 2026
+
+- Expands Performance Lab into Rating Journey, Tournament Wrapped, and Rivalry Hub views.
+- Tournament Wrapped shows each player's record, win rate, rating movement, best streak, finish, top partner, best rating result, and closest match.
+- Adds a mobile share action for tournament recaps, with clipboard fallback on desktop.
+- Rivalry Hub calculates head-to-head records against every opponent, including wins, draws, losses, closest margin, and rating movement.
+- Uses existing match and rating data; no Supabase SQL changes are required.
+
 MULTI-TOURNAMENT UPCOMING AND ACTIVE V46
 Created: October 22, 2026
 
