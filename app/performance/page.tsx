@@ -4,7 +4,7 @@ import { PerformanceFilters } from "@/components/PerformanceFilters";
 import { PerformanceViewTabs, type PerformanceView } from "@/components/PerformanceViewTabs";
 import { RatingJourneyChart } from "@/components/RatingJourneyChart";
 import { SharePerformanceButton } from "@/components/SharePerformanceButton";
-import { getMatches, getPlayers, getTournaments } from "@/lib/data";
+import { getMatches, getPlayerRatings, getPlayers, getTournaments } from "@/lib/data";
 import { teamLabel } from "@/lib/format";
 import type { Match, Player, Tournament } from "@/lib/types";
 
@@ -24,6 +24,7 @@ type RatingMatch = {
 
 type Rivalry = {
   player: Player;
+  currentRating: number | null;
   matches: number;
   wins: number;
   draws: number;
@@ -33,8 +34,19 @@ type Rivalry = {
   latestMatchAt: string;
 };
 
+type RatingTierPerformance = {
+  key: "high" | "medium" | "lower";
+  label: string;
+  range: string;
+  matches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  ratingChange: number;
+};
+
 export default async function PerformancePage({ searchParams }: { searchParams: { player?: string; tournament?: string; view?: string } }) {
-  const [players, tournaments, matches] = await Promise.all([getPlayers(), getTournaments(), getMatches()]);
+  const [players, tournaments, matches, playerRatings] = await Promise.all([getPlayers(), getTournaments(), getMatches(), getPlayerRatings()]);
   const playerWithHistory = players.find((player) => matches.some((match) => eventFor(match, player.id)));
   const player = players.find((item) => item.id === searchParams.player) ?? playerWithHistory ?? players[0];
 
@@ -54,7 +66,9 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
   const draws = ratingMatches.filter((item) => item.result === "draw").length;
   const chartValues = ratingMatches.length ? [ratingMatches[0].before, ...ratingMatches.map((item) => item.after)] : [];
   const wrapped = tournament ? buildTournamentWrapped(player, tournament, ratingMatches) : null;
-  const rivalries = buildRivalries(player, players, matches);
+  const currentRatings = new Map(playerRatings.map((item) => [item.player_id, Number(item.rating)]));
+  const rivalries = buildRivalries(player, players, matches, currentRatings);
+  const tierPerformance = buildRatingTierPerformance(player, matches, currentRatings);
 
   return (
     <div className="space-y-5">
@@ -96,7 +110,7 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
         </>
       ) : view === "wrapped" && tournament && wrapped ? (
         <TournamentWrapped player={player} tournament={tournament} ratingMatches={ratingMatches} wrapped={wrapped} />
-      ) : view === "rivals" ? <RivalryHub player={player} rivalries={rivalries} /> : null}
+      ) : view === "rivals" ? <RivalryHub player={player} rivalries={rivalries} tiers={tierPerformance} /> : null}
     </div>
   );
 }
@@ -151,7 +165,7 @@ function TournamentWrapped({ player, tournament, ratingMatches, wrapped }: { pla
   );
 }
 
-function RivalryHub({ player, rivalries }: { player: Player; rivalries: Rivalry[] }) {
+function RivalryHub({ player, rivalries, tiers }: { player: Player; rivalries: Rivalry[]; tiers: RatingTierPerformance[] }) {
   const top = rivalries[0];
   return (
     <div className="space-y-5">
@@ -170,21 +184,43 @@ function RivalryHub({ player, rivalries }: { player: Player; rivalries: Rivalry[
       ) : null}
 
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3"><h2 className="section-title mb-0">All rivalries</h2><span className="text-xs font-bold text-slate-500">{rivalries.length} opponents</span></div>
-        {rivalries.length ? <div className="grid gap-3 md:grid-cols-2">{rivalries.map((rival, index) => <RivalryCard key={rival.player.id} rivalry={rival} rank={index + 1} />)}</div> : <div className="sport-card p-8 text-center"><Swords className="mx-auto h-8 w-8 text-slate-400" /><p className="mt-3 font-black text-slate-900">No rivalry history yet</p><p className="mt-1 text-sm font-semibold text-slate-500">Completed matches will build this page automatically.</p></div>}
+        <div className="mb-3"><h2 className="section-title mb-0">Performance by opponent level</h2><p className="mt-1 text-xs font-semibold text-slate-500">Opponent level uses the opposing pair&apos;s average rating at the time of each match.</p></div>
+        <div className="sport-card overflow-x-auto">
+          <table className="w-full min-w-[680px] text-left text-sm">
+            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr><th className="px-4 py-3">Opponent level</th><th className="px-3 py-3 text-center">Played</th><th className="px-3 py-3 text-center">W</th><th className="px-3 py-3 text-center">D</th><th className="px-3 py-3 text-center">L</th><th className="px-3 py-3 text-center">Win rate</th><th className="px-4 py-3 text-right">Rating impact</th></tr></thead>
+            <tbody className="divide-y divide-slate-100">{tiers.map((tier) => {
+              const decided = tier.wins + tier.losses;
+              const winRate = decided ? Math.round((tier.wins / decided) * 100) : 0;
+              return <tr key={tier.key} className="hover:bg-slate-50"><td className="px-4 py-3"><span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${tier.key === "high" ? "bg-red-500" : tier.key === "medium" ? "bg-amber-400" : "bg-emerald-500"}`} /><span className="font-black text-slate-950">{tier.label}</span><span className="ml-2 text-xs font-semibold text-slate-500">{tier.range}</span></td><td className="px-3 py-3 text-center font-black">{tier.matches}</td><td className="px-3 py-3 text-center font-black text-emerald-700">{tier.wins}</td><td className="px-3 py-3 text-center font-bold text-slate-600">{tier.draws}</td><td className="px-3 py-3 text-center font-black text-red-700">{tier.losses}</td><td className="px-3 py-3 text-center font-black">{winRate}%</td><td className={`px-4 py-3 text-right font-black ${tier.ratingChange > 0 ? "text-emerald-700" : tier.ratingChange < 0 ? "text-red-700" : "text-slate-600"}`}>{signed(tier.ratingChange)}</td></tr>;
+            })}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="section-title mb-0">All rivalries</h2><p className="mt-1 text-xs font-semibold text-slate-500">Compact head-to-head record against every opponent</p></div><span className="text-xs font-bold text-slate-500">{rivalries.length} opponents</span></div>
+        {rivalries.length ? <div className="sport-card overflow-x-auto"><table className="w-full min-w-[820px] text-left text-sm"><thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-500"><tr><th className="w-12 px-3 py-3 text-center">#</th><th className="px-3 py-3">Opponent</th><th className="px-3 py-3 text-center">Rating</th><th className="px-3 py-3 text-center">Played</th><th className="px-3 py-3 text-center">W</th><th className="px-3 py-3 text-center">D</th><th className="px-3 py-3 text-center">L</th><th className="px-3 py-3 text-center">Win rate</th><th className="px-3 py-3 text-center">Closest</th><th className="px-4 py-3 text-right">Rating impact</th></tr></thead><tbody className="divide-y divide-slate-100">{rivalries.map((rival, index) => <RivalryRow key={rival.player.id} rivalry={rival} rank={index + 1} />)}</tbody></table></div> : <div className="sport-card p-8 text-center"><Swords className="mx-auto h-8 w-8 text-slate-400" /><p className="mt-3 font-black text-slate-900">No rivalry history yet</p><p className="mt-1 text-sm font-semibold text-slate-500">Completed matches will build this page automatically.</p></div>}
       </section>
     </div>
   );
 }
 
-function RivalryCard({ rivalry, rank }: { rivalry: Rivalry; rank: number }) {
+function RivalryRow({ rivalry, rank }: { rivalry: Rivalry; rank: number }) {
   const decided = rivalry.wins + rivalry.losses;
   const winRate = decided ? Math.round((rivalry.wins / decided) * 100) : 0;
   return (
-    <article className="sport-card p-4">
-      <div className="flex items-center gap-3"><span className="text-xs font-black text-slate-400">#{rank}</span><PlayerAvatar player={rivalry.player} size={44} /><div className="min-w-0 flex-1"><h3 className="truncate font-black text-slate-950">{rivalry.player.name}</h3><p className="text-xs font-bold text-slate-500">{rivalry.matches} matches · {winRate}% win rate</p></div><span className={`rounded-md px-2 py-1 text-xs font-black ${rivalry.ratingChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{signed(rivalry.ratingChange)}</span></div>
-      <div className="mt-3 grid grid-cols-3 gap-2"><MiniRecord label="Won" value={rivalry.wins} tone="positive" /><MiniRecord label="Drawn" value={rivalry.draws} /><MiniRecord label="Lost" value={rivalry.losses} tone="negative" /></div>
-    </article>
+    <tr className="hover:bg-slate-50">
+      <td className="px-3 py-2 text-center text-xs font-black text-slate-400">{rank}</td>
+      <td className="px-3 py-2"><div className="flex items-center gap-2"><PlayerAvatar player={rivalry.player} size={34} /><span className="font-black text-slate-950">{rivalry.player.name}</span></div></td>
+      <td className="px-3 py-2 text-center font-black text-slate-700">{rivalry.currentRating?.toFixed(2) ?? "-"}</td>
+      <td className="px-3 py-2 text-center font-black">{rivalry.matches}</td>
+      <td className="px-3 py-2 text-center font-black text-emerald-700">{rivalry.wins}</td>
+      <td className="px-3 py-2 text-center font-bold text-slate-600">{rivalry.draws}</td>
+      <td className="px-3 py-2 text-center font-black text-red-700">{rivalry.losses}</td>
+      <td className="px-3 py-2 text-center font-black">{winRate}%</td>
+      <td className="px-3 py-2 text-center font-bold text-slate-600">{rivalry.closestMargin} pt</td>
+      <td className={`px-4 py-2 text-right font-black ${rivalry.ratingChange > 0 ? "text-emerald-700" : rivalry.ratingChange < 0 ? "text-red-700" : "text-slate-600"}`}>{signed(rivalry.ratingChange)}</td>
+    </tr>
   );
 }
 
@@ -260,7 +296,7 @@ function longestWinStreak(matches: RatingMatch[]) {
   return longest;
 }
 
-function buildRivalries(player: Player, players: Player[], matches: Match[]): Rivalry[] {
+function buildRivalries(player: Player, players: Player[], matches: Match[], currentRatings: Map<string, number>): Rivalry[] {
   const playerById = new Map(players.map((item) => [item.id, item]));
   const rivalries = new Map<string, Rivalry>();
   const completed = matches
@@ -277,7 +313,7 @@ function buildRivalries(player: Player, players: Player[], matches: Match[]): Ri
     const playedAt = match.played_at ?? match.submitted_at ?? match.created_at;
     for (const opponent of opponentSide.players) {
       const rival = playerById.get(opponent.id) ?? opponent;
-      const record = rivalries.get(rival.id) ?? { player: rival, matches: 0, wins: 0, draws: 0, losses: 0, ratingChange: 0, closestMargin: Number.POSITIVE_INFINITY, latestMatchAt: playedAt };
+      const record = rivalries.get(rival.id) ?? { player: rival, currentRating: currentRatings.get(rival.id) ?? null, matches: 0, wins: 0, draws: 0, losses: 0, ratingChange: 0, closestMargin: Number.POSITIVE_INFINITY, latestMatchAt: playedAt };
       record.matches += 1;
       if (result === "win") record.wins += 1;
       else if (result === "loss") record.losses += 1;
@@ -289,6 +325,31 @@ function buildRivalries(player: Player, players: Player[], matches: Match[]): Ri
     }
   }
   return [...rivalries.values()].sort((a, b) => b.matches - a.matches || b.wins - a.wins || new Date(b.latestMatchAt).getTime() - new Date(a.latestMatchAt).getTime());
+}
+
+function buildRatingTierPerformance(player: Player, matches: Match[], currentRatings: Map<string, number>): RatingTierPerformance[] {
+  const tiers: RatingTierPerformance[] = [
+    { key: "high", label: "High rated", range: "7.00+", matches: 0, wins: 0, draws: 0, losses: 0, ratingChange: 0 },
+    { key: "medium", label: "Medium rated", range: "5.00-6.99", matches: 0, wins: 0, draws: 0, losses: 0, ratingChange: 0 },
+    { key: "lower", label: "Lower rated", range: "Below 5.00", matches: 0, wins: 0, draws: 0, losses: 0, ratingChange: 0 }
+  ];
+  const completed = matches.filter((match) => match.team_1_games != null && match.team_2_games != null && sideForPlayer(match, player.id));
+
+  for (const match of completed) {
+    const ownSide = sideForPlayer(match, player.id)!;
+    const opponentSide = ownSide.number === 1 ? matchSide(match, 2) : matchSide(match, 1);
+    const opponentRatings = opponentSide.players
+      .map((opponent) => Number(eventFor(match, opponent.id)?.rating_before ?? currentRatings.get(opponent.id)))
+      .filter(Number.isFinite);
+    if (!opponentRatings.length) continue;
+    const opponentAverage = opponentRatings.reduce((sum, rating) => sum + rating, 0) / opponentRatings.length;
+    const tier = opponentAverage >= 7 ? tiers[0] : opponentAverage >= 5 ? tiers[1] : tiers[2];
+    const result = match.winner_team_id == null ? "draws" : match.winner_team_id === ownSide.teamId ? "wins" : "losses";
+    tier.matches += 1;
+    tier[result] += 1;
+    tier.ratingChange += Number(eventFor(match, player.id)?.rating_change ?? 0);
+  }
+  return tiers;
 }
 
 function sideForPlayer(match: Match, playerId: string) {

@@ -1,3 +1,13 @@
+COMPACT RIVALRY ANALYTICS V48
+Created: October 27, 2026
+
+- Replaces the repeated Rivalry Hub cards with a compact head-to-head table.
+- Shows each opponent's current rating, matches played, wins, draws, losses, win rate, closest margin, and rating impact.
+- Adds a second table comparing performance against high-rated, medium-rated, and lower-rated opposing pairs.
+- Classifies opponent strength using the opposing pair's average rating at the time of each match whenever historical rating data is available.
+- Keeps both tables horizontally scrollable and readable on mobile.
+- No Supabase SQL changes are required.
+
 TOURNAMENT WRAPPED AND RIVALRY HUB V47
 Created: October 27, 2026
 
