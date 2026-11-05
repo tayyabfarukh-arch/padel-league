@@ -1,3 +1,14 @@
+ADMIN SCORE CENTRE V51
+Created: November 5, 2026
+
+- Adds a dedicated Score Centre as the main regular-tournament result-entry workflow.
+- Shows the full selected tournament schedule in one compact table.
+- Filters matches by team, group, stage, round, court and completion status.
+- Saves multiple entered results with one Admin-only submission.
+- Keeps completed results locked in the table and preserves the existing single-result correction form underneath.
+- Public Active Tournament pages remain fully read-only.
+- Run SUPABASE_ADMIN_SCORE_CENTRE_UPDATE.sql once before deploying this version.
+
 ADMIN-ONLY SCORING SECURITY V50
 Created: November 5, 2026
 

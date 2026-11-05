@@ -6,6 +6,7 @@ import { ArrowLeftRight, Award, CalendarRange, Check, ClipboardCheck, Eye, EyeOf
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
+import { AdminScoreCenter } from "@/components/AdminScoreCenter";
 import { AwardAdminPanel } from "@/components/AwardAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
 import { PlayerPicker } from "@/components/PlayerPicker";
@@ -42,7 +43,7 @@ const ADMIN_SECTIONS = [
   ["registrations", "Registrations", ClipboardCheck],
   ["tournament", "Tournament", Trophy],
   ["schedule", "Schedule", CalendarRange],
-  ["results", "Results", ListChecks]
+  ["results", "Score Centre", ListChecks]
 ] as const;
 
 export function AdminPanel({ configured, players, teams, tournaments: allTournaments, tournamentPlayers, tournamentTeams, matches, americanoMatches, courtStreams }: Props) {
@@ -2378,7 +2379,9 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
         {adminSection === "results" ? (
           <>
-        <Panel title="Enter or edit result">
+        <AdminScoreCenter tournaments={tournaments} matches={matches} teams={teams} />
+
+        <Panel title="Correct one saved result">
           <form onSubmit={saveResult} className="space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-black uppercase text-slate-500">Tournament</span>
