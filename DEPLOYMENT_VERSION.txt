@@ -1,3 +1,13 @@
+ADMIN-ONLY SCORING SECURITY V50
+Created: November 5, 2026
+
+- Makes every public Active Tournament view read-only while keeping live scores and standings visible.
+- Removes public score inputs for regular, Singles Americano, and Team Americano matches.
+- Blocks anonymous and ordinary authenticated accounts from calling regular, batch, or Americano score-submission RPCs directly.
+- Keeps regular score entry and correction in Admin > Results.
+- Keeps Americano score management in the Americano Admin Manage section.
+- Run SUPABASE_ADMIN_ONLY_SCORING_UPDATE.sql once before deploying this folder.
+
 TEAM REPLACEMENT TRANSACTION FIX V49
 Created: November 5, 2026
 

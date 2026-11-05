@@ -17,7 +17,7 @@ export default async function CurrentTournamentPage({ searchParams }: { searchPa
   return (
     <div className="space-y-5">
       {active.length > 1 ? <TournamentSwitcher tournaments={active} selectedId={tournament.id} basePath="/current" status="active" /> : null}
-      <TournamentExperience tournament={tournament} allowScoreEntry />
+      <TournamentExperience tournament={tournament} allowScoreEntry={false} />
     </div>
   );
 }
