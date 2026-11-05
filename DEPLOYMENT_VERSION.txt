@@ -1,3 +1,14 @@
+ACTIVE-LAYOUT ADMIN SCORE CENTRE V52
+Created: November 5, 2026
+
+- Replaces the wide Admin scoring table with the same responsive match cards used on the Active page.
+- Restores player photos, team layouts, round/group/court details, standings, knockout sections and mobile-friendly sizing.
+- Allows Admin to enter several unfinished results and save all entered scores from any match card.
+- Keeps the public Active Tournament page read-only.
+- Keeps saved-result correction and tournament reset tools below the main scoring experience.
+- Removes the discarded AdminScoreCenter table component.
+- Run SUPABASE_ADMIN_SCORE_CENTRE_UPDATE.sql only if it was not already run for V51.
+
 ADMIN SCORE CENTRE V51
 Created: November 5, 2026
 

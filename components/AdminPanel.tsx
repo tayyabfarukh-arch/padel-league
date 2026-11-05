@@ -6,13 +6,13 @@ import { ArrowLeftRight, Award, CalendarRange, Check, ClipboardCheck, Eye, EyeOf
 import { supabase } from "@/lib/supabase";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { AmericanoAdminPanel } from "@/components/AmericanoAdminPanel";
-import { AdminScoreCenter } from "@/components/AdminScoreCenter";
 import { AwardAdminPanel } from "@/components/AwardAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { RatingCalibrationAdmin } from "@/components/RatingCalibrationAdmin";
+import { TournamentDashboard } from "@/components/TournamentDashboard";
 import { teamLabel } from "@/lib/format";
 import { containsEmoji } from "@/lib/name-validation";
 import { calculateGroupStandings, getTargetGamesForStage, validateScore } from "@/lib/scoring";
@@ -132,6 +132,10 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
     selectedResultMatch?.stage === "group"
       ? selectedResultTarget
       : selectedResultTarget + 1;
+  const scoreTournament = tournaments.find((tournament) => tournament.id === resultTournamentId) ?? activeTournament;
+  const scoreTournamentTeams = tournamentTeams.filter((item) => item.tournament_id === scoreTournament?.id);
+  const scoreTournamentMatches = matches.filter((item) => item.tournament_id === scoreTournament?.id);
+  const scoreTournamentStreams = courtStreams.filter((item) => item.tournament_id === scoreTournament?.id);
   const selectedTournamentAssignments = tournamentTeams.filter((item) => item.tournament_id === teamTournamentId);
   const effectivePlayerReplacementTeamId = selectedTournamentAssignments.some((item) => item.team_id === playerReplacementTeamId)
     ? playerReplacementTeamId
@@ -2379,15 +2383,13 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
 
         {adminSection === "results" ? (
           <>
-        <AdminScoreCenter tournaments={tournaments} matches={matches} teams={teams} />
-
-        <Panel title="Correct one saved result">
-          <form onSubmit={saveResult} className="space-y-3">
+        <Panel title="Score Centre">
+          <div className="space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-black uppercase text-slate-500">Tournament</span>
               <select
                 className="field"
-                value={resultTournamentId}
+                value={scoreTournament?.id ?? ""}
                 onChange={(event) => {
                   setResultTournamentId(event.target.value);
                   setResultTeamFilterId("all");
@@ -2395,12 +2397,34 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                 }}
               >
                 {tournaments.map((tournament) => (
-                  <option key={`result-tournament-${tournament.id}`} value={tournament.id}>
+                  <option key={`score-tournament-${tournament.id}`} value={tournament.id}>
                     {tournament.name}
                   </option>
                 ))}
               </select>
             </label>
+            <p className="text-sm font-semibold text-slate-600">
+              Enter scores on any unfinished match below. Selecting <span className="font-black text-slate-900">Submit all entered results</span> on any match saves every complete score currently entered on this page.
+            </p>
+          </div>
+        </Panel>
+
+        {scoreTournament ? (
+          <TournamentDashboard
+            tournament={scoreTournament}
+            tournamentTeams={scoreTournamentTeams}
+            matches={scoreTournamentMatches}
+            courtStreams={scoreTournamentStreams}
+            allowScoreEntry
+          />
+        ) : (
+          <Panel title="Tournament schedule">
+            <p className="text-sm font-semibold text-slate-600">Create a regular tournament before entering results.</p>
+          </Panel>
+        )}
+
+        <Panel title="Correct one saved result">
+          <form onSubmit={saveResult} className="space-y-3">
             <Select
               name="result_team_filter"
               label="Filter matches by team"
