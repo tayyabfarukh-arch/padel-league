@@ -5,6 +5,7 @@ This update replaces the separate wide scoring table with the same responsive to
 ## What changed
 
 - Admin > Score Centre now uses the existing match schedule cards.
+- The complete Score Centre occupies the full Admin page width on desktop instead of one half of the two-column Admin grid.
 - Player photos, team names, rounds, groups, courts, standings, knockout sections, and mobile sizing match the public tournament view.
 - Score inputs appear only inside Admin; the public Active page remains read-only.
 - Scores can be entered on several unfinished matches and submitted together from any `Submit all entered results` button.

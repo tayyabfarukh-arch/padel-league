@@ -1658,7 +1658,13 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
             ))}
           </div>
 
-          <div className={adminWorkspace === "regular" ? "grid gap-5 lg:grid-cols-2" : "hidden"}>
+          <div
+            className={
+              adminWorkspace === "regular"
+                ? `grid gap-5 ${adminSection === "results" ? "grid-cols-1" : "lg:grid-cols-2"}`
+                : "hidden"
+            }
+          >
         {adminSection === "accounts" ? <PlayerAccountAdmin /> : null}
         {adminSection === "ratings" ? <RatingCalibrationAdmin players={players} /> : null}
         {adminSection === "awards" ? <AwardAdminPanel players={players} /> : null}

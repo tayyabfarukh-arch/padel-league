@@ -2,6 +2,7 @@ ACTIVE-LAYOUT ADMIN SCORE CENTRE V52
 Created: November 5, 2026
 
 - Replaces the wide Admin scoring table with the same responsive match cards used on the Active page.
+- Makes the entire Score Centre use the full Admin page width instead of one half of the desktop grid.
 - Restores player photos, team layouts, round/group/court details, standings, knockout sections and mobile-friendly sizing.
 - Allows Admin to enter several unfinished results and save all entered scores from any match card.
 - Keeps the public Active Tournament page read-only.
