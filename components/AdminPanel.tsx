@@ -329,7 +329,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       }, 700);
     } catch (error) {
       setMessageType("error");
-      setMessage(error instanceof Error ? error.message : "Something went wrong.");
+      setMessage(readErrorMessage(error, "Something went wrong."));
     } finally {
       setBusy(false);
     }
@@ -2510,6 +2510,15 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
       ) : null}
     </div>
   );
+}
+
+function readErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
 }
 
 function messageClass(type: "info" | "success" | "error") {

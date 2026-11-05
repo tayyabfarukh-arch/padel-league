@@ -1,3 +1,13 @@
+TEAM REPLACEMENT TRANSACTION FIX V49
+Created: November 5, 2026
+
+- Fixes team replacement failing after tournament-specific roster snapshots were introduced.
+- Assigns the incoming team before scheduled matches reference it, satisfying the roster synchronization trigger.
+- Replaces the outgoing roster snapshot in every affected group and knockout match.
+- Keeps rounds, courts, scores, and unaffected fixtures unchanged.
+- Admin actions now display the actual Supabase error instead of the generic "Something went wrong" message.
+- Run the updated SUPABASE_TEAM_REPLACEMENT_UPDATE.sql once before using the replacement control.
+
 COMPACT RIVALRY ANALYTICS V48
 Created: October 27, 2026
 
