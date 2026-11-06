@@ -11,7 +11,7 @@ type BracketFixture = { label: string; match?: Match };
 type JourneyView = "groups" | "knockout";
 type KnockoutStage = "prequarterfinal" | "quarterfinal" | "semifinal" | "final";
 
-export function TournamentJourney({ tournament, tournamentTeams, matches }: { tournament: Tournament; tournamentTeams: TournamentTeam[]; matches: Match[] }) {
+export function TournamentJourney({ tournament, tournamentTeams, matches, presentationMode = false }: { tournament: Tournament; tournamentTeams: TournamentTeam[]; matches: Match[]; presentationMode?: boolean }) {
   const hasPrequarters = tournament.knockout_format === "prequarterfinal" || matches.some((match) => match.stage === "prequarterfinal");
   const hasQuarterfinals = hasPrequarters || tournament.knockout_format === "quarterfinal" || matches.some((match) => match.stage === "quarterfinal");
   const knockoutStages = useMemo<KnockoutStage[]>(() => [
@@ -38,6 +38,10 @@ export function TournamentJourney({ tournament, tournamentTeams, matches }: { to
     const selectedTab = stageTabsRef.current?.querySelector<HTMLElement>(`[data-stage="${selectedStage}"]`);
     selectedTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [selectedStage]);
+
+  useEffect(() => {
+    if (presentationMode) setIsExpanded(true);
+  }, [presentationMode]);
 
   function selectKnockoutStage(stage: KnockoutStage) {
     setSelectedStage(stage);

@@ -1,3 +1,14 @@
+BIG SCREEN TOURNAMENT PRESENTATION V53
+Created: November 6, 2026
+
+- Adds a Big Screen button to regular tournament pages for televisions, projectors, and external displays.
+- Uses native browser fullscreen with a full-viewport fallback.
+- Automatically expands Road to the Title when presentation mode starts.
+- Enlarges group standings, qualification snapshots, stage tabs, bracket cards, team names, scores, court details, headings, and match labels.
+- Keeps a visible presentation toolbar and exit control while presenting.
+- Leaves normal mobile and desktop layouts unchanged.
+- No Supabase SQL changes are required.
+
 ACTIVE-LAYOUT ADMIN SCORE CENTRE V52
 Created: November 5, 2026
 

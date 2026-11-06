@@ -1245,6 +1245,280 @@ details[open] > :not(summary) {
 .bracket-board.bracket-view--final .bracket-column--final > .bracket-match:nth-of-type(1) { top: 90px; }
 .bracket-board.bracket-view--final .champion-card { top: 90px; }
 
+/* Full-viewport tournament presentation for televisions and venue displays. */
+.presentation-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(200, 241, 53, 0.55);
+  border-radius: 6px;
+  background: var(--lime);
+  padding: 0.65rem 0.9rem;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 950;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.presentation-toggle:hover {
+  background: #d8fa59;
+  transform: translateY(-1px);
+}
+
+.tournament-presentation-shell.is-presenting {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #edf3ef;
+  padding: 0 1.5rem 2rem;
+}
+
+.tournament-presentation-shell.is-presenting:not(:fullscreen) {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.tournament-presentation-shell.is-presenting:fullscreen {
+  background: #edf3ef;
+}
+
+.presentation-canvas {
+  width: 100%;
+}
+
+.is-presenting .presentation-canvas {
+  max-width: 1920px;
+  margin-inline: auto;
+}
+
+.presentation-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 -1.5rem 1.25rem;
+  border-bottom: 1px solid rgba(200, 241, 53, 0.25);
+  background: rgba(4, 25, 19, 0.96);
+  padding: 0.75rem 1.5rem;
+  color: white;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.presentation-toolbar p {
+  color: var(--lime);
+  font-size: 0.75rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.presentation-toolbar strong {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+
+.presentation-toolbar button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  background: white;
+  padding: 0.65rem 1rem;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 950;
+}
+
+.is-presenting .court-panel .presentation-toggle {
+  display: none;
+}
+
+.is-presenting .court-panel {
+  padding: 1.25rem 1.5rem;
+}
+
+.is-presenting .court-panel h1 {
+  font-size: 2rem !important;
+  line-height: 1.15;
+}
+
+.is-presenting .court-panel p {
+  font-size: 1rem !important;
+}
+
+.is-presenting .section-bar {
+  min-height: 58px;
+  padding: 0.85rem 1.1rem;
+  font-size: 1.4rem;
+}
+
+.is-presenting .leaderboard-grid--standard {
+  min-width: 1546px !important;
+}
+
+.is-presenting .leaderboard-grid--rated {
+  min-width: 1634px !important;
+}
+
+.is-presenting .leaderboard-row.leaderboard-grid--standard,
+.is-presenting .leaderboard-header.leaderboard-grid--standard {
+  grid-template-columns: 72px 330px repeat(13, 88px) !important;
+}
+
+.is-presenting .leaderboard-row.leaderboard-grid--rated,
+.is-presenting .leaderboard-header.leaderboard-grid--rated {
+  grid-template-columns: 72px 330px repeat(14, 88px) !important;
+}
+
+.is-presenting .leaderboard-header {
+  min-height: 54px;
+  align-items: center;
+  font-size: 0.8rem !important;
+}
+
+.is-presenting .leaderboard-row {
+  min-height: 78px;
+}
+
+.is-presenting .leaderboard-identity p:first-child {
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.is-presenting .leaderboard-identity p:last-child {
+  margin-top: 0.2rem;
+  font-size: 0.88rem;
+}
+
+.is-presenting .leaderboard-metric {
+  font-size: 1.05rem !important;
+}
+
+.is-presenting .rank-badge--1,
+.is-presenting .rank-badge--2,
+.is-presenting .rank-badge--3,
+.is-presenting .leaderboard-row [class*="rank-badge--"] {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 0.95rem;
+}
+
+.is-presenting .tournament-bracket {
+  border-radius: 8px;
+}
+
+.is-presenting .bracket-summary__top {
+  min-height: 92px;
+  padding: 1rem 1.25rem;
+}
+
+.is-presenting .bracket-summary__top .text-base {
+  font-size: 1.45rem !important;
+}
+
+.is-presenting .bracket-summary__top .text-\[10px\],
+.is-presenting .bracket-summary__top .text-\[11px\] {
+  font-size: 0.85rem !important;
+}
+
+.is-presenting .bracket-summary__action {
+  min-height: 44px;
+  padding-inline: 0.9rem;
+  font-size: 0.9rem;
+}
+
+.is-presenting .journey-primary-tabs button,
+.is-presenting .knockout-stage-tabs button {
+  min-height: 60px;
+  font-size: 1rem;
+}
+
+.is-presenting .journey-panel h3 {
+  font-size: 1.55rem !important;
+}
+
+.is-presenting .journey-panel p {
+  font-size: 0.95rem !important;
+}
+
+.is-presenting .group-snapshot__heading {
+  min-height: 48px;
+  padding-inline: 0.9rem;
+  font-size: 1rem;
+}
+
+.is-presenting .group-snapshot__heading small {
+  font-size: 0.78rem;
+}
+
+.is-presenting .group-snapshot__labels {
+  grid-template-columns: minmax(0, 1fr) 54px 66px;
+  min-height: 38px;
+  padding-left: 3.65rem;
+  font-size: 0.72rem;
+}
+
+.is-presenting .group-snapshot__row {
+  grid-template-columns: 38px minmax(0, 1fr) 54px 66px;
+  min-height: 54px;
+  padding-inline: 0.85rem;
+  font-size: 1rem;
+}
+
+.is-presenting .group-snapshot__row > strong {
+  font-size: 1rem;
+}
+
+.is-presenting .group-snapshot__rank {
+  width: 1.8rem;
+  height: 1.8rem;
+  font-size: 0.78rem;
+}
+
+.is-presenting .match-card .text-sm {
+  font-size: 1rem !important;
+}
+
+@media (min-width: 1024px) {
+  .is-presenting .knockout-map-scroll .bracket-board {
+    zoom: 1.2;
+  }
+}
+
+@media (max-width: 767px) {
+  .tournament-presentation-shell.is-presenting {
+    padding-inline: 0.75rem;
+  }
+
+  .presentation-toolbar {
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+
+  .presentation-toolbar strong {
+    font-size: 1rem;
+  }
+
+  .presentation-toolbar button {
+    padding-inline: 0.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

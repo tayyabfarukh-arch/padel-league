@@ -10,24 +10,24 @@ export function TeamLeaderboard({ rows, limit, showRating = false }: { rows: Tea
   const displayRows = limit ? rows.slice(0, limit) : rows;
 
   return (
-    <div className="sport-card overflow-hidden">
+    <div className="leaderboard-table sport-card overflow-hidden">
       <div className="md:hidden">
         {displayRows.map((row, index) => (
           <MobileTeamRow key={row.team.id} row={row} index={index} showRating={showRating} />
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
-        <div className={showRating ? "min-w-[1184px]" : "min-w-[1112px]"}>
+      <div className="leaderboard-scroll hidden overflow-x-auto md:block">
+        <div className={`leaderboard-grid ${showRating ? "leaderboard-grid--rated min-w-[1184px]" : "leaderboard-grid--standard min-w-[1112px]"}`}>
           <Header label="Team" showRating={showRating} />
           {displayRows.map((row, index) => (
             <Link
               href={`/teams/${row.team.id}`}
               key={row.team.id}
-              className={`rank-row rank-row--${index + 1} grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
+              className={`leaderboard-row rank-row rank-row--${index + 1} grid ${showRating ? "leaderboard-grid--rated grid-cols-[56px_260px_repeat(14,72px)]" : "leaderboard-grid--standard grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
-              <div className="flex min-w-0 items-center gap-3 p-3">
+              <div className="leaderboard-identity flex min-w-0 items-center gap-3 p-3">
                 <TeamAvatar team={row.team} size={42} />
                 <div className="min-w-0">
                   <p className="truncate font-black text-slate-950">{teamLabel(row.team)}</p>
@@ -49,24 +49,24 @@ export function PlayerLeaderboard({ rows, limit, showRating = false }: { rows: P
   const displayRows = limit ? rows.slice(0, limit) : rows;
 
   return (
-    <div className="sport-card overflow-hidden">
+    <div className="leaderboard-table sport-card overflow-hidden">
       <div className="md:hidden">
         {displayRows.map((row, index) => (
           <MobilePlayerRow key={row.player.id} row={row} index={index} showRating={showRating} />
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
-        <div className={showRating ? "min-w-[1184px]" : "min-w-[1112px]"}>
+      <div className="leaderboard-scroll hidden overflow-x-auto md:block">
+        <div className={`leaderboard-grid ${showRating ? "leaderboard-grid--rated min-w-[1184px]" : "leaderboard-grid--standard min-w-[1112px]"}`}>
           <Header label="Player" showRating={showRating} />
           {displayRows.map((row, index) => (
             <Link
               href={`/players/${row.player.id}`}
               key={row.player.id}
-              className={`rank-row rank-row--${index + 1} grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
+              className={`leaderboard-row rank-row rank-row--${index + 1} grid ${showRating ? "leaderboard-grid--rated grid-cols-[56px_260px_repeat(14,72px)]" : "leaderboard-grid--standard grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-slate-100 transition last:border-b-0 hover:bg-emerald-50/60`}
             >
               <RankCell index={index} />
-              <div className="flex min-w-0 items-center gap-3 p-3">
+              <div className="leaderboard-identity flex min-w-0 items-center gap-3 p-3">
                 <PlayerAvatar player={row.player} size={42} />
                 <div className="min-w-0">
                   <p className="flex min-w-0 items-center gap-1 font-black text-slate-950"><span className="truncate">{row.player.name}</span><VerifiedPlayer player={row.player} /><ChampionEmoji champion={row.latestTournamentChampion} /><PredictionEmoji outcome={row.predictionOutcome} /></p>
@@ -129,7 +129,7 @@ function MobilePlayerRow({ row, index, showRating }: { row: PlayerStats; index: 
 function Header({ label, showRating }: { label: string; showRating: boolean }) {
   const columns = [...(showRating ? ["Rating"] : []), "MP", "W", "D", "L", "Win %", "For", "Against", "Diff", "Pts", "SF", "SFW", "F", "Titles"];
   return (
-    <div className={`grid ${showRating ? "grid-cols-[56px_260px_repeat(14,72px)]" : "grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-white/10 bg-ink text-[10px] font-black uppercase text-slate-300`}>
+    <div className={`leaderboard-header grid ${showRating ? "leaderboard-grid--rated grid-cols-[56px_260px_repeat(14,72px)]" : "leaderboard-grid--standard grid-cols-[56px_260px_repeat(13,72px)]"} border-b border-white/10 bg-ink text-[10px] font-black uppercase text-slate-300`}>
       <div className="p-3">Rank</div>
       <div className="p-3">{label}</div>
       {columns.map((column) => (
@@ -203,7 +203,7 @@ function MobileSummaryStats({
 
 function TableMetric({ value, featured = false, dark = false }: { value: string | number; featured?: boolean; dark?: boolean }) {
   return (
-    <div className={`grid place-items-center p-3 text-center text-sm font-black ${featured ? (dark ? "text-ink" : "text-court") : "text-slate-700"}`}>
+    <div className={`leaderboard-metric grid place-items-center p-3 text-center text-sm font-black ${featured ? (dark ? "text-ink" : "text-court") : "text-slate-700"}`}>
       {value}
     </div>
   );
