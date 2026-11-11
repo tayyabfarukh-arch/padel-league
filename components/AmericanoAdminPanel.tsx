@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { CalendarPlus, Check, RefreshCcw, Save, Sparkles, Trash2, Youtube } from "lucide-react";
+import { ArrowLeftRight, CalendarPlus, Check, RefreshCcw, Save, Sparkles, Trash2, Youtube } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { generateSinglesAmericanoSchedule, generateTeamAmericanoSchedule } from "@/lib/americano-schedule";
@@ -35,6 +35,8 @@ export function AmericanoAdminPanel({
   const [tournamentId, setTournamentId] = useState(americanoTournaments.find((item) => item.status === "active")?.id ?? americanoTournaments[0]?.id ?? "");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [resultMatchId, setResultMatchId] = useState("");
+  const [outgoingParticipantId, setOutgoingParticipantId] = useState("");
+  const [replacementParticipantId, setReplacementParticipantId] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const selectedTournament = americanoTournaments.find((item) => item.id === tournamentId);
@@ -247,9 +249,49 @@ export function AmericanoAdminPanel({
     }, "Americano schedule deleted.");
   }
 
+  async function replaceParticipant() {
+    if (!selectedTournament || !effectiveOutgoingParticipantId || !effectiveReplacementParticipantId) return;
+    const outgoing = assignedParticipantOptions.find((item) => item.id === effectiveOutgoingParticipantId);
+    const replacement = replacementParticipantOptions.find((item) => item.id === effectiveReplacementParticipantId);
+    if (!outgoing || !replacement) return;
+    if (!window.confirm(`Replace ${outgoing.label} with ${replacement.label} throughout ${selectedTournament.name}? Rounds, courts and saved scores will stay unchanged.`)) return;
+
+    await run(async () => {
+      const { error } = await supabase!.rpc("replace_americano_participant", {
+        p_tournament_id: tournamentId,
+        p_outgoing_id: effectiveOutgoingParticipantId,
+        p_replacement_id: effectiveReplacementParticipantId
+      });
+      if (error) throw error;
+    }, `${outgoing.label} was replaced by ${replacement.label} in the complete Americano schedule.`);
+  }
+
   const participantOptions = isSingles ? players : teams;
   const assignedCount = isSingles ? selectedPlayerAssignments.length : selectedTeamAssignments.length;
   const assignedIds = isSingles ? selectedPlayerAssignments.map((item) => item.player_id) : selectedTeamAssignments.map((item) => item.team_id);
+  const assignedParticipantOptions: Array<{ id: string; label: string; player?: Player }> = isSingles
+    ? selectedPlayerAssignments.map((item) => {
+        const player = item.player ?? players.find((candidate) => candidate.id === item.player_id);
+        return { id: item.player_id, label: player?.name ?? "Unknown player", player };
+      })
+    : selectedTeamAssignments.map((item) => ({
+        id: item.team_id,
+        label: teamLabel(item.team ?? teams.find((candidate) => candidate.id === item.team_id))
+      }));
+  const assignedParticipantIdSet = new Set(assignedParticipantOptions.map((item) => item.id));
+  const replacementParticipantOptions: Array<{ id: string; label: string; player?: Player }> = isSingles
+    ? players
+        .filter((player) => player.is_active !== false && !assignedParticipantIdSet.has(player.id))
+        .map((player) => ({ id: player.id, label: player.name, player }))
+    : teams
+        .filter((team) => team.is_active !== false && !assignedParticipantIdSet.has(team.id))
+        .map((team) => ({ id: team.id, label: teamLabel(team) }));
+  const effectiveOutgoingParticipantId = assignedParticipantOptions.some((item) => item.id === outgoingParticipantId)
+    ? outgoingParticipantId
+    : assignedParticipantOptions[0]?.id ?? "";
+  const effectiveReplacementParticipantId = replacementParticipantOptions.some((item) => item.id === replacementParticipantId)
+    ? replacementParticipantId
+    : replacementParticipantOptions[0]?.id ?? "";
 
   return (
     <div className="space-y-4">
@@ -293,7 +335,7 @@ export function AmericanoAdminPanel({
       {section !== "create" ? (
         <label className="sport-card block p-3">
           <span className="field-label">Americano tournament</span>
-          <select className="field" value={tournamentId} onChange={(event) => { setTournamentId(event.target.value); setSelectedIds([]); }}>
+          <select className="field" value={tournamentId} onChange={(event) => { setTournamentId(event.target.value); setSelectedIds([]); setOutgoingParticipantId(""); setReplacementParticipantId(""); }}>
             {americanoTournaments.map((item) => <option key={item.id} value={item.id}>{item.name} | {item.tournament_format === "singles_americano" ? "Singles" : "Teams"}</option>)}
           </select>
           {!americanoTournaments.length ? <p className="mt-2 text-sm font-bold text-amber-700">Create an Americano tournament first.</p> : null}
@@ -360,6 +402,40 @@ export function AmericanoAdminPanel({
               })}
               <button className="btn-primary" disabled={busy}><Save className="h-4 w-4" /> Save court links</button>
             </form>
+          </section>
+          <section className="sport-card p-4 lg:col-span-2">
+            <h2 className="text-lg font-black">Replace {isSingles ? "a player" : "a team"}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-600">
+              Replace a withdrawn {isSingles ? "player" : "team"} throughout the generated schedule. Rounds, courts and submitted scores remain unchanged.
+            </p>
+            {selectedTournament.status === "completed" ? (
+              <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm font-bold text-amber-900">
+                Completed Americano tournaments are locked to protect their history.
+              </p>
+            ) : assignedParticipantOptions.length ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] md:items-end">
+                <label>
+                  <span className="field-label">Outgoing {isSingles ? "player" : "team"}</span>
+                  <select className="field" value={effectiveOutgoingParticipantId} onChange={(event) => setOutgoingParticipantId(event.target.value)}>
+                    {assignedParticipantOptions.map((item) => <option key={`outgoing-${item.id}`} value={item.id}>{item.label}</option>)}
+                  </select>
+                </label>
+                <ArrowLeftRight className="mb-3 hidden h-5 w-5 text-court md:block" />
+                <label>
+                  <span className="field-label">Replacement {isSingles ? "player" : "team"}</span>
+                  <select className="field" value={effectiveReplacementParticipantId} onChange={(event) => setReplacementParticipantId(event.target.value)} disabled={!replacementParticipantOptions.length}>
+                    {replacementParticipantOptions.length
+                      ? replacementParticipantOptions.map((item) => <option key={`replacement-${item.id}`} value={item.id}>{item.label}</option>)
+                      : <option value="">No eligible replacement available</option>}
+                  </select>
+                </label>
+                <button type="button" className="btn-primary" onClick={() => void replaceParticipant()} disabled={busy || !effectiveOutgoingParticipantId || !effectiveReplacementParticipantId}>
+                  <ArrowLeftRight className="h-4 w-4" /> Replace everywhere
+                </button>
+              </div>
+            ) : (
+              <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-600">Generate or assign the tournament participants first.</p>
+            )}
           </section>
           <section className="sport-card p-4 lg:col-span-2">
             <h2 className="mb-4 text-lg font-black">Correct one match result</h2>

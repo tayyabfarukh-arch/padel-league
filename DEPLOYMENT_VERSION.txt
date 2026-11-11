@@ -1,3 +1,14 @@
+AMERICANO PARTICIPANT REPLACEMENT V55
+Created: November 11, 2026
+
+- Adds participant replacement under Americano Admin > Manage event.
+- Singles Americano replaces a player across the tournament roster and every generated match.
+- Team Americano replaces a fixed team across the tournament assignment and every generated match.
+- Preserves rounds, courts, submitted scores, winners and timestamps.
+- Uses one Admin-only database transaction so partial replacements cannot occur.
+- Allows replacement in Upcoming and Active events while locking completed history.
+- Run SUPABASE_AMERICANO_PARTICIPANT_REPLACEMENT_UPDATE.sql once before deployment.
+
 BIG SCREEN BRACKET READABILITY V54
 Created: November 6, 2026
 
