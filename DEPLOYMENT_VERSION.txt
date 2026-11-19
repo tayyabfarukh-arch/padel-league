@@ -1,3 +1,14 @@
+PUBLIC SCORING TOGGLE V56
+Created: November 19, 2026
+
+- Adds a per-tournament Public score entry switch for regular and Americano tournaments.
+- Existing and newly created tournaments default to Admin-only scoring.
+- When enabled on an Active tournament, public match cards display score controls.
+- Turning the switch off immediately returns public pages to read-only mode.
+- Admin Score Centre and Americano Admin corrections remain available in either mode.
+- Supabase validates the toggle for every public submission, preventing direct RPC bypasses.
+- Run SUPABASE_PUBLIC_SCORING_TOGGLE_UPDATE.sql once before deploying this version.
+
 AMERICANO PARTICIPANT REPLACEMENT V55
 Created: November 11, 2026
 

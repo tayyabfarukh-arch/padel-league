@@ -33,7 +33,7 @@ export function InlineAmericanoScore({ match, targetPoints, pointsScoringMode }:
     setBusy(true);
     setMessage("");
     setError(false);
-    const { error: submitError } = await supabase!.rpc("submit_americano_score", {
+    const { error: submitError } = await supabase!.rpc("submit_public_americano_score", {
       p_match_id: match.id,
       p_side_1_points: first,
       p_side_2_points: second

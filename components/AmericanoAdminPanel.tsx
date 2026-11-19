@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { ArrowLeftRight, CalendarPlus, Check, RefreshCcw, Save, Sparkles, Trash2, Youtube } from "lucide-react";
 import { PlayerAvatar } from "@/components/Avatar";
+import { PublicScoringToggle } from "@/components/PublicScoringToggle";
 import { FRIEND_CIRCLES } from "@/lib/friend-circles";
 import { generateSinglesAmericanoSchedule, generateTeamAmericanoSchedule } from "@/lib/americano-schedule";
 import { supabase } from "@/lib/supabase";
@@ -93,6 +94,7 @@ export function AmericanoAdminPanel({
         final_target_games: 6,
         third_place_target_games: 6,
         status: String(form.get("status")),
+        public_scoring_enabled: form.get("public_scoring_enabled") === "on",
         start_date: String(form.get("start_date")),
         cover_image_url: coverImageUrl
       });
@@ -162,6 +164,7 @@ export function AmericanoAdminPanel({
         status,
         points_scoring_mode: String(form.get("points_scoring_mode")),
         americano_target_points: Number(form.get("target_points")),
+        public_scoring_enabled: form.get("public_scoring_enabled") === "on",
         end_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null
       }).eq("id", tournamentId);
       if (error) throw error;
@@ -326,6 +329,7 @@ export function AmericanoAdminPanel({
               <label><span className="field-label">Start date</span><input className="field" name="start_date" type="date" required /></label>
             </div>
             <FieldSelect name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"]]} />
+            <PublicScoringToggle />
             <label><span className="field-label">Cover image</span><input className="field" name="cover" type="file" accept="image/*" /></label>
             <button className="btn-primary" disabled={busy}><CalendarPlus className="h-4 w-4" /> Create Americano event</button>
           </form>
@@ -385,6 +389,7 @@ export function AmericanoAdminPanel({
               <FieldSelect name="status" label="Status" defaultValue={selectedTournament.status} options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
               <FieldSelect name="points_scoring_mode" label="Points scoring rule" defaultValue={selectedTournament.points_scoring_mode} options={[["race_to", "Race to target"], ["fixed_total", "Fixed combined total"]]} />
               <NumberInput name="target_points" label="Points target" value={selectedTournament.americano_target_points} max={100} />
+              <PublicScoringToggle defaultChecked={selectedTournament.public_scoring_enabled === true} />
               <button className="btn-primary" disabled={busy}><Check className="h-4 w-4" /> Save settings</button>
             </form>
             <div className="mt-5 grid gap-2 border-t border-slate-200 pt-4 sm:grid-cols-2">

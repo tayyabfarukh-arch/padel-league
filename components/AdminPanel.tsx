@@ -10,6 +10,7 @@ import { AwardAdminPanel } from "@/components/AwardAdminPanel";
 import { PlayerAccountAdmin } from "@/components/PlayerAccountAdmin";
 import { PlayerPicker } from "@/components/PlayerPicker";
 import { PlayerProfileAdmin } from "@/components/PlayerProfileAdmin";
+import { PublicScoringToggle } from "@/components/PublicScoringToggle";
 import { RegistrationAdminPanel } from "@/components/RegistrationAdminPanel";
 import { RatingCalibrationAdmin } from "@/components/RatingCalibrationAdmin";
 import { TournamentDashboard } from "@/components/TournamentDashboard";
@@ -477,6 +478,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
         final_target_games: Number(form.get("final_target_games")),
         third_place_target_games: Number(form.get("third_place_target_games")),
         status: form.get("status"),
+        public_scoring_enabled: form.get("public_scoring_enabled") === "on",
         start_date: form.get("start_date"),
         cover_image_url
       });
@@ -611,7 +613,8 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
           semifinal_target_games: semifinalTargetGames,
           final_target_games: finalTargetGames,
           third_place_target_games: thirdPlaceTargetGames,
-          status: form.get("status")
+          status: form.get("status"),
+          public_scoring_enabled: form.get("public_scoring_enabled") === "on"
         })
         .eq("id", teamTournamentId);
       if (error) throw error;
@@ -1749,6 +1752,7 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
               Group matches use points. Knockout matches extend by two games if both teams reach the selected target.
             </p>
             <Select name="status" label="Status" options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]} />
+            <PublicScoringToggle />
             <FileField name="cover" label="Cover image" />
             <button className="btn-primary" disabled={busy}><Plus className="h-4 w-4" /> Create tournament</button>
           </form>
@@ -1823,6 +1827,12 @@ export function AdminPanel({ configured, players, teams, tournaments: allTournam
                   label="Tournament status"
                   defaultValue={teamTournament?.status ?? "upcoming"}
                   options={[["upcoming", "Upcoming"], ["active", "Active"], ["completed", "Completed"]]}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <PublicScoringToggle
+                  key={`public-scoring-${teamTournamentId}`}
+                  defaultChecked={teamTournament?.public_scoring_enabled === true}
                 />
               </div>
               <button className="btn-secondary shrink-0 sm:col-span-2" disabled={busy}>

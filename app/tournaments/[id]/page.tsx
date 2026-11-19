@@ -7,6 +7,7 @@ import { TournamentGroups } from "@/components/TournamentGroups";
 import { TournamentJourney } from "@/components/TournamentJourney";
 import { getCourtStreams, getMatches, getTournament, getTournamentTeams } from "@/lib/data";
 import { courtStreamUrl, stageLabel, teamLabel } from "@/lib/format";
+import { getTargetGamesForStage } from "@/lib/scoring";
 import type { Team } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,9 @@ export const revalidate = 0;
 export default async function TournamentDetailPage({ params }: { params: { id: string } }) {
   const tournament = await getTournament(params.id);
   if (!tournament) notFound();
+  const allowScoreEntry = tournament.status === "active" && tournament.public_scoring_enabled === true;
   if (tournament.tournament_format !== "regular") {
-    return <TournamentExperience tournament={tournament} allowScoreEntry={false} />;
+    return <TournamentExperience tournament={tournament} allowScoreEntry={allowScoreEntry} />;
   }
   const [tournamentTeams, matches, courtStreams] = await Promise.all([
     getTournamentTeams(tournament.id),
@@ -73,6 +75,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
         tournamentTeams={tournamentTeams}
         matches={matches}
         courtStreams={courtStreams}
+        allowScoreEntry={allowScoreEntry}
       />
 
       {(["prequarterfinal", "quarterfinal", "semifinal", "final", "third_place"] as const).map((stage) => {
@@ -95,6 +98,9 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
                   key={match.id}
                   match={match}
                   youtubeUrl={courtStreamUrl(match, courtStreams)}
+                  allowScoreEntry={allowScoreEntry}
+                  scoreTarget={getTargetGamesForStage(tournament, match.stage)}
+                  pointsScoringMode={tournament.points_scoring_mode}
                 />
               ))}
             </div>

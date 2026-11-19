@@ -39,6 +39,7 @@ create table if not exists tournaments (
   americano_target_points integer not null default 24 check (americano_target_points between 1 and 100),
   americano_round_count integer not null default 5 check (americano_round_count between 1 and 100),
   status text not null default 'upcoming' check (status in ('upcoming', 'active', 'completed')),
+  public_scoring_enabled boolean not null default false,
   start_date date not null default current_date,
   end_date date,
   champion_team_id uuid references teams(id),
@@ -89,6 +90,9 @@ add column if not exists americano_round_count integer not null default 5;
 
 alter table tournaments
 add column if not exists points_scoring_mode text not null default 'fixed_total';
+
+alter table tournaments
+add column if not exists public_scoring_enabled boolean not null default false;
 
 do $$
 begin

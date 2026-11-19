@@ -116,6 +116,7 @@ export type Tournament = {
   third_place_team_id: string | null;
   cover_image_url: string | null;
   registration_open?: boolean;
+  public_scoring_enabled: boolean;
   team_fee?: number;
   advance_amount?: number;
   created_at: string;
